@@ -1302,43 +1302,30 @@ class DragonShooterGame {
         const keys = this.keys || {};
         let dx = 0, dy = 0;
         
-        if (keys['w'] || keys['arrowup']) dy -= 1;
-        if (keys['s'] || keys['arrowdown']) dy += 1;
         if (keys['a'] || keys['arrowleft']) dx -= 1;
         if (keys['d'] || keys['arrowright']) dx += 1;
         
         if (this.isMoving && this.targetPosition) {
             const targetX = this.targetPosition.x;
-            const targetY = this.targetPosition.y;
             
             dx = targetX - this.player.x;
-            dy = targetY - this.player.y;
             
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const dist = Math.abs(dx);
             if (dist > 5) {
-                dx /= dist;
-                dy /= dist;
+                dx = dx > 0 ? 1 : -1;
             } else {
                 dx = 0;
-                dy = 0;
             }
+            dy = 0;
         }
         
-        if (dx !== 0 || dy !== 0) {
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len > 0) {
-                dx /= len;
-                dy /= len;
-            }
-            
+        if (dx !== 0) {
             const speedMultiplier = this.getBuffMultiplier('speed_boost');
             const speed = this.playerStats.speed * speedMultiplier * 60 * dt;
             
             this.player.x += dx * speed;
-            this.player.y += dy * speed;
             
             this.player.x = Math.max(this.player.radius, Math.min(this.width - this.player.radius, this.player.x));
-            this.player.y = Math.max(this.player.radius, Math.min(this.height - this.player.radius, this.player.y));
         }
         
         if (this.player.invincible > 0) {
@@ -1577,8 +1564,22 @@ class DragonShooterGame {
     }
     
     updateChests(dt) {
+        const gravity = 5;
+        const maxFallSpeed = 10;
+        
         for (let i = this.chests.length - 1; i >= 0; i--) {
             const chest = this.chests[i];
+            
+            if (chest.falling) {
+                chest.vy = Math.min(chest.vy + gravity * dt, maxFallSpeed);
+                chest.y += chest.vy * 60 * dt;
+                
+                if (chest.y > this.height + chest.radius) {
+                    this.chests.splice(i, 1);
+                    continue;
+                }
+            }
+            
             chest.bobOffset = Math.sin(Date.now() / 500 + i) * 5;
             
             if (this.checkCollision(chest, this.player)) {
@@ -1609,8 +1610,22 @@ class DragonShooterGame {
     }
     
     updatePowerups(dt) {
+        const gravity = 4;
+        const maxFallSpeed = 8;
+        
         for (let i = this.powerups.length - 1; i >= 0; i--) {
             const powerup = this.powerups[i];
+            
+            if (powerup.falling) {
+                powerup.vy = Math.min(powerup.vy + gravity * dt, maxFallSpeed);
+                powerup.y += powerup.vy * 60 * dt;
+                
+                if (powerup.y > this.height + powerup.radius) {
+                    this.powerups.splice(i, 1);
+                    continue;
+                }
+            }
+            
             powerup.angle += dt * 2;
             powerup.bobOffset = Math.sin(Date.now() / 300 + i) * 3;
             
@@ -1735,14 +1750,28 @@ class DragonShooterGame {
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
         const color = colors[Math.floor(Math.random() * colors.length)];
         
-        const healthPerSegment = Math.ceil(config.enemyHealth / segments);
+        let totalHealth = 0;
+        const healthMultiplier = 1.1;
+        let baseHealth = config.enemyHealth;
+        
+        if (segments > 1) {
+            const ratio = (Math.pow(healthMultiplier, segments) - 1) / (healthMultiplier - 1);
+            baseHealth = Math.ceil(config.enemyHealth / ratio);
+        }
+        
+        const segmentHealths = [];
+        for (let i = 0; i < segments; i++) {
+            const health = Math.ceil(baseHealth * Math.pow(healthMultiplier, segments - 1 - i));
+            segmentHealths.push(health);
+            totalHealth += health;
+        }
         
         const dragon = {
             x: startX,
             y: startY,
             radius: 22,
-            health: config.enemyHealth,
-            maxHealth: config.enemyHealth,
+            health: totalHealth,
+            maxHealth: totalHealth,
             speed: config.enemySpeed,
             damage: config.enemyDamage,
             angle: 0,
@@ -1755,8 +1784,8 @@ class DragonShooterGame {
             dragon.segments.push({
                 offsetX: 0,
                 offsetY: -i * segmentSpacing,
-                health: healthPerSegment,
-                maxHealth: healthPerSegment,
+                health: segmentHealths[i],
+                maxHealth: segmentHealths[i],
                 index: i
             });
         }
@@ -1772,7 +1801,9 @@ class DragonShooterGame {
             y: y || (80 + Math.random() * (this.height - 160)),
             radius: 30,
             bobOffset: 0,
-            goldAmount: goldAmount
+            goldAmount: goldAmount,
+            vy: 0,
+            falling: y !== undefined
         });
     }
     
@@ -1786,6 +1817,8 @@ class DragonShooterGame {
             radius: 15,
             angle: 0,
             bobOffset: 0,
+            vy: 0,
+            falling: true,
             ...type
         });
     }
