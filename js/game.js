@@ -150,7 +150,6 @@ class DragonShooterGame {
         this.powerups = [];
         this.damageNumbers = [];
         
-        this.currentLevel = 1;
         this.score = 0;
         this.goldEarned = 0;
         this.enemiesKilled = 0;
