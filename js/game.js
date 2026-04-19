@@ -502,6 +502,7 @@ class DragonShooterGame {
         // 显示主界面
         document.getElementById('mainScreen').classList.remove('hidden');
         document.getElementById('bottomNav').classList.remove('hidden');
+        document.getElementById('topBar').classList.remove('hidden');
         
         // 隐藏战斗界面
         document.getElementById('battleInfo').classList.add('hidden');
@@ -715,6 +716,7 @@ class DragonShooterGame {
         // 隐藏主界面
         document.getElementById('mainScreen').classList.add('hidden');
         document.getElementById('bottomNav').classList.add('hidden');
+        document.getElementById('topBar').classList.add('hidden');
         
         // 显示战斗界面
         document.getElementById('battleInfo').classList.remove('hidden');

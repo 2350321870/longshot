@@ -319,15 +319,26 @@
         .pause-btn {
             position: absolute;
             top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 3px solid #888;
-            border-radius: 10px;
-            padding: 10px 15px;
+            right: 15px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            padding: 10px 12px;
             color: #fff;
-            font-size: 24px;
+            font-size: 20px;
             cursor: pointer;
             z-index: 100;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .pause-btn:hover {
+            background: linear-gradient(180deg, rgba(100, 100, 100, 0.8), rgba(80, 80, 80, 0.6));
+            transform: scale(1.05);
         }
         
         .battle-info {
@@ -337,18 +348,22 @@
             transform: translateX(-50%);
             text-align: center;
             z-index: 100;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.5);
         }
         
         .battle-level {
-            color: #fff;
-            font-size: 20px;
+            color: #ffd700;
+            font-size: 18px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         
         .battle-difficulty {
             color: #44ff44;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
         }
 
@@ -649,27 +664,32 @@
 
         .fence-bar {
             position: absolute;
-            bottom: 60px;
+            bottom: 0;
             left: 0;
             right: 0;
-            height: 50px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
+            height: 40px;
             z-index: 50;
+            background: linear-gradient(0deg, rgba(139, 69, 19, 0.9), rgba(139, 69, 19, 0.3), transparent);
+            border-top: 3px solid #8B4513;
         }
         
         .fence-pickets {
             display: flex;
-            gap: 5px;
+            justify-content: center;
+            gap: 8px;
+            position: absolute;
+            top: -30px;
+            left: 0;
+            right: 0;
         }
         
         .fence-picket {
-            width: 15px;
-            height: 35px;
-            background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
-            border-radius: 3px 3px 0 0;
+            width: 12px;
+            height: 30px;
+            background: linear-gradient(180deg, #A0522D 0%, #8B4513 100%);
+            border-radius: 2px 2px 0 0;
             position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .fence-picket::before {
@@ -680,35 +700,36 @@
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-bottom: 10px solid #A0522D;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 8px solid #CD853F;
         }
         
         .fence-rail {
             position: absolute;
-            bottom: 8px;
+            top: 5px;
             left: 0;
             right: 0;
-            height: 8px;
-            background: linear-gradient(180deg, #8B4513, #654321);
+            height: 6px;
+            background: linear-gradient(180deg, #A0522D, #8B4513);
         }
         
         .fence-post {
             position: absolute;
             bottom: 0;
-            width: 20px;
-            height: 45px;
+            width: 16px;
+            height: 40px;
             background: linear-gradient(180deg, #654321, #4a3520);
-            border-radius: 5px 5px 0 0;
+            border-radius: 3px 3px 0 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .fence-post.left {
-            left: 20px;
+            left: 15px;
         }
         
         .fence-post.right {
-            right: 20px;
+            right: 15px;
         }
 
         .pause-menu {
@@ -903,64 +924,73 @@
 
         .battle-ui {
             position: absolute;
-            top: 60px;
+            bottom: 120px;
             left: 15px;
             right: 15px;
             z-index: 100;
         }
         
         .health-bar-container {
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #444;
-            border-radius: 10px;
-            padding: 8px 15px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 10px 15px;
             margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
         
         .health-bar-bg {
-            height: 12px;
-            background: #333;
-            border-radius: 6px;
+            height: 16px;
+            background: linear-gradient(180deg, #333, #222);
+            border-radius: 8px;
             overflow: hidden;
             margin-bottom: 5px;
+            border: 1px solid #555;
         }
         
         .health-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #ff4444, #ff8844);
-            border-radius: 6px;
+            background: linear-gradient(90deg, #ff4444, #ff8844, #ffaa44);
+            border-radius: 8px;
             transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
         }
         
         .health-text {
             color: #fff;
-            font-size: 12px;
+            font-size: 13px;
             text-align: center;
             font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
         
         .battle-stats {
             display: flex;
-            justify-content: space-between;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #444;
-            border-radius: 10px;
-            padding: 8px 15px;
+            justify-content: space-around;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 10px 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
         
         .stat-item {
             text-align: center;
+            flex: 1;
         }
         
         .stat-label {
             color: #aaa;
             font-size: 11px;
+            display: block;
+            margin-bottom: 2px;
         }
         
         .stat-value {
-            color: #fff;
-            font-size: 14px;
+            color: #ffd700;
+            font-size: 16px;
             font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
 
         @media (max-width: 500px) {
