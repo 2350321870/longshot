@@ -1761,7 +1761,7 @@ class DragonShooterGame {
         
         const segmentHealths = [];
         for (let i = 0; i < segments; i++) {
-            const health = Math.ceil(baseHealth * Math.pow(healthMultiplier, segments - 1 - i));
+            const health = Math.ceil(baseHealth * Math.pow(healthMultiplier, i));
             segmentHealths.push(health);
             totalHealth += health;
         }
@@ -1798,12 +1798,12 @@ class DragonShooterGame {
         
         this.chests.push({
             x: x || (80 + Math.random() * (this.width - 160)),
-            y: y || (80 + Math.random() * (this.height - 160)),
+            y: y || -50,
             radius: 30,
             bobOffset: 0,
             goldAmount: goldAmount,
             vy: 0,
-            falling: y !== undefined
+            falling: true
         });
     }
     
