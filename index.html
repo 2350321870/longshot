@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>射击龙 - RogueLike</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+            touch-action: none;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
+        }
+        
+        #uiLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #uiLayer > * {
+            pointer-events: auto;
+        }
+        
+        .game-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+        }
+        
+        .stat-box {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            padding: 8px 15px;
+            color: #fff;
+            font-size: 14px;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            color: #ffd700;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .health-bar-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 400px;
+            z-index: 10;
+        }
+        
+        .health-bar-bg {
+            background: rgba(50, 50, 50, 0.8);
+            border: 2px solid #ff4444;
+            border-radius: 20px;
+            height: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .health-bar-fill {
+            background: linear-gradient(90deg, #ff4444, #ff6b6b);
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 20px;
+        }
+        
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-size: 14px;
+        }
+        
+        #skillSelection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #skillSelection.show {
+            display: flex;
+        }
+        
+        .skill-title {
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .skill-cards {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 20px;
+        }
+        
+        .skill-card {
+            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            width: 140px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .skill-card:hover {
+            transform: scale(1.05);
+            border-color: #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+        
+        .skill-card:active {
+            transform: scale(0.98);
+        }
+        
+        .skill-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .skill-name {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .skill-desc {
+            color: #aaa;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        
+        #startScreen.hidden {
+            display: none;
+        }
+        
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .game-subtitle {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 50px;
+        }
+        
+        .start-btn {
+            background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(238, 90, 90, 0.4);
+        }
+        
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(238, 90, 90, 0.6);
+        }
+        
+        .start-btn:active {
+            transform: scale(0.98);
+        }
+        
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        
+        #gameOverScreen.show {
+            display: flex;
+        }
+        
+        .gameover-title {
+            font-size: 42px;
+            font-weight: bold;
+            color: #ff4444;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+        
+        .gameover-stats {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 40px;
+            text-align: center;
+            line-height: 2;
+        }
+        
+        .gold-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .level-value {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        #levelUpScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #levelUpScreen.show {
+            display: flex;
+        }
+        
+        .levelup-title {
+            font-size: 36px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .unlock-text {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .continue-btn {
+            background: linear-gradient(145deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .continue-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 500px) {
+            .game-title {
+                font-size: 36px;
+            }
+            
+            .skill-card {
+                width: 120px;
+                padding: 15px;
+            }
+            
+            .skill-cards {
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiLayer">
+            <div class="game-info">
+                <div class="stat-box">
+                    <div class="stat-label">关卡</div>
+                    <div class="stat-value" id="levelDisplay">1</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">金币</div>
+                    <div class="stat-value" id="goldDisplay">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">得分</div>
+                    <div class="stat-value" id="scoreDisplay">0</div>
+                </div>
+            </div>
+            
+            <div class="health-bar-container">
+                <div class="health-bar-bg">
+                    <div class="health-bar-fill" id="healthBar" style="width: 100%"></div>
+                    <div class="health-text" id="healthText">100 / 100</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="startScreen">
+            <div class="game-title">🐉 射击龙 🐉</div>
+            <div class="game-subtitle">RogueLike射击冒险</div>
+            <button class="start-btn" id="startBtn">开始游戏</button>
+        </div>
+        
+        <div id="skillSelection">
+            <div class="skill-title">选择技能升级</div>
+            <div class="skill-cards" id="skillCards"></div>
+        </div>
+        
+        <div id="levelUpScreen">
+            <div class="levelup-title">🎉 关卡完成！</div>
+            <div class="unlock-text" id="unlockText"></div>
+            <button class="continue-btn" id="continueBtn">继续下一关</button>
+        </div>
+        
+        <div id="gameOverScreen">
+            <div class="gameover-title">游戏结束</div>
+            <div class="gameover-stats">
+                <div>到达关卡: <span class="level-value" id="finalLevel">1</span></div>
+                <div>获得金币: <span class="gold-value" id="finalGold">0</span></div>
+                <div>最终得分: <span class="gold-value" id="finalScore">0</span></div>
+            </div>
+            <button class="start-btn" id="restartBtn">再来一局</button>
+        </div>
+    </div>
+    
+    <script src="js/wasmmoon.min.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
