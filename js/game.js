@@ -163,15 +163,15 @@ class DragonShooterGame {
         ];
         
         this.levelConfigs = {
-            1: { enemyCount: 8, enemyHealth: 500, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 15, chestDropChance: 0.15 },
-            2: { enemyCount: 10, enemyHealth: 800, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 20, chestDropChance: 0.15 },
-            3: { enemyCount: 12, enemyHealth: 1200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 25, unlockAbility: true, chestDropChance: 0.18 },
-            4: { enemyCount: 15, enemyHealth: 1800, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 30, chestDropChance: 0.18 },
-            5: { enemyCount: 18, enemyHealth: 2500, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 35, chestDropChance: 0.2 },
-            6: { enemyCount: 20, enemyHealth: 3500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 40, unlockAbility: true, chestDropChance: 0.2 },
-            7: { enemyCount: 25, enemyHealth: 5000, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 45, chestDropChance: 0.22 },
-            8: { enemyCount: 28, enemyHealth: 7000, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 50, chestDropChance: 0.22 },
-            9: { enemyCount: 30, enemyHealth: 10000, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 60, unlockAbility: true, chestDropChance: 0.25 }
+            1: { enemyCount: 8, enemyHealth: 100, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 10, chestDropChance: 0.6 },
+            2: { enemyCount: 10, enemyHealth: 150, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 12, chestDropChance: 0.6 },
+            3: { enemyCount: 12, enemyHealth: 200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 15, unlockAbility: true, chestDropChance: 0.65 },
+            4: { enemyCount: 15, enemyHealth: 300, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 18, chestDropChance: 0.65 },
+            5: { enemyCount: 18, enemyHealth: 400, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 20, chestDropChance: 0.7 },
+            6: { enemyCount: 20, enemyHealth: 500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 22, unlockAbility: true, chestDropChance: 0.7 },
+            7: { enemyCount: 25, enemyHealth: 600, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 25, chestDropChance: 0.75 },
+            8: { enemyCount: 28, enemyHealth: 700, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 28, chestDropChance: 0.75 },
+            9: { enemyCount: 30, enemyHealth: 800, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 30, unlockAbility: true, chestDropChance: 0.8 }
         };
 
         this.skills = [
@@ -1166,7 +1166,7 @@ class DragonShooterGame {
             enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
             dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
             segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 5), 100),
-            chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.4),
+            chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.9),
             unlockAbility: baseConfig.unlockAbility || false
         };
     }
