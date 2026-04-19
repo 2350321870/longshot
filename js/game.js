@@ -504,7 +504,8 @@ return {
         this.initPlayer();
         this.startLevel(1);
         this.gameState = 'playing';
-        this.gameLoop();
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
     }
     
     restartGame() {
@@ -513,7 +514,8 @@ return {
         this.initPlayer();
         this.startLevel(1);
         this.gameState = 'playing';
-        this.gameLoop();
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
     }
     
     initPlayer() {
@@ -551,7 +553,8 @@ return {
         const newLevel = this.level + 1;
         this.startLevel(newLevel);
         this.gameState = 'playing';
-        this.gameLoop();
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
     }
     
     gameLoop(currentTime = 0) {
@@ -1069,7 +1072,8 @@ return {
                 this.applySkill(skill);
                 document.getElementById('skillSelection').classList.remove('show');
                 this.gameState = 'playing';
-                this.gameLoop();
+                this.lastTime = 0;
+                requestAnimationFrame((t) => this.gameLoop(t));
             });
             
             skillContainer.appendChild(card);
