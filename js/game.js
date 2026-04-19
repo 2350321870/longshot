@@ -1949,12 +1949,12 @@ class DragonShooterGame {
     }
     
     updateUI() {
-        const healthPercent = (this.playerStats.health / this.playerStats.maxHealth) * 100;
-        document.getElementById('healthBar').style.width = `${healthPercent}%`;
-        document.getElementById('healthText').textContent = 
-            `${Math.max(0, Math.ceil(this.playerStats.health))} / ${this.playerStats.maxHealth}`;
+        const healthText = `❤️ ${Math.max(0, Math.ceil(this.playerStats.health))}/${this.playerStats.maxHealth}`;
+        const battleHealthDisplay = document.getElementById('battleHealthDisplay');
+        if (battleHealthDisplay) {
+            battleHealthDisplay.textContent = healthText;
+        }
         
-        document.getElementById('levelDisplay').textContent = this.currentLevel;
         document.getElementById('goldDisplay').textContent = this.goldEarned;
         document.getElementById('scoreDisplay').textContent = this.score;
     }
