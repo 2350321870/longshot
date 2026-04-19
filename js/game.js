@@ -112,7 +112,7 @@ class DragonShooterGame {
             { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲" }
         ];
 
-        this.powerups = [
+        this.powerupTypes = [
             { id: "gold", name: "金币", icon: "💰", color: "#FFD700" },
             { id: "health_pack", name: "生命包", icon: "💊", color: "#FF6B6B" },
             { id: "damage_boost", name: "伤害提升", icon: "⚔️", color: "#FF4444", duration: 10 },
@@ -1081,7 +1081,7 @@ class DragonShooterGame {
     }
     
     spawnPowerup(x, y) {
-        const powerupTypes = this.powerups;
+        const powerupTypes = this.powerupTypes;
         const type = powerupTypes[Math.floor(Math.random() * powerupTypes.length)];
         
         this.powerups.push({
