@@ -3,15 +3,16 @@ class DragonShooterGame {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         
-        this.gameState = 'start';
+        this.gameState = 'mainMenu';
         this.isPaused = false;
         
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
         
+        this.initGameData();
         this.initGame();
         this.setupEventListeners();
-        this.loadLuaData();
+        this.renderMainMenu();
     }
     
     resizeCanvas() {
@@ -21,18 +22,137 @@ class DragonShooterGame {
         this.height = this.canvas.height;
     }
     
+    initGameData() {
+        this.saveData = this.loadSaveData() || {
+            gold: 100,
+            maxUnlockedLevel: 1,
+            equipment: {
+                weapon: { level: 0, owned: false },
+                armor: { level: 0, owned: false },
+                boots: { level: 0, owned: false },
+                ring: { level: 0, owned: false }
+            },
+            permanentUpgrades: {
+                bulletDamage: 0,
+                maxHealth: 0,
+                moveSpeed: 0
+            }
+        };
+        
+        this.equipmentConfig = {
+            weapon: {
+                name: '武器',
+                icon: '⚔️',
+                basePrice: 100,
+                upgradePrice: 80,
+                buyDescription: '购买：永久增加基础伤害+5',
+                upgradeDescription: '强化：每级伤害+3'
+            },
+            armor: {
+                name: '护甲',
+                icon: '🛡️',
+                basePrice: 100,
+                upgradePrice: 80,
+                buyDescription: '购买：永久增加最大生命+20',
+                upgradeDescription: '强化：每级最大生命+10'
+            },
+            boots: {
+                name: '靴子',
+                icon: '👟',
+                basePrice: 80,
+                upgradePrice: 60,
+                buyDescription: '购买：永久增加移动速度+10%',
+                upgradeDescription: '强化：每级速度+5%'
+            },
+            ring: {
+                name: '戒指',
+                icon: '💍',
+                basePrice: 150,
+                upgradePrice: 100,
+                buyDescription: '购买：暴击几率+5%',
+                upgradeDescription: '强化：每级暴击几率+2%'
+            }
+        };
+        
+        this.gachaPool = [
+            { id: 'gold_small', name: '少量金币', icon: '💰', desc: '获得50金币', rarity: 'common', weight: 40, effect: () => { this.saveData.gold += 50; } },
+            { id: 'gold_medium', name: '中型金币', icon: '💰', desc: '获得100金币', rarity: 'uncommon', weight: 25, effect: () => { this.saveData.gold += 100; } },
+            { id: 'gold_large', name: '大型金币', icon: '💎', desc: '获得300金币', rarity: 'rare', weight: 10, effect: () => { this.saveData.gold += 300; } },
+            { id: 'health_boost', name: '生命强化', icon: '❤️', desc: '永久+10最大生命', rarity: 'uncommon', weight: 15, effect: () => { this.saveData.permanentUpgrades.maxHealth += 1; } },
+            { id: 'damage_boost', name: '伤害强化', icon: '💥', desc: '永久+2伤害', rarity: 'uncommon', weight: 15, effect: () => { this.saveData.permanentUpgrades.bulletDamage += 1; } },
+            { id: 'speed_boost', name: '速度强化', icon: '⚡', desc: '永久+5%速度', rarity: 'uncommon', weight: 15, effect: () => { this.saveData.permanentUpgrades.moveSpeed += 1; } },
+            { id: 'legendary_gold', name: '传说金币', icon: '👑', desc: '获得1000金币', rarity: 'legendary', weight: 3, effect: () => { this.saveData.gold += 1000; } },
+            { id: 'level_unlock', name: '关卡解锁', icon: '🔓', desc: '解锁下一关', rarity: 'rare', weight: 5, effect: () => { this.saveData.maxUnlockedLevel += 1; } }
+        ];
+        
+        this.levelConfigs = {
+            1: { enemyCount: 8, enemyHealth: 40, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 3 },
+            2: { enemyCount: 10, enemyHealth: 50, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 4 },
+            3: { enemyCount: 12, enemyHealth: 65, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 5, unlockAbility: true },
+            4: { enemyCount: 15, enemyHealth: 80, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 5 },
+            5: { enemyCount: 18, enemyHealth: 100, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 6 },
+            6: { enemyCount: 20, enemyHealth: 120, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 6, unlockAbility: true },
+            7: { enemyCount: 25, enemyHealth: 150, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 7 },
+            8: { enemyCount: 28, enemyHealth: 180, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 7 },
+            9: { enemyCount: 30, enemyHealth: 220, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 8, unlockAbility: true }
+        };
+
+        this.skills = [
+            { id: "bullet_count", name: "多重射击", description: "子弹数量+1", icon: "🎯" },
+            { id: "bullet_spread", name: "扇形射击", description: "子弹覆盖范围扩大", icon: "🌟" },
+            { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡" },
+            { id: "damage", name: "强力子弹", description: "子弹伤害+25%", icon: "💥" },
+            { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️" },
+            { id: "max_health", name: "生命强化", description: "最大生命值+25", icon: "💗" },
+            { id: "bullet_size", name: "巨型子弹", description: "子弹体积变大", icon: "🔵" },
+            { id: "speed", name: "加速移动", description: "移动速度+15%", icon: "🏃" },
+            { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯" },
+            { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐" },
+            { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫" },
+            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲" }
+        ];
+
+        this.powerups = [
+            { id: "gold", name: "金币", icon: "💰", color: "#FFD700" },
+            { id: "health_pack", name: "生命包", icon: "💊", color: "#FF6B6B" },
+            { id: "damage_boost", name: "伤害提升", icon: "⚔️", color: "#FF4444", duration: 10 },
+            { id: "speed_boost", name: "速度提升", icon: "💨", color: "#00CED1", duration: 8 }
+        ];
+    }
+    
+    loadSaveData() {
+        try {
+            const saved = localStorage.getItem('dragonShooterSave');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch (e) {
+            console.error('Failed to load save:', e);
+        }
+        return null;
+    }
+    
+    saveGameData() {
+        try {
+            localStorage.setItem('dragonShooterSave', JSON.stringify(this.saveData));
+        } catch (e) {
+            console.error('Failed to save:', e);
+        }
+    }
+    
     initGame() {
         this.player = null;
         this.bullets = [];
         this.enemies = [];
+        this.dragonSegments = [];
         this.chests = [];
         this.particles = [];
         this.powerups = [];
         this.damageNumbers = [];
         
-        this.level = 1;
+        this.currentLevel = 1;
         this.score = 0;
-        this.gold = 0;
+        this.goldEarned = 0;
         this.enemiesKilled = 0;
         this.chestsOpened = 0;
         this.enemiesInLevel = 0;
@@ -43,18 +163,20 @@ class DragonShooterGame {
         this.spawnTimer = 0;
         this.chestSpawnTimer = 0;
         
+        const baseStats = this.getBaseStats();
+        
         this.playerStats = {
-            maxHealth: 100,
-            health: 100,
-            speed: 5,
+            maxHealth: 100 + baseStats.maxHealth,
+            health: 100 + baseStats.maxHealth,
+            speed: 5 * (1 + baseStats.moveSpeedBonus),
             bulletSpeed: 10,
-            bulletDamage: 10,
+            bulletDamage: 10 + baseStats.bulletDamage,
             bulletCount: 1,
             bulletSpread: 0,
             fireRate: 0.15,
             bulletSize: 8,
             bulletPierce: 0,
-            criticalChance: 0,
+            criticalChance: 0.05 + baseStats.critChanceBonus,
             criticalDamage: 1.5,
             bulletBounce: 0,
             magnetRange: 50
@@ -67,341 +189,304 @@ class DragonShooterGame {
         this.isMoving = false;
     }
     
-    loadLuaData() {
-        if (typeof WasmMoon !== 'undefined') {
-            this.luaRuntime = WasmMoon;
-            this.initLuaScripts();
-        } else {
-            console.log('Lua runtime not available, using default data');
-            this.initDefaultData();
+    getBaseStats() {
+        let stats = {
+            bulletDamage: 0,
+            maxHealth: 0,
+            moveSpeedBonus: 0,
+            critChanceBonus: 0
+        };
+        
+        const eq = this.saveData.equipment;
+        const pu = this.saveData.permanentUpgrades;
+        
+        if (eq.weapon.owned) {
+            stats.bulletDamage += 5 + eq.weapon.level * 3;
+        }
+        
+        if (eq.armor.owned) {
+            stats.maxHealth += 20 + eq.armor.level * 10;
+        }
+        
+        if (eq.boots.owned) {
+            stats.moveSpeedBonus += 0.1 + eq.boots.level * 0.05;
+        }
+        
+        if (eq.ring.owned) {
+            stats.critChanceBonus += 0.05 + eq.ring.level * 0.02;
+        }
+        
+        stats.bulletDamage += pu.bulletDamage * 2;
+        stats.maxHealth += pu.maxHealth * 10;
+        stats.moveSpeedBonus += pu.moveSpeed * 0.05;
+        
+        return stats;
+    }
+    
+    setupEventListeners() {
+        document.getElementById('nextLevelBtn').addEventListener('click', () => this.nextLevel());
+        document.getElementById('returnMainBtn').addEventListener('click', () => this.returnToMainMenu());
+        document.getElementById('returnMainBtn2').addEventListener('click', () => this.returnToMainMenu());
+        document.getElementById('retryBtn').addEventListener('click', () => this.retryLevel());
+        document.getElementById('backBtn').addEventListener('click', () => this.returnToMainMenu());
+        
+        document.getElementById('gachaSingleBtn').addEventListener('click', () => this.doGacha(1));
+        document.getElementById('gachaTenBtn').addEventListener('click', () => this.doGacha(10));
+        
+        this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+        this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+        this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        
+        this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
+    }
+    
+    renderMainMenu() {
+        this.gameState = 'mainMenu';
+        
+        document.getElementById('mainScreen').classList.remove('hidden');
+        document.getElementById('backBtn').classList.add('hidden');
+        document.getElementById('levelUpScreen').classList.remove('show');
+        document.getElementById('gameOverScreen').classList.remove('show');
+        document.getElementById('skillSelection').classList.remove('show');
+        
+        this.updateMainMenuUI();
+    }
+    
+    updateMainMenuUI() {
+        document.getElementById('mainGoldDisplay').textContent = this.saveData.gold;
+        this.renderLevelGrid();
+        this.renderEquipGrid();
+    }
+    
+    renderLevelGrid() {
+        const grid = document.getElementById('levelGrid');
+        grid.innerHTML = '';
+        
+        for (let i = 1; i <= 9; i++) {
+            const isUnlocked = i <= this.saveData.maxUnlockedLevel;
+            const btn = document.createElement('div');
+            btn.className = `level-btn ${isUnlocked ? '' : 'locked'}`;
+            btn.innerHTML = `
+                <div class="level-number">${isUnlocked ? i : '🔒'}</div>
+                <div>关卡 ${i}</div>
+            `;
+            
+            if (isUnlocked) {
+                btn.addEventListener('click', () => this.startLevel(i));
+            }
+            
+            grid.appendChild(btn);
         }
     }
     
-    initLuaScripts() {
-        const luaCode = `
--- 关卡配置
-levels = {
-    [1] = { enemyCount = 10, enemyHealth = 50, enemySpeed = 1, enemyDamage = 5, dropChance = 0.3 },
-    [2] = { enemyCount = 15, enemyHealth = 60, enemySpeed = 1.1, enemyDamage = 6, dropChance = 0.35 },
-    [3] = { enemyCount = 20, enemyHealth = 75, enemySpeed = 1.2, enemyDamage = 8, dropChance = 0.4, unlockAbility = true },
-    [4] = { enemyCount = 25, enemyHealth = 90, enemySpeed = 1.3, enemyDamage = 10, dropChance = 0.4 },
-    [5] = { enemyCount = 30, enemyHealth = 110, enemySpeed = 1.4, enemyDamage = 12, dropChance = 0.45 },
-    [6] = { enemyCount = 35, enemyHealth = 130, enemySpeed = 1.5, enemyDamage = 15, dropChance = 0.5, unlockAbility = true }
-}
-
--- 技能配置
-skills = {
-    {
-        id = "bullet_count",
-        name = "多重射击",
-        description = "子弹数量+1",
-        icon = "🎯",
-        effect = function(stats)
-            stats.bulletCount = stats.bulletCount + 1
-            return stats
-        end
-    },
-    {
-        id = "bullet_spread",
-        name = "扇形射击",
-        description = "子弹覆盖范围扩大",
-        icon = "🌟",
-        effect = function(stats)
-            stats.bulletSpread = stats.bulletSpread + 15
-            return stats
-        end
-    },
-    {
-        id = "fire_rate",
-        name = "快速射击",
-        description = "射击速度提升20%",
-        icon = "⚡",
-        effect = function(stats)
-            stats.fireRate = stats.fireRate * 0.8
-            return stats
-        end
-    },
-    {
-        id = "damage",
-        name = "强力子弹",
-        description = "子弹伤害+25%",
-        icon = "💥",
-        effect = function(stats)
-            stats.bulletDamage = math.floor(stats.bulletDamage * 1.25)
-            return stats
-        end
-    },
-    {
-        id = "health",
-        name = "生命恢复",
-        description = "恢复30点生命值",
-        icon = "❤️",
-        effect = function(stats)
-            stats.health = math.min(stats.health + 30, stats.maxHealth)
-            return stats
-        end
-    },
-    {
-        id = "max_health",
-        name = "生命强化",
-        description = "最大生命值+25",
-        icon = "💗",
-        effect = function(stats)
-            stats.maxHealth = stats.maxHealth + 25
-            stats.health = stats.health + 25
-            return stats
-        end
-    },
-    {
-        id = "bullet_size",
-        name = "巨型子弹",
-        description = "子弹体积变大",
-        icon = "🔵",
-        effect = function(stats)
-            stats.bulletSize = stats.bulletSize + 3
-            return stats
-        end
-    },
-    {
-        id = "speed",
-        name = "加速移动",
-        description = "移动速度+15%",
-        icon = "🏃",
-        effect = function(stats)
-            stats.speed = stats.speed * 1.15
-            return stats
-        end
-    },
-    {
-        id = "pierce",
-        name = "穿透子弹",
-        description = "子弹可穿透敌人",
-        icon = "🎯",
-        effect = function(stats)
-            stats.bulletPierce = stats.bulletPierce + 1
-            return stats
-        end
-    },
-    {
-        id = "crit_chance",
-        name = "暴击专精",
-        description = "暴击几率+10%",
-        icon = "⭐",
-        effect = function(stats)
-            stats.criticalChance = stats.criticalChance + 0.1
-            return stats
-        end
-    },
-    {
-        id = "crit_damage",
-        name = "暴击强化",
-        description = "暴击伤害+50%",
-        icon = "💫",
-        effect = function(stats)
-            stats.criticalDamage = stats.criticalDamage + 0.5
-            return stats
-        end
-    },
-    {
-        id = "magnet",
-        name = "磁铁效果",
-        description = "自动吸引道具范围+50",
-        icon = "🧲",
-        effect = function(stats)
-            stats.magnetRange = stats.magnetRange + 50
-            return stats
-        end
-    }
-}
-
--- 道具配置
-powerups = {
-    {
-        id = "gold",
-        name = "金币",
-        icon = "💰",
-        color = "#FFD700",
-        effect = function(game, powerup)
-            game.gold = game.gold + 10
-            game.updateUI()
-        end
-    },
-    {
-        id = "health_pack",
-        name = "生命包",
-        icon = "💊",
-        color = "#FF6B6B",
-        effect = function(game, powerup)
-            game.playerStats.health = math.min(
-                game.playerStats.health + 20,
-                game.playerStats.maxHealth
-            )
-            game.updateUI()
-        end
-    },
-    {
-        id = "damage_boost",
-        name = "伤害提升",
-        icon = "⚔️",
-        color = "#FF4444",
-        duration = 10,
-        effect = function(game, powerup)
-            table.insert(game.activeBuffs, {
-                type = "damage_boost",
-                multiplier = 1.5,
-                startTime = game.currentTime,
-                duration = 10
-            })
-        end
-    },
-    {
-        id = "speed_boost",
-        name = "速度提升",
-        icon = "💨",
-        color = "#00CED1",
-        duration = 8,
-        effect = function(game, powerup)
-            table.insert(game.activeBuffs, {
-                type = "speed_boost",
-                multiplier = 1.3,
-                startTime = game.currentTime,
-                duration = 8
-            })
-        end
-    }
-}
-
--- 获取关卡配置
-function getLevelConfig(levelNum)
-    local baseLevel = ((levelNum - 1) % 6) + 1
-    local multiplier = math.floor((levelNum - 1) / 6) + 1
-    
-    local config = levels[baseLevel] or levels[1]
-    local result = {
-        enemyCount = config.enemyCount + (multiplier - 1) * 10,
-        enemyHealth = math.floor(config.enemyHealth * (1 + (multiplier - 1) * 0.3)),
-        enemySpeed = config.enemySpeed + (multiplier - 1) * 0.1,
-        enemyDamage = math.floor(config.enemyDamage * (1 + (multiplier - 1) * 0.2)),
-        dropChance = math.min(config.dropChance + (multiplier - 1) * 0.05, 0.7),
-        unlockAbility = config.unlockAbility or false
-    }
-    return result
-end
-
--- 获取随机技能
-function getRandomSkills(count, excludeIds)
-    excludeIds = excludeIds or {}
-    local available = {}
-    
-    for i, skill in ipairs(skills) do
-        local excluded = false
-        for _, excludeId in ipairs(excludeIds) do
-            if skill.id == excludeId then
-                excluded = true
-                break
-            end
-        end
-        if not excluded then
-            table.insert(available, skill)
-        end
-    end
-    
-    local result = {}
-    for i = 1, math.min(count, #available) do
-        local idx = math.random(1, #available)
-        table.insert(result, available[idx])
-        table.remove(available, idx)
-    end
-    
-    return result
-end
-
-return {
-    getLevelConfig = getLevelConfig,
-    getRandomSkills = getRandomSkills,
-    skills = skills,
-    powerups = powerups
-}
-`;
-
-        this.levelConfigs = {
-            1: { enemyCount: 10, enemyHealth: 50, enemySpeed: 1, enemyDamage: 5, dropChance: 0.3 },
-            2: { enemyCount: 15, enemyHealth: 60, enemySpeed: 1.1, enemyDamage: 6, dropChance: 0.35 },
-            3: { enemyCount: 20, enemyHealth: 75, enemySpeed: 1.2, enemyDamage: 8, dropChance: 0.4, unlockAbility: true },
-            4: { enemyCount: 25, enemyHealth: 90, enemySpeed: 1.3, enemyDamage: 10, dropChance: 0.4 },
-            5: { enemyCount: 30, enemyHealth: 110, enemySpeed: 1.4, enemyDamage: 12, dropChance: 0.45 },
-            6: { enemyCount: 35, enemyHealth: 130, enemySpeed: 1.5, enemyDamage: 15, dropChance: 0.5, unlockAbility: true }
-        };
-
-        this.skills = [
-            { id: "bullet_count", name: "多重射击", description: "子弹数量+1", icon: "🎯" },
-            { id: "bullet_spread", name: "扇形射击", description: "子弹覆盖范围扩大", icon: "🌟" },
-            { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡" },
-            { id: "damage", name: "强力子弹", description: "子弹伤害+25%", icon: "💥" },
-            { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️" },
-            { id: "max_health", name: "生命强化", description: "最大生命值+25", icon: "💗" },
-            { id: "bullet_size", name: "巨型子弹", description: "子弹体积变大", icon: "🔵" },
-            { id: "speed", name: "加速移动", description: "移动速度+15%", icon: "🏃" },
-            { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯" },
-            { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐" },
-            { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫" },
-            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲" }
-        ];
-
-        this.powerups = [
-            { id: "gold", name: "金币", icon: "💰", color: "#FFD700" },
-            { id: "health_pack", name: "生命包", icon: "💊", color: "#FF6B6B" },
-            { id: "damage_boost", name: "伤害提升", icon: "⚔️", color: "#FF4444", duration: 10 },
-            { id: "speed_boost", name: "速度提升", icon: "💨", color: "#00CED1", duration: 8 }
-        ];
+    renderEquipGrid() {
+        const grid = document.getElementById('equipGrid');
+        grid.innerHTML = '';
+        
+        for (const [key, config] of Object.entries(this.equipmentConfig)) {
+            const equip = this.saveData.equipment[key];
+            const card = document.createElement('div');
+            card.className = 'equip-card';
+            
+            let actionButtons = '';
+            
+            if (!equip.owned) {
+                actionButtons = `
+                    <button class="equip-btn buy" data-type="${key}" data-action="buy">
+                        购买 💰${config.basePrice}
+                    </button>
+                `;
+            } else {
+                const upgradePrice = config.upgradePrice * (equip.level + 1);
+                actionButtons = `
+                    <button class="equip-btn" data-type="${key}" data-action="upgrade">
+                        强化 💰${upgradePrice}
+                    </button>
+                `;
+            }
+            
+            card.innerHTML = `
+                <div class="equip-icon">${config.icon}</div>
+                <div class="equip-name">${config.name}</div>
+                <div class="equip-level">${equip.owned ? `Lv.${equip.level}` : '未拥有'}</div>
+                <div class="equip-stats">${equip.owned ? config.upgradeDescription : config.buyDescription}</div>
+                <div class="equip-action">
+                    ${actionButtons}
+                </div>
+            `;
+            
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.equip-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const action = btn.dataset.action;
+                this.handleEquipAction(type, action);
+            });
+        });
     }
     
-    initDefaultData() {
-        this.levelConfigs = {
-            1: { enemyCount: 10, enemyHealth: 50, enemySpeed: 1, enemyDamage: 5, dropChance: 0.3 },
-            2: { enemyCount: 15, enemyHealth: 60, enemySpeed: 1.1, enemyDamage: 6, dropChance: 0.35 },
-            3: { enemyCount: 20, enemyHealth: 75, enemySpeed: 1.2, enemyDamage: 8, dropChance: 0.4, unlockAbility: true },
-            4: { enemyCount: 25, enemyHealth: 90, enemySpeed: 1.3, enemyDamage: 10, dropChance: 0.4 },
-            5: { enemyCount: 30, enemyHealth: 110, enemySpeed: 1.4, enemyDamage: 12, dropChance: 0.45 },
-            6: { enemyCount: 35, enemyHealth: 130, enemySpeed: 1.5, enemyDamage: 15, dropChance: 0.5, unlockAbility: true }
-        };
-
-        this.skills = [
-            { id: "bullet_count", name: "多重射击", description: "子弹数量+1", icon: "🎯" },
-            { id: "bullet_spread", name: "扇形射击", description: "子弹覆盖范围扩大", icon: "🌟" },
-            { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡" },
-            { id: "damage", name: "强力子弹", description: "子弹伤害+25%", icon: "💥" },
-            { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️" },
-            { id: "max_health", name: "生命强化", description: "最大生命值+25", icon: "💗" },
-            { id: "bullet_size", name: "巨型子弹", description: "子弹体积变大", icon: "🔵" },
-            { id: "speed", name: "加速移动", description: "移动速度+15%", icon: "🏃" },
-            { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯" },
-            { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐" },
-            { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫" },
-            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲" }
-        ];
-
-        this.powerups = [
-            { id: "gold", name: "金币", icon: "💰", color: "#FFD700" },
-            { id: "health_pack", name: "生命包", icon: "💊", color: "#FF6B6B" },
-            { id: "damage_boost", name: "伤害提升", icon: "⚔️", color: "#FF4444", duration: 10 },
-            { id: "speed_boost", name: "速度提升", icon: "💨", color: "#00CED1", duration: 8 }
-        ];
+    handleEquipAction(type, action) {
+        const config = this.equipmentConfig[type];
+        const equip = this.saveData.equipment[type];
+        
+        if (action === 'buy') {
+            if (this.saveData.gold >= config.basePrice) {
+                this.saveData.gold -= config.basePrice;
+                equip.owned = true;
+                equip.level = 0;
+                this.saveGameData();
+                this.updateMainMenuUI();
+                this.showToast(`${config.name}购买成功！`);
+            } else {
+                this.showToast('金币不足！');
+            }
+        } else if (action === 'upgrade') {
+            const price = config.upgradePrice * (equip.level + 1);
+            if (this.saveData.gold >= price) {
+                this.saveData.gold -= price;
+                equip.level++;
+                this.saveGameData();
+                this.updateMainMenuUI();
+                this.showToast(`${config.name}强化到 Lv.${equip.level}！`);
+            } else {
+                this.showToast('金币不足！');
+            }
+        }
+    }
+    
+    showToast(message) {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #ffd700;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 1000;
+            animation: fadeInOut 1.5s ease;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 1500);
+    }
+    
+    doGacha(count) {
+        const price = count === 1 ? 50 : 450;
+        
+        if (this.saveData.gold < price) {
+            this.showToast('金币不足！');
+            return;
+        }
+        
+        this.saveData.gold -= price;
+        
+        let results = [];
+        for (let i = 0; i < count; i++) {
+            const item = this.getGachaResult();
+            results.push(item);
+            item.effect();
+        }
+        
+        this.saveGameData();
+        this.updateMainMenuUI();
+        
+        const lastResult = results[results.length - 1];
+        document.getElementById('gachaResultIcon').textContent = lastResult.icon;
+        document.getElementById('gachaResultName').textContent = lastResult.name;
+        document.getElementById('gachaResultDesc').textContent = 
+            count === 1 ? lastResult.desc : `共${count}抽，最后获得：${lastResult.desc}`;
+        document.getElementById('gachaResult').classList.add('show');
+        
+        setTimeout(() => {
+            document.getElementById('gachaResult').classList.remove('show');
+        }, 2000);
+    }
+    
+    getGachaResult() {
+        const totalWeight = this.gachaPool.reduce((sum, item) => sum + item.weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (const item of this.gachaPool) {
+            random -= item.weight;
+            if (random <= 0) {
+                return item;
+            }
+        }
+        
+        return this.gachaPool[0];
+    }
+    
+    startLevel(levelNum) {
+        this.currentLevel = levelNum;
+        this.initGame();
+        
+        const baseStats = this.getBaseStats();
+        this.playerStats.maxHealth = 100 + baseStats.maxHealth;
+        this.playerStats.health = 100 + baseStats.maxHealth;
+        this.playerStats.speed = 5 * (1 + baseStats.moveSpeedBonus);
+        this.playerStats.bulletDamage = 10 + baseStats.bulletDamage;
+        this.playerStats.criticalChance = 0.05 + baseStats.critChanceBonus;
+        
+        this.initPlayer();
+        
+        const config = this.getLevelConfig(levelNum);
+        this.totalEnemiesInLevel = config.enemyCount;
+        this.enemiesInLevel = 0;
+        
+        document.getElementById('mainScreen').classList.add('hidden');
+        document.getElementById('backBtn').classList.remove('hidden');
+        
+        this.gameState = 'playing';
+        this.updateUI();
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+    
+    retryLevel() {
+        document.getElementById('gameOverScreen').classList.remove('show');
+        this.startLevel(this.currentLevel);
+    }
+    
+    returnToMainMenu() {
+        if (this.goldEarned > 0) {
+            this.saveData.gold += this.goldEarned;
+        }
+        
+        if (this.currentLevel > this.saveData.maxUnlockedLevel) {
+            this.saveData.maxUnlockedLevel = this.currentLevel;
+        }
+        
+        this.saveGameData();
+        this.renderMainMenu();
     }
     
     getLevelConfig(levelNum) {
-        const baseLevel = ((levelNum - 1) % 6) + 1;
-        const multiplier = Math.floor((levelNum - 1) / 6) + 1;
+        const baseLevel = Math.min(levelNum, 9);
+        const multiplier = Math.max(1, Math.floor((levelNum - 1) / 9) + 1);
         
-        const config = this.levelConfigs[baseLevel] || this.levelConfigs[1];
+        const baseConfig = this.levelConfigs[baseLevel] || this.levelConfigs[9];
         
         return {
-            enemyCount: config.enemyCount + (multiplier - 1) * 10,
-            enemyHealth: Math.floor(config.enemyHealth * (1 + (multiplier - 1) * 0.3)),
-            enemySpeed: config.enemySpeed + (multiplier - 1) * 0.1,
-            enemyDamage: Math.floor(config.enemyDamage * (1 + (multiplier - 1) * 0.2)),
-            dropChance: Math.min(config.dropChance + (multiplier - 1) * 0.05, 0.7),
-            unlockAbility: config.unlockAbility || false
+            enemyCount: baseConfig.enemyCount + (multiplier - 1) * 5,
+            enemyHealth: Math.floor(baseConfig.enemyHealth * (1 + (multiplier - 1) * 0.3)),
+            enemySpeed: baseConfig.enemySpeed + (multiplier - 1) * 0.1,
+            enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
+            dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
+            segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 2), 12),
+            unlockAbility: baseConfig.unlockAbility || false
         };
     }
     
@@ -417,23 +502,6 @@ return {
         }
         
         return result;
-    }
-    
-    setupEventListeners() {
-        document.getElementById('startBtn').addEventListener('click', () => this.startGame());
-        document.getElementById('restartBtn').addEventListener('click', () => this.restartGame());
-        document.getElementById('continueBtn').addEventListener('click', () => this.nextLevel());
-        
-        this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
-        this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
-        this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
-        
-        this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-        
-        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
-        document.addEventListener('keyup', (e) => this.handleKeyUp(e));
     }
     
     handleTouchStart(e) {
@@ -498,30 +566,10 @@ return {
         this.keys[e.key.toLowerCase()] = false;
     }
     
-    startGame() {
-        document.getElementById('startScreen').classList.add('hidden');
-        this.initGame();
-        this.initPlayer();
-        this.startLevel(1);
-        this.gameState = 'playing';
-        this.lastTime = 0;
-        requestAnimationFrame((t) => this.gameLoop(t));
-    }
-    
-    restartGame() {
-        document.getElementById('gameOverScreen').classList.remove('show');
-        this.initGame();
-        this.initPlayer();
-        this.startLevel(1);
-        this.gameState = 'playing';
-        this.lastTime = 0;
-        requestAnimationFrame((t) => this.gameLoop(t));
-    }
-    
     initPlayer() {
         this.player = {
             x: this.width / 2,
-            y: this.height - 150,
+            y: this.height - 120,
             width: 40,
             height: 40,
             radius: 20,
@@ -530,31 +578,10 @@ return {
         };
     }
     
-    startLevel(levelNum) {
-        this.level = levelNum;
-        const config = this.getLevelConfig(levelNum);
-        
-        this.enemiesInLevel = 0;
-        this.totalEnemiesInLevel = config.enemyCount;
-        this.enemiesKilled = 0;
-        this.chestsOpened = 0;
-        
-        this.enemies = [];
-        this.powerups = [];
-        this.chests = [];
-        
-        this.updateUI();
-        
-        console.log(`Level ${levelNum} started! Enemies: ${config.enemyCount}`);
-    }
-    
     nextLevel() {
         document.getElementById('levelUpScreen').classList.remove('show');
-        const newLevel = this.level + 1;
+        const newLevel = this.currentLevel + 1;
         this.startLevel(newLevel);
-        this.gameState = 'playing';
-        this.lastTime = 0;
-        requestAnimationFrame((t) => this.gameLoop(t));
     }
     
     gameLoop(currentTime = 0) {
@@ -703,67 +730,149 @@ return {
     }
     
     updateEnemies(dt) {
-        const levelConfig = this.getLevelConfig(this.level);
+        const levelConfig = this.getLevelConfig(this.currentLevel);
         
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             
+            enemy.y += enemy.speed * 60 * dt;
+            enemy.angle += dt * 2;
+            
             if (this.player) {
                 const dx = this.player.x - enemy.x;
-                const dy = this.player.y - enemy.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                
-                if (dist > 0) {
-                    enemy.x += (dx / dist) * enemy.speed * 60 * dt;
-                    enemy.y += (dy / dist) * enemy.speed * 60 * dt;
+                if (Math.abs(dx) > 5) {
+                    enemy.x += Math.sign(dx) * enemy.speed * 0.3 * 60 * dt;
                 }
             }
             
-            enemy.angle += dt * 2;
+            if (enemy.y > this.height + 100) {
+                this.enemies.splice(i, 1);
+                continue;
+            }
             
-            if (this.checkCollision(enemy, this.player)) {
-                if (this.player.invincible <= 0) {
+            if (enemy.segments && enemy.segments.length > 0) {
+                let playerHit = false;
+                for (const segment of enemy.segments) {
+                    const segX = enemy.x + segment.offsetX;
+                    const segY = enemy.y + segment.offsetY;
+                    const segRadius = segment.index === 0 ? 22 : 18;
+                    
+                    const segObj = { x: segX, y: segY, radius: segRadius };
+                    if (this.checkCollision(segObj, this.player)) {
+                        playerHit = true;
+                        break;
+                    }
+                }
+                if (playerHit && this.player.invincible <= 0) {
                     this.takeDamage(enemy.damage);
                     this.player.invincible = 0.5;
                 }
-            }
-            
-            for (let j = this.bullets.length - 1; j >= 0; j--) {
-                const bullet = this.bullets[j];
                 
-                if (this.checkCircleCollision(bullet, enemy)) {
-                    enemy.health -= bullet.damage;
+                for (let j = this.bullets.length - 1; j >= 0; j--) {
+                    const bullet = this.bullets[j];
+                    let bulletHit = false;
                     
-                    this.damageNumbers.push({
-                        x: enemy.x,
-                        y: enemy.y - enemy.radius,
-                        value: bullet.damage,
-                        isCrit: bullet.isCrit,
-                        lifetime: 1,
-                        vy: -2
-                    });
-                    
-                    this.createHitParticles(bullet.x, bullet.y, bullet.color);
-                    
-                    if (bullet.pierceCount > 0) {
-                        bullet.pierceCount--;
-                    } else {
-                        this.bullets.splice(j, 1);
+                    for (const segment of enemy.segments) {
+                        if (segment.health <= 0) continue;
+                        
+                        const segX = enemy.x + segment.offsetX;
+                        const segY = enemy.y + segment.offsetY;
+                        const segRadius = segment.index === 0 ? 22 : 18;
+                        
+                        const segObj = { x: segX, y: segY, radius: segRadius };
+                        
+                        if (this.checkCircleCollision(bullet, segObj)) {
+                            segment.health -= bullet.damage;
+                            enemy.health -= bullet.damage;
+                            
+                            this.damageNumbers.push({
+                                x: segX,
+                                y: segY - segRadius,
+                                value: bullet.damage,
+                                isCrit: bullet.isCrit,
+                                lifetime: 1,
+                                vy: -2
+                            });
+                            
+                            this.createHitParticles(bullet.x, bullet.y, bullet.color);
+                            
+                            bulletHit = true;
+                            break;
+                        }
                     }
                     
-                    if (enemy.health <= 0) {
-                        this.createDeathParticles(enemy.x, enemy.y, enemy.color);
-                        this.enemiesKilled++;
-                        this.score += enemy.health;
-                        
-                        if (Math.random() < levelConfig.dropChance) {
-                            this.spawnPowerup(enemy.x, enemy.y);
+                    if (bulletHit) {
+                        if (bullet.pierceCount > 0) {
+                            bullet.pierceCount--;
+                        } else {
+                            this.bullets.splice(j, 1);
                         }
                         
-                        this.enemies.splice(i, 1);
+                        enemy.segments = enemy.segments.filter(s => s.health > 0);
                         
-                        this.showSkillSelection();
-                        break;
+                        if (enemy.segments.length === 0 || enemy.health <= 0) {
+                            this.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                            this.enemiesKilled++;
+                            this.score += enemy.maxHealth;
+                            this.goldEarned += Math.floor(enemy.maxHealth / 5);
+                            
+                            if (Math.random() < levelConfig.dropChance) {
+                                this.spawnPowerup(enemy.x, enemy.y);
+                            }
+                            
+                            this.enemies.splice(i, 1);
+                            
+                            this.showSkillSelection();
+                            break;
+                        }
+                    }
+                }
+            } else {
+                if (this.checkCollision(enemy, this.player)) {
+                    if (this.player.invincible <= 0) {
+                        this.takeDamage(enemy.damage);
+                        this.player.invincible = 0.5;
+                    }
+                }
+                
+                for (let j = this.bullets.length - 1; j >= 0; j--) {
+                    const bullet = this.bullets[j];
+                    
+                    if (this.checkCircleCollision(bullet, enemy)) {
+                        enemy.health -= bullet.damage;
+                        
+                        this.damageNumbers.push({
+                            x: enemy.x,
+                            y: enemy.y - enemy.radius,
+                            value: bullet.damage,
+                            isCrit: bullet.isCrit,
+                            lifetime: 1,
+                            vy: -2
+                        });
+                        
+                        this.createHitParticles(bullet.x, bullet.y, bullet.color);
+                        
+                        if (bullet.pierceCount > 0) {
+                            bullet.pierceCount--;
+                        } else {
+                            this.bullets.splice(j, 1);
+                        }
+                        
+                        if (enemy.health <= 0) {
+                            this.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                            this.enemiesKilled++;
+                            this.score += enemy.maxHealth;
+                            this.goldEarned += Math.floor(enemy.maxHealth / 5);
+                            
+                            if (Math.random() < levelConfig.dropChance) {
+                                this.spawnPowerup(enemy.x, enemy.y);
+                            }
+                            
+                            this.enemies.splice(i, 1);
+                            
+                            this.showSkillSelection();
+                            break;
+                        }
                     }
                 }
             }
@@ -786,7 +895,7 @@ return {
     
     openChest(chest) {
         this.chestsOpened++;
-        this.gold += 20;
+        this.goldEarned += 20;
         this.score += 50;
         
         this.createGoldParticles(chest.x, chest.y);
@@ -831,7 +940,7 @@ return {
     collectPowerup(powerup) {
         switch (powerup.id) {
             case 'gold':
-                this.gold += 10;
+                this.goldEarned += 10;
                 this.score += 10;
                 break;
             case 'health_pack':
@@ -901,64 +1010,62 @@ return {
     }
     
     updateSpawning(dt) {
-        const config = this.getLevelConfig(this.level);
+        const config = this.getLevelConfig(this.currentLevel);
         
         this.spawnTimer += dt;
-        const spawnInterval = Math.max(1, 3 - this.level * 0.1);
+        const spawnInterval = Math.max(1.5, 4 - this.currentLevel * 0.15);
         
         if (this.spawnTimer >= spawnInterval && this.enemiesInLevel < this.totalEnemiesInLevel) {
-            this.spawnEnemy(config);
+            this.spawnDragon(config);
             this.enemiesInLevel++;
             this.spawnTimer = 0;
         }
         
         this.chestSpawnTimer += dt;
-        const chestInterval = 8;
+        const chestInterval = 12;
         
-        if (this.chestSpawnTimer >= chestInterval && this.chests.length < 3) {
+        if (this.chestSpawnTimer >= chestInterval && this.chests.length < 2) {
             this.spawnChest();
             this.chestSpawnTimer = 0;
         }
     }
     
-    spawnEnemy(config) {
-        const side = Math.floor(Math.random() * 4);
-        let x, y;
+    spawnDragon(config) {
+        const segments = config.segments || 3;
+        const segmentSpacing = 35;
+        const startX = 50 + Math.random() * (this.width - 100);
+        const startY = -segments * segmentSpacing - 50;
         
-        switch (side) {
-            case 0:
-                x = Math.random() * this.width;
-                y = -50;
-                break;
-            case 1:
-                x = this.width + 50;
-                y = Math.random() * this.height;
-                break;
-            case 2:
-                x = Math.random() * this.width;
-                y = this.height + 50;
-                break;
-            case 3:
-                x = -50;
-                y = Math.random() * this.height;
-                break;
-        }
-        
-        const dragonTypes = ['🐉', '🐲', '🦎', '🐊'];
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
         
-        this.enemies.push({
-            x: x,
-            y: y,
-            radius: 25 + Math.random() * 15,
+        const healthPerSegment = Math.ceil(config.enemyHealth / segments);
+        
+        const dragon = {
+            x: startX,
+            y: startY,
+            radius: 22,
             health: config.enemyHealth,
             maxHealth: config.enemyHealth,
             speed: config.enemySpeed,
             damage: config.enemyDamage,
             angle: 0,
-            type: dragonTypes[Math.floor(Math.random() * dragonTypes.length)],
-            color: colors[Math.floor(Math.random() * colors.length)]
-        });
+            color: color,
+            segments: [],
+            isHead: true
+        };
+        
+        for (let i = 0; i < segments; i++) {
+            dragon.segments.push({
+                offsetX: 0,
+                offsetY: -i * segmentSpacing,
+                health: healthPerSegment,
+                maxHealth: healthPerSegment,
+                index: i
+            });
+        }
+        
+        this.enemies.push(dragon);
     }
     
     spawnChest() {
@@ -1021,8 +1128,16 @@ return {
     gameOver() {
         this.gameState = 'gameover';
         
-        document.getElementById('finalLevel').textContent = this.level;
-        document.getElementById('finalGold').textContent = this.gold;
+        if (this.goldEarned > 0) {
+            this.saveData.gold += this.goldEarned;
+        }
+        if (this.currentLevel > this.saveData.maxUnlockedLevel) {
+            this.saveData.maxUnlockedLevel = this.currentLevel;
+        }
+        this.saveGameData();
+        
+        document.getElementById('finalLevel').textContent = this.currentLevel;
+        document.getElementById('finalGold').textContent = this.goldEarned;
         document.getElementById('finalScore').textContent = this.score;
         document.getElementById('gameOverScreen').classList.add('show');
     }
@@ -1036,11 +1151,25 @@ return {
     levelComplete() {
         this.gameState = 'levelUp';
         
-        const config = this.getLevelConfig(this.level);
+        const config = this.getLevelConfig(this.currentLevel);
         
-        let unlockText = `关卡 ${this.level} 完成！`;
+        if (this.goldEarned > 0) {
+            this.saveData.gold += this.goldEarned;
+        }
+        if (this.currentLevel >= this.saveData.maxUnlockedLevel) {
+            this.saveData.maxUnlockedLevel = Math.max(this.saveData.maxUnlockedLevel, this.currentLevel + 1);
+        }
+        this.saveGameData();
+        
+        document.getElementById('levelupStats').innerHTML = `
+            <div>获得金币: <span class="gold-value">${this.goldEarned}</span></div>
+            <div>得分: <span class="gold-value">${this.score}</span></div>
+            <div>击败敌人: <span class="level-value">${this.enemiesKilled}</span></div>
+        `;
+        
+        let unlockText = '';
         if (config.unlockAbility) {
-            unlockText += ' 🎉 解锁了新能力！';
+            unlockText = '🎉 解锁了新能力！';
         }
         
         document.getElementById('unlockText').textContent = unlockText;
@@ -1297,60 +1426,132 @@ return {
     drawEnemies() {
         this.enemies.forEach(enemy => {
             this.ctx.save();
-            this.ctx.translate(enemy.x, enemy.y);
             
-            this.ctx.shadowColor = enemy.color;
-            this.ctx.shadowBlur = 20;
-            
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
-            
-            const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.radius);
-            gradient.addColorStop(0, enemy.color);
-            gradient.addColorStop(1, this.darkenColor(enemy.color, 0.5));
-            this.ctx.fillStyle = gradient;
-            this.ctx.fill();
-            
-            this.ctx.shadowBlur = 0;
-            
-            this.ctx.rotate(enemy.angle);
-            this.ctx.font = `${enemy.radius * 1.2}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(enemy.type, 0, 0);
-            
-            this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-            this.ctx.translate(enemy.x, enemy.y);
-            
-            const healthBarWidth = enemy.radius * 2;
-            const healthBarHeight = 8;
-            const healthPercent = enemy.health / enemy.maxHealth;
-            
-            this.ctx.fillStyle = '#333333';
-            this.ctx.fillRect(
-                -healthBarWidth / 2,
-                -enemy.radius - 15,
-                healthBarWidth,
-                healthBarHeight
-            );
-            
-            const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
-            this.ctx.fillStyle = healthColor;
-            this.ctx.fillRect(
-                -healthBarWidth / 2,
-                -enemy.radius - 15,
-                healthBarWidth * healthPercent,
-                healthBarHeight
-            );
-            
-            this.ctx.fillStyle = '#FFFFFF';
-            this.ctx.font = 'bold 14px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(
-                Math.ceil(enemy.health),
-                0,
-                -enemy.radius - 20
-            );
+            if (enemy.segments && enemy.segments.length > 0) {
+                for (let i = enemy.segments.length - 1; i >= 0; i--) {
+                    const segment = enemy.segments[i];
+                    const segX = enemy.x + segment.offsetX;
+                    const segY = enemy.y + segment.offsetY;
+                    
+                    this.ctx.save();
+                    this.ctx.translate(segX, segY);
+                    
+                    const segRadius = i === 0 ? 22 : 18;
+                    
+                    this.ctx.shadowColor = enemy.color;
+                    this.ctx.shadowBlur = 15;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, segRadius, 0, Math.PI * 2);
+                    
+                    const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, segRadius);
+                    gradient.addColorStop(0, enemy.color);
+                    gradient.addColorStop(1, this.darkenColor(enemy.color, 0.5));
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowBlur = 0;
+                    
+                    if (i === 0) {
+                        this.ctx.font = `${segRadius * 1.2}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('🐲', 0, 0);
+                    } else {
+                        this.ctx.font = `${segRadius * 0.8}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('●', 0, 0);
+                    }
+                    
+                    const healthPercent = segment.health / segment.maxHealth;
+                    const healthBarWidth = segRadius * 1.5;
+                    const healthBarHeight = 5;
+                    
+                    this.ctx.fillStyle = '#333333';
+                    this.ctx.fillRect(
+                        -healthBarWidth / 2,
+                        -segRadius - 10,
+                        healthBarWidth,
+                        healthBarHeight
+                    );
+                    
+                    const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
+                    this.ctx.fillStyle = healthColor;
+                    this.ctx.fillRect(
+                        -healthBarWidth / 2,
+                        -segRadius - 10,
+                        healthBarWidth * healthPercent,
+                        healthBarHeight
+                    );
+                    
+                    this.ctx.fillStyle = '#FFFFFF';
+                    this.ctx.font = 'bold 11px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(
+                        Math.ceil(segment.health),
+                        0,
+                        -segRadius - 12
+                    );
+                    
+                    this.ctx.restore();
+                }
+            } else {
+                this.ctx.translate(enemy.x, enemy.y);
+                
+                this.ctx.shadowColor = enemy.color;
+                this.ctx.shadowBlur = 20;
+                
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+                
+                const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.radius);
+                gradient.addColorStop(0, enemy.color);
+                gradient.addColorStop(1, this.darkenColor(enemy.color, 0.5));
+                this.ctx.fillStyle = gradient;
+                this.ctx.fill();
+                
+                this.ctx.shadowBlur = 0;
+                
+                this.ctx.rotate(enemy.angle);
+                this.ctx.font = `${enemy.radius * 1.2}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🐲', 0, 0);
+                
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                this.ctx.translate(enemy.x, enemy.y);
+                
+                const healthBarWidth = enemy.radius * 2;
+                const healthBarHeight = 8;
+                const healthPercent = enemy.health / enemy.maxHealth;
+                
+                this.ctx.fillStyle = '#333333';
+                this.ctx.fillRect(
+                    -healthBarWidth / 2,
+                    -enemy.radius - 15,
+                    healthBarWidth,
+                    healthBarHeight
+                );
+                
+                const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
+                this.ctx.fillStyle = healthColor;
+                this.ctx.fillRect(
+                    -healthBarWidth / 2,
+                    -enemy.radius - 15,
+                    healthBarWidth * healthPercent,
+                    healthBarHeight
+                );
+                
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(
+                    Math.ceil(enemy.health),
+                    0,
+                    -enemy.radius - 20
+                );
+            }
             
             this.ctx.restore();
         });
@@ -1452,11 +1653,22 @@ return {
         document.getElementById('healthText').textContent = 
             `${Math.max(0, Math.ceil(this.playerStats.health))} / ${this.playerStats.maxHealth}`;
         
-        document.getElementById('levelDisplay').textContent = this.level;
-        document.getElementById('goldDisplay').textContent = this.gold;
+        document.getElementById('levelDisplay').textContent = this.currentLevel;
+        document.getElementById('goldDisplay').textContent = this.goldEarned;
         document.getElementById('scoreDisplay').textContent = this.score;
     }
 }
+
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeInOut {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    }
+`;
+document.head.appendChild(style);
 
 window.addEventListener('load', () => {
     window.game = new DragonShooterGame();
