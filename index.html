@@ -14,8 +14,12 @@
             -webkit-tap-highlight-color: transparent;
         }
         
+        .hidden {
+            display: none !important;
+        }
+        
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: #1a1a2e;
             overflow: hidden;
             touch-action: none;
             font-family: 'Microsoft YaHei', sans-serif;
@@ -29,7 +33,6 @@
         
         #gameCanvas {
             display: block;
-            background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
         }
         
         #uiLayer {
@@ -44,400 +47,713 @@
         #uiLayer > * {
             pointer-events: auto;
         }
-        
-        .game-info {
+
+        .top-bar {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            top: 0;
+            left: 0;
+            right: 0;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            z-index: 10;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 15px 15px;
+            z-index: 100;
         }
         
-        .stat-box {
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
             background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #ffd700;
-            border-radius: 10px;
-            padding: 8px 15px;
+            border: 2px solid #444;
+            border-radius: 20px;
+            padding: 6px 12px;
+        }
+        
+        .resource-icon {
+            font-size: 18px;
+        }
+        
+        .resource-value {
             color: #fff;
             font-size: 14px;
-        }
-        
-        .stat-label {
-            color: #aaa;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-        
-        .stat-value {
-            color: #ffd700;
-            font-size: 18px;
             font-weight: bold;
         }
         
-        .health-bar-container {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            max-width: 400px;
-            z-index: 10;
-        }
-        
-        .health-bar-bg {
-            background: rgba(50, 50, 50, 0.8);
-            border: 2px solid #ff4444;
-            border-radius: 20px;
-            height: 30px;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .health-bar-fill {
-            background: linear-gradient(90deg, #ff4444, #ff6b6b);
-            height: 100%;
-            transition: width 0.3s ease;
-            border-radius: 20px;
-        }
-        
-        .health-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
+        .resource-divider {
+            color: #667eea;
             font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
             font-size: 14px;
         }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: rgba(50, 50, 60, 0.95);
+            border-top: 3px solid #444;
+            z-index: 200;
+        }
         
-        #skillSelection {
+        .nav-item {
+            flex: 1;
+            padding: 10px 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-top: 3px solid transparent;
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(180deg, rgba(255, 215, 0, 0.2), transparent);
+            border-top-color: #ffd700;
+        }
+        
+        .nav-icon {
+            font-size: 28px;
+            margin-bottom: 3px;
+        }
+        
+        .nav-label {
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .main-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: linear-gradient(180deg, #4a90d9 0%, #2d5a8c 50%, #1a3a5c 100%);
+            z-index: 150;
+            overflow-y: auto;
+            padding-bottom: 80px;
+            display: none;
+        }
+        
+        .main-screen.active {
+            display: block;
+        }
+
+        .main-content {
+            padding: 80px 20px 20px;
+        }
+        
+        .chapter-title {
+            text-align: center;
+            color: #fff;
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+        
+        .difficulty-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .difficulty-text {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .difficulty-text span {
+            color: #44ff44;
+        }
+        
+        .difficulty-btn {
+            background: linear-gradient(180deg, #66ccff, #3399cc);
+            border: 3px solid #fff;
+            border-radius: 15px;
+            padding: 8px 20px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 15px;
+        }
+        
+        .boss-status {
+            text-align: center;
+            font-size: 28px;
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .dragon-image-container {
+            width: 80%;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        
+        .dragon-image {
+            width: 100%;
+            border-radius: 20px;
+            border: 4px solid #333;
+            background: linear-gradient(180deg, #2d5a8c 0%, #1a3a5c 100%);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        
+        .dragon-placeholder {
+            font-size: 80px;
+        }
+
+        .progress-rewards {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 15px;
+            margin: 0 auto 20px;
+            max-width: 400px;
+        }
+        
+        .progress-title {
+            text-align: center;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar-track {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .progress-markers {
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+        }
+        
+        .progress-marker {
+            width: 3px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            position: relative;
+        }
+        
+        .progress-marker::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .progress-rewards-items {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .reward-item {
+            text-align: center;
+        }
+        
+        .reward-egg {
+            font-size: 40px;
+            margin-bottom: 5px;
+        }
+        
+        .reward-percent {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .start-btn-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .start-game-btn {
+            background: linear-gradient(180deg, #ffd700, #ff9900);
+            border: 4px solid #cc7700;
+            border-radius: 20px;
+            padding: 15px 60px;
+            color: #fff;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+        
+        .start-game-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+        }
+        
+        .start-game-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .start-cost {
+            color: #fff;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+
+        .pause-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 3px solid #888;
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        
+        .battle-info {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+        }
+        
+        .battle-level {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .battle-difficulty {
+            color: #44ff44;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .skill-selection {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            z-index: 300;
+            padding: 80px 20px 20px;
         }
         
-        #skillSelection.show {
+        .skill-selection.show {
             display: flex;
         }
         
         .skill-title {
-            color: #ffd700;
+            color: #fff;
             font-size: 28px;
             font-weight: bold;
             margin-bottom: 30px;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
         
-        .skill-cards {
+        .skill-cards-container {
             display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            padding: 0 20px;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 450px;
         }
         
         .skill-card {
-            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
-            border: 3px solid #667eea;
+            display: flex;
+            align-items: center;
             border-radius: 15px;
-            padding: 20px;
-            width: 140px;
+            padding: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
+            transition: all 0.2s ease;
+            border: 3px solid transparent;
         }
         
         .skill-card:hover {
-            transform: scale(1.05);
-            border-color: #ffd700;
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            transform: scale(1.02);
+            border-color: #fff;
         }
         
-        .skill-card:active {
-            transform: scale(0.98);
+        .skill-card.rarity-b {
+            background: linear-gradient(135deg, #4488ff, #2266cc);
+            border-color: #66aaff;
+        }
+        
+        .skill-card.rarity-a {
+            background: linear-gradient(135deg, #aa44ff, #8822cc);
+            border-color: #cc66ff;
+        }
+        
+        .skill-card.rarity-s {
+            background: linear-gradient(135deg, #ff4488, #cc2266);
+            border-color: #ff6699;
+        }
+        
+        .skill-icon-box {
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            position: relative;
         }
         
         .skill-icon {
             font-size: 40px;
-            margin-bottom: 10px;
+        }
+        
+        .skill-rarity-badge {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .skill-content {
+            flex: 1;
         }
         
         .skill-name {
             color: #fff;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         
         .skill-desc {
-            color: #aaa;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-        
-        #mainScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            display: flex;
-            flex-direction: column;
-            z-index: 200;
-            overflow-y: auto;
-        }
-        
-        #mainScreen.hidden {
-            display: none;
-        }
-        
-        .main-header {
-            text-align: center;
-            padding: 30px 20px 20px;
-        }
-        
-        .main-title {
-            font-size: 42px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 22px;
             font-weight: bold;
-            color: #ffd700;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-            margin-bottom: 10px;
         }
         
-        .main-gold {
+        .skill-desc span {
+            color: #ffd700;
+        }
+        
+        .skill-index {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .skill-subtitle {
+            color: #88ff88;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .skill-refresh-section {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .refresh-info {
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        
+        .refresh-info .free {
+            color: #44ff44;
+            font-weight: bold;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(180deg, #44aaff, #2288dd);
+            border: 4px solid #1166aa;
+            border-radius: 15px;
+            padding: 12px 40px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            color: #ffd700;
-            font-size: 20px;
-            font-weight: bold;
+            margin: 0 auto;
         }
         
-        .main-gold-icon {
-            font-size: 24px;
-        }
-        
-        .main-content {
-            flex: 1;
-            padding: 0 20px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .main-section {
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid #667eea;
-            border-radius: 15px;
-            padding: 15px;
-        }
-        
-        .section-title {
-            color: #ffd700;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        
-        .level-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-        
-        .level-btn {
-            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            padding: 15px 10px;
-            color: #fff;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        
-        .level-btn:hover {
-            transform: scale(1.05);
-            border-color: #ffd700;
-        }
-        
-        .level-btn.locked {
+        .refresh-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
         
-        .level-btn.current {
-            border-color: #ffd700;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
-        }
-        
-        .level-number {
+        .refresh-icon {
             font-size: 24px;
-            color: #ffd700;
-            margin-bottom: 5px;
+        }
+
+        .equipment-screen {
+            padding: 80px 15px 100px;
         }
         
-        .equip-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        .equipment-header {
+            background: linear-gradient(180deg, #ffd700, #cc9900);
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: -15px -15px 20px;
+        }
+        
+        .equipment-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
         
-        .equip-card {
-            background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
-            border: 2px solid #667eea;
-            border-radius: 10px;
-            padding: 12px;
+        .equipment-count {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .equipped-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .equip-slot {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #666;
+            border-radius: 12px;
+            padding: 10px;
             text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .equip-slot.rarity-common {
+            border-color: #88ff88;
+            background: linear-gradient(180deg, rgba(136, 255, 136, 0.2), rgba(0, 0, 0, 0.5));
+        }
+        
+        .equip-slot.rarity-uncommon {
+            border-color: #88ccff;
+            background: linear-gradient(180deg, rgba(136, 204, 255, 0.2), rgba(0, 0, 0, 0.5));
+        }
+        
+        .equip-slot.rarity-rare {
+            border-color: #cc88ff;
+            background: linear-gradient(180deg, rgba(204, 136, 255, 0.2), rgba(0, 0, 0, 0.5));
+        }
+        
+        .equip-slot.rarity-epic {
+            border-color: #ff88cc;
+            background: linear-gradient(180deg, rgba(255, 136, 204, 0.2), rgba(0, 0, 0, 0.5));
+        }
+        
+        .equip-slot.rarity-legendary {
+            border-color: #ffaa44;
+            background: linear-gradient(180deg, rgba(255, 170, 68, 0.2), rgba(0, 0, 0, 0.5));
+        }
+        
+        .equip-slot-empty {
+            background: rgba(100, 100, 100, 0.3);
+            border-style: dashed;
         }
         
         .equip-icon {
-            font-size: 30px;
-            margin-bottom: 5px;
+            font-size: 36px;
+            margin: 5px 0;
         }
         
         .equip-name {
             color: #fff;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             margin-bottom: 5px;
         }
         
         .equip-level {
-            color: #ffd700;
-            font-size: 11px;
-            margin-bottom: 8px;
-        }
-        
-        .equip-stats {
             color: #aaa;
             font-size: 10px;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         
-        .equip-action {
+        .equip-progress {
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .equip-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff9900);
+            border-radius: 4px;
+        }
+        
+        .equip-progress-text {
+            color: #ffd700;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+        
+        .equipment-section-title {
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0 15px;
+        }
+        
+        .unlocked-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .fence-bar {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 50;
+        }
+        
+        .fence-pickets {
             display: flex;
             gap: 5px;
         }
         
-        .equip-btn {
-            flex: 1;
-            background: linear-gradient(145deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 5px;
-            padding: 6px 8px;
-            color: #fff;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .fence-picket {
+            width: 15px;
+            height: 35px;
+            background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
+            border-radius: 3px 3px 0 0;
+            position: relative;
         }
         
-        .equip-btn:hover {
-            transform: scale(1.05);
+        .fence-picket::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 10px solid #A0522D;
         }
         
-        .equip-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .fence-rail {
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(180deg, #8B4513, #654321);
         }
         
-        .equip-btn.buy {
-            background: linear-gradient(145deg, #ffd700, #ffaa00);
-            color: #000;
+        .fence-post {
+            position: absolute;
+            bottom: 0;
+            width: 20px;
+            height: 45px;
+            background: linear-gradient(180deg, #654321, #4a3520);
+            border-radius: 5px 5px 0 0;
         }
         
-        .gacha-section {
-            text-align: center;
+        .fence-post.left {
+            left: 20px;
         }
         
-        .gacha-container {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
+        .fence-post.right {
+            right: 20px;
         }
-        
-        .gacha-btn {
-            background: linear-gradient(145deg, #ff6b6b, #ee5a5a);
-            border: 3px solid #ffd700;
-            border-radius: 15px;
-            padding: 20px 25px;
-            color: #fff;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            min-width: 120px;
-        }
-        
-        .gacha-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(255, 107, 107, 0.5);
-        }
-        
-        .gacha-btn:active {
-            transform: scale(0.98);
-        }
-        
-        .gacha-icon {
-            font-size: 36px;
-            margin-bottom: 8px;
-        }
-        
-        .gacha-price {
-            color: #ffd700;
-            margin-top: 5px;
-            font-size: 12px;
-        }
-        
-        .gacha-result {
-            margin-top: 15px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 10px;
+
+        .pause-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
             display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 250;
         }
         
-        .gacha-result.show {
-            display: block;
+        .pause-menu.show {
+            display: flex;
         }
         
-        .gacha-result-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-        
-        .gacha-result-name {
+        .pause-title {
             color: #ffd700;
-            font-size: 18px;
+            font-size: 36px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 30px;
         }
         
-        .gacha-result-desc {
-            color: #aaa;
-            font-size: 12px;
+        .pause-btn-item {
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 50px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            min-width: 200px;
         }
         
-        #levelUpScreen {
+        .pause-btn-item.return {
+            background: linear-gradient(180deg, #666, #444);
+        }
+
+        .level-complete-screen {
             position: absolute;
             top: 0;
             left: 0;
@@ -448,63 +764,66 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            z-index: 300;
+            padding: 20px;
         }
         
-        #levelUpScreen.show {
+        .level-complete-screen.show {
             display: flex;
         }
         
-        .levelup-title {
-            font-size: 36px;
-            font-weight: bold;
+        .complete-title {
             color: #ffd700;
-            margin-bottom: 20px;
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 30px;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
         
-        .levelup-stats {
+        .complete-stats {
             color: #fff;
-            font-size: 16px;
-            margin-bottom: 30px;
-            text-align: center;
-            line-height: 1.8;
-        }
-        
-        .unlock-text {
-            color: #667eea;
             font-size: 18px;
+            text-align: center;
             margin-bottom: 30px;
+            line-height: 2;
         }
         
-        .levelup-buttons {
+        .complete-stats .gold {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        .complete-buttons {
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
             justify-content: center;
         }
         
-        .levelup-btn {
-            background: linear-gradient(145deg, #667eea, #764ba2);
-            color: white;
+        .complete-btn {
+            background: linear-gradient(180deg, #667eea, #764ba2);
             border: none;
-            padding: 15px 40px;
-            font-size: 16px;
+            border-radius: 15px;
+            padding: 15px 30px;
+            color: #fff;
+            font-size: 18px;
             font-weight: bold;
-            border-radius: 50px;
             cursor: pointer;
-            transition: all 0.3s ease;
         }
         
-        .levelup-btn:hover {
-            transform: scale(1.05);
+        .complete-btn.return {
+            background: linear-gradient(180deg, #666, #444);
         }
         
-        .levelup-btn.return {
-            background: linear-gradient(145deg, #666, #444);
+        .unlock-text {
+            color: #ffd700;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        
-        #gameOverScreen {
+
+        .game-over-screen {
             position: absolute;
             top: 0;
             left: 0;
@@ -515,36 +834,32 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 200;
+            z-index: 300;
+            padding: 20px;
         }
         
-        #gameOverScreen.show {
+        .game-over-screen.show {
             display: flex;
         }
         
         .gameover-title {
+            color: #ff4444;
             font-size: 42px;
             font-weight: bold;
-            color: #ff4444;
             margin-bottom: 30px;
             text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
         }
         
         .gameover-stats {
             color: #fff;
-            font-size: 16px;
-            margin-bottom: 40px;
+            font-size: 18px;
             text-align: center;
+            margin-bottom: 30px;
             line-height: 2;
         }
         
-        .gold-value {
+        .gameover-stats .highlight {
             color: #ffd700;
-            font-weight: bold;
-        }
-        
-        .level-value {
-            color: #667eea;
             font-weight: bold;
         }
         
@@ -555,53 +870,111 @@
             justify-content: center;
         }
         
-        @media (max-width: 500px) {
-            .main-title {
-                font-size: 32px;
-            }
-            
-            .skill-card {
-                width: 120px;
-                padding: 15px;
-            }
-            
-            .skill-cards {
-                gap: 15px;
-            }
-            
-            .equip-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .levelup-btn {
-                padding: 12px 30px;
-                font-size: 14px;
-            }
+        .gameover-btn {
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 30px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
         }
         
-        .back-btn {
+        .gameover-btn.return {
+            background: linear-gradient(180deg, #666, #444);
+        }
+
+        .shop-screen, .character-screen, .challenge-screen {
+            padding: 80px 20px 100px;
+            text-align: center;
+        }
+        
+        .coming-soon {
+            color: #fff;
+            font-size: 28px;
+            margin-top: 50px;
+        }
+        
+        .coming-soon-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .battle-ui {
             position: absolute;
-            top: 15px;
+            top: 60px;
+            left: 15px;
             right: 15px;
+            z-index: 100;
+        }
+        
+        .health-bar-container {
             background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #667eea;
+            border: 2px solid #444;
             border-radius: 10px;
             padding: 8px 15px;
+            margin-bottom: 10px;
+        }
+        
+        .health-bar-bg {
+            height: 12px;
+            background: #333;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .health-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4444, #ff8844);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+        
+        .health-text {
+            color: #fff;
+            font-size: 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .battle-stats {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 8px 15px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 11px;
+        }
+        
+        .stat-value {
             color: #fff;
             font-size: 14px;
             font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 50;
         }
-        
-        .back-btn:hover {
-            border-color: #ffd700;
-            transform: scale(1.05);
-        }
-        
-        .back-btn.hidden {
-            display: none;
+
+        @media (max-width: 500px) {
+            .equipped-grid, .unlocked-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .chapter-title {
+                font-size: 28px;
+            }
+            
+            .skill-desc {
+                font-size: 18px;
+            }
         }
     </style>
 </head>
@@ -610,106 +983,218 @@
         <canvas id="gameCanvas"></canvas>
         
         <div id="uiLayer">
-            <button class="back-btn hidden" id="backBtn">返回主界面</button>
-            
-            <div class="game-info">
-                <div class="stat-box">
-                    <div class="stat-label">关卡</div>
-                    <div class="stat-value" id="levelDisplay">1</div>
+            <div class="top-bar" id="topBar">
+                <div class="resource-item">
+                    <span class="resource-icon">⚡</span>
+                    <span class="resource-value" id="energyDisplay">30/30</span>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">金币</div>
-                    <div class="stat-value" id="goldDisplay">0</div>
+                <span class="resource-divider">+</span>
+                <div class="resource-item">
+                    <span class="resource-icon">🪙</span>
+                    <span class="resource-value" id="mainGoldDisplay">0</span>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">得分</div>
-                    <div class="stat-value" id="scoreDisplay">0</div>
+                <span class="resource-divider">+</span>
+                <div class="resource-item">
+                    <span class="resource-icon">💎</span>
+                    <span class="resource-value">0</span>
+                </div>
+                <span class="resource-divider">+</span>
+                <div class="resource-item">
+                    <span class="resource-icon">🎟️</span>
+                    <span class="resource-value">0</span>
                 </div>
             </div>
+
+            <button class="pause-btn hidden" id="pauseBtn">⏸️</button>
             
-            <div class="health-bar-container">
-                <div class="health-bar-bg">
-                    <div class="health-bar-fill" id="healthBar" style="width: 100%"></div>
+            <div class="battle-info hidden" id="battleInfo">
+                <div class="battle-level" id="battleLevelDisplay">当前第1关</div>
+                <div class="battle-difficulty">难度:普通</div>
+            </div>
+
+            <div class="battle-ui hidden" id="battleUI">
+                <div class="health-bar-container">
+                    <div class="health-bar-bg">
+                        <div class="health-bar-fill" id="healthBar" style="width: 100%"></div>
+                    </div>
                     <div class="health-text" id="healthText">100 / 100</div>
                 </div>
-            </div>
-        </div>
-        
-        <div id="mainScreen">
-            <div class="main-header">
-                <div class="main-title">🐉 射击龙 🐉</div>
-                <div class="main-gold">
-                    <span class="main-gold-icon">💰</span>
-                    <span id="mainGoldDisplay">0</span>
+                <div class="battle-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">关卡:</span>
+                        <span class="stat-value" id="levelDisplay">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">金币:</span>
+                        <span class="stat-value" id="goldDisplay">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">得分:</span>
+                        <span class="stat-value" id="scoreDisplay">0</span>
+                    </div>
                 </div>
             </div>
-            
-            <div class="main-content">
-                <div class="main-section">
-                    <div class="section-title">🎮 选择关卡</div>
-                    <div class="level-grid" id="levelGrid">
+
+            <div class="bottom-nav" id="bottomNav">
+                <div class="nav-item" data-tab="shop">
+                    <div class="nav-icon">🏪</div>
+                    <div class="nav-label">商店</div>
+                </div>
+                <div class="nav-item" data-tab="character">
+                    <div class="nav-icon">👦</div>
+                    <div class="nav-label">角色</div>
+                </div>
+                <div class="nav-item active" data-tab="battle">
+                    <div class="nav-icon">💀</div>
+                    <div class="nav-label">战斗</div>
+                </div>
+                <div class="nav-item" data-tab="equipment">
+                    <div class="nav-icon">🎒</div>
+                    <div class="nav-label">装备</div>
+                </div>
+                <div class="nav-item" data-tab="challenge">
+                    <div class="nav-icon">💀</div>
+                    <div class="nav-label">挑战</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-screen active" id="mainScreen">
+            <div class="main-content" id="battleTab">
+                <div class="chapter-title" id="chapterTitle">1. 屠龙第1章</div>
+                <div class="difficulty-info">
+                    <span class="difficulty-text">难度:<span id="difficultySpan">普通</span></span>
+                    <button class="difficulty-btn" id="difficultyBtn">难度选择</button>
+                </div>
+                <div class="boss-status" id="bossStatus">未通关</div>
+                
+                <div class="dragon-image-container">
+                    <div class="dragon-image">
+                        <div class="dragon-placeholder">🐲</div>
                     </div>
                 </div>
                 
-                <div class="main-section">
-                    <div class="section-title">⚔️ 装备强化</div>
-                    <div class="equip-grid" id="equipGrid">
+                <div class="progress-rewards">
+                    <div class="progress-title">关卡进度奖励</div>
+                    <div class="progress-bar-track">
+                        <div class="progress-markers">
+                            <div class="progress-marker"></div>
+                            <div class="progress-marker"></div>
+                            <div class="progress-marker"></div>
+                            <div class="progress-marker"></div>
+                            <div class="progress-marker"></div>
+                        </div>
+                    </div>
+                    <div class="progress-rewards-items">
+                        <div class="reward-item">
+                            <div class="reward-egg">🥚</div>
+                            <div class="reward-percent">25%</div>
+                        </div>
+                        <div class="reward-item">
+                            <div class="reward-egg">🥚</div>
+                            <div class="reward-percent">50%</div>
+                        </div>
+                        <div class="reward-item">
+                            <div class="reward-egg">🥚</div>
+                            <div class="reward-percent">100%</div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="main-section gacha-section">
-                    <div class="section-title">🎁 抽取宝箱</div>
-                    <div class="gacha-container">
-                        <button class="gacha-btn" id="gachaSingleBtn">
-                            <div class="gacha-icon">📦</div>
-                            <div>单抽</div>
-                            <div class="gacha-price">💰 50</div>
-                        </button>
-                        <button class="gacha-btn" id="gachaTenBtn">
-                            <div class="gacha-icon">🎊</div>
-                            <div>十连抽</div>
-                            <div class="gacha-price">💰 450</div>
-                        </button>
-                    </div>
-                    <div class="gacha-result" id="gachaResult">
-                        <div class="gacha-result-icon" id="gachaResultIcon">🎁</div>
-                        <div class="gacha-result-name" id="gachaResultName">获得道具</div>
-                        <div class="gacha-result-desc" id="gachaResultDesc">描述</div>
-                    </div>
+                <div class="start-btn-container">
+                    <button class="start-game-btn" id="startGameBtn">开始游戏</button>
+                    <div class="start-cost">⚡ x3</div>
                 </div>
             </div>
+
+            <div class="shop-screen hidden" id="shopTab">
+                <div class="coming-soon-icon">🏪</div>
+                <div class="coming-soon">商店功能开发中...</div>
+            </div>
+
+            <div class="character-screen hidden" id="characterTab">
+                <div class="coming-soon-icon">👦</div>
+                <div class="coming-soon">角色功能开发中...</div>
+            </div>
+
+            <div class="equipment-screen hidden" id="equipmentTab">
+                <div class="equipment-header">
+                    <div class="equipment-title">
+                        <span class="nav-icon">💀</span>
+                        上阵装备
+                    </div>
+                    <div class="equipment-count" id="equipCount">0/8</div>
+                </div>
+                
+                <div class="equipped-grid" id="equippedGrid">
+                </div>
+                
+                <div class="equipment-section-title">已解锁</div>
+                <div class="unlocked-grid" id="unlockedGrid">
+                </div>
+                
+                <div class="equipment-section-title">待解锁</div>
+                <div class="unlocked-grid" id="lockedGrid">
+                </div>
+            </div>
+
+            <div class="challenge-screen hidden" id="challengeTab">
+                <div class="coming-soon-icon">💀</div>
+                <div class="coming-soon">挑战功能开发中...</div>
+            </div>
         </div>
-        
-        <div id="skillSelection">
-            <div class="skill-title">选择技能升级</div>
-            <div class="skill-cards" id="skillCards"></div>
+
+        <div class="skill-selection" id="skillSelection">
+            <div class="skill-title">选择强化属性</div>
+            <div class="skill-cards-container" id="skillCards">
+            </div>
+            <div class="skill-refresh-section">
+                <div class="refresh-info">剩余免费<span class="free" id="freeRefreshCount">1</span>次</div>
+                <button class="refresh-btn" id="refreshBtn">
+                    <span class="refresh-icon">↻</span>
+                    刷新
+                </button>
+            </div>
         </div>
-        
-        <div id="levelUpScreen">
-            <div class="levelup-title">🎉 关卡完成！</div>
-            <div class="levelup-stats" id="levelupStats"></div>
+
+        <div class="pause-menu" id="pauseMenu">
+            <div class="pause-title">游戏暂停</div>
+            <button class="pause-btn-item" id="resumeBtn">继续游戏</button>
+            <button class="pause-btn-item return" id="returnFromPauseBtn">返回主界面</button>
+        </div>
+
+        <div class="level-complete-screen" id="levelUpScreen">
+            <div class="complete-title">🎉 关卡完成！</div>
+            <div class="complete-stats" id="levelupStats"></div>
             <div class="unlock-text" id="unlockText"></div>
-            <div class="levelup-buttons">
-                <button class="levelup-btn" id="nextLevelBtn">继续下一关</button>
-                <button class="levelup-btn return" id="returnMainBtn">返回主界面</button>
+            <div class="complete-buttons">
+                <button class="complete-btn" id="nextLevelBtn">继续下一关</button>
+                <button class="complete-btn return" id="returnMainBtn">返回主界面</button>
             </div>
         </div>
-        
-        <div id="gameOverScreen">
+
+        <div class="game-over-screen" id="gameOverScreen">
             <div class="gameover-title">游戏结束</div>
             <div class="gameover-stats">
-                <div>到达关卡: <span class="level-value" id="finalLevel">1</span></div>
-                <div>获得金币: <span class="gold-value" id="finalGold">0</span></div>
-                <div>最终得分: <span class="gold-value" id="finalScore">0</span></div>
+                <div>到达关卡: <span class="highlight" id="finalLevel">1</span></div>
+                <div>获得金币: <span class="highlight" id="finalGold">0</span></div>
+                <div>最终得分: <span class="highlight" id="finalScore">0</span></div>
             </div>
             <div class="gameover-buttons">
-                <button class="levelup-btn" id="retryBtn">重新挑战</button>
-                <button class="levelup-btn return" id="returnMainBtn2">返回主界面</button>
+                <button class="gameover-btn" id="retryBtn">重新挑战</button>
+                <button class="gameover-btn return" id="returnMainBtn2">返回主界面</button>
             </div>
+        </div>
+
+        <div class="fence-bar hidden" id="fenceBar">
+            <div class="fence-post left"></div>
+            <div class="fence-pickets">
+            </div>
+            <div class="fence-post right"></div>
+            <div class="fence-rail"></div>
         </div>
     </div>
     
-    <script src="js/wasmmoon.min.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>

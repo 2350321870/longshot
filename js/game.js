@@ -5,6 +5,8 @@ class DragonShooterGame {
         
         this.gameState = 'mainMenu';
         this.isPaused = false;
+        this.freeRefreshCount = 1;
+        this.currentTab = 'battle';
         
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -25,7 +27,11 @@ class DragonShooterGame {
     initGameData() {
         this.saveData = this.loadSaveData() || {
             gold: 100,
+            diamonds: 0,
             maxUnlockedLevel: 1,
+            energy: 30,
+            maxEnergy: 30,
+            lastEnergyTime: Date.now(),
             equipment: {
                 weapon: { level: 0, owned: false },
                 armor: { level: 0, owned: false },
@@ -36,8 +42,13 @@ class DragonShooterGame {
                 bulletDamage: 0,
                 maxHealth: 0,
                 moveSpeed: 0
-            }
+            },
+            unlockedItems: ['pistol'],
+            equippedItems: [],
+            itemLevels: { pistol: 1 }
         };
+        
+        this.updateEnergy();
         
         this.equipmentConfig = {
             weapon: {
@@ -74,6 +85,14 @@ class DragonShooterGame {
             }
         };
         
+        this.itemsConfig = [
+            { id: 'pistol', name: '手枪', icon: '🔫', rarity: 'common', baseDamage: 5 },
+            { id: 'shotgun', name: '霰弹枪', icon: '🔫', rarity: 'uncommon', baseDamage: 8 },
+            { id: 'rifle', name: '步枪', icon: '🎯', rarity: 'rare', baseDamage: 12 },
+            { id: 'sniper', name: '狙击枪', icon: '🔭', rarity: 'epic', baseDamage: 18 },
+            { id: 'cannon', name: '加农炮', icon: '💣', rarity: 'legendary', baseDamage: 25 }
+        ];
+        
         this.gachaPool = [
             { id: 'gold_small', name: '少量金币', icon: '💰', desc: '获得50金币', rarity: 'common', weight: 40, effect: () => { this.saveData.gold += 50; } },
             { id: 'gold_medium', name: '中型金币', icon: '💰', desc: '获得100金币', rarity: 'uncommon', weight: 25, effect: () => { this.saveData.gold += 100; } },
@@ -98,26 +117,50 @@ class DragonShooterGame {
         };
 
         this.skills = [
-            { id: "bullet_count", name: "多重射击", description: "子弹数量+1", icon: "🎯" },
-            { id: "bullet_spread", name: "扇形射击", description: "子弹覆盖范围扩大", icon: "🌟" },
-            { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡" },
-            { id: "damage", name: "强力子弹", description: "子弹伤害+25%", icon: "💥" },
-            { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️" },
-            { id: "max_health", name: "生命强化", description: "最大生命值+25", icon: "💗" },
-            { id: "bullet_size", name: "巨型子弹", description: "子弹体积变大", icon: "🔵" },
-            { id: "speed", name: "加速移动", description: "移动速度+15%", icon: "🏃" },
-            { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯" },
-            { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐" },
-            { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫" },
-            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲" }
+            { id: "bullet_count", name: "龙之力", description: "子弹数量+1", icon: "🎯", rarity: "A" },
+            { id: "bullet_spread", name: "龙息", description: "子弹覆盖范围扩大", icon: "🌟", rarity: "B" },
+            { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡", rarity: "B" },
+            { id: "damage", name: "龙之力", description: "子弹伤害+50%", icon: "💥", rarity: "A" },
+            { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️", rarity: "B" },
+            { id: "max_health", name: "生命强化", description: "最大生命值+25", icon: "💗", rarity: "B" },
+            { id: "bullet_size", name: "巨型子弹", description: "子弹体积变大", icon: "🔵", rarity: "B" },
+            { id: "speed", name: "加速移动", description: "移动速度+15%", icon: "🏃", rarity: "B" },
+            { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯", rarity: "A" },
+            { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐", rarity: "B" },
+            { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫", rarity: "A" },
+            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲", rarity: "B" }
         ];
 
         this.powerupTypes = [
-            { id: "gold", name: "金币", icon: "💰", color: "#FFD700" },
+            { id: "gold", name: "金币", icon: "💰", color: "#FFD700", value: 10 },
             { id: "health_pack", name: "生命包", icon: "💊", color: "#FF6B6B" },
             { id: "damage_boost", name: "伤害提升", icon: "⚔️", color: "#FF4444", duration: 10 },
             { id: "speed_boost", name: "速度提升", icon: "💨", color: "#00CED1", duration: 8 }
         ];
+    }
+    
+    updateEnergy() {
+        const now = Date.now();
+        const elapsed = now - this.saveData.lastEnergyTime;
+        const energyToRecover = Math.floor(elapsed / 60000);
+        
+        if (energyToRecover > 0) {
+            this.saveData.energy = Math.min(this.saveData.maxEnergy, this.saveData.energy + energyToRecover);
+            this.saveData.lastEnergyTime = now;
+            this.saveGameData();
+        }
+        
+        return this.saveData.energy;
+    }
+    
+    consumeEnergy(amount) {
+        if (this.saveData.energy >= amount) {
+            this.saveData.energy -= amount;
+            this.saveData.lastEnergyTime = Date.now();
+            this.saveGameData();
+            return true;
+        }
+        return false;
     }
     
     loadSaveData() {
@@ -227,10 +270,31 @@ class DragonShooterGame {
         document.getElementById('returnMainBtn').addEventListener('click', () => this.returnToMainMenu());
         document.getElementById('returnMainBtn2').addEventListener('click', () => this.returnToMainMenu());
         document.getElementById('retryBtn').addEventListener('click', () => this.retryLevel());
-        document.getElementById('backBtn').addEventListener('click', () => this.returnToMainMenu());
         
-        document.getElementById('gachaSingleBtn').addEventListener('click', () => this.doGacha(1));
-        document.getElementById('gachaTenBtn').addEventListener('click', () => this.doGacha(10));
+        try {
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', () => this.returnToMainMenu());
+            }
+        } catch (e) {}
+        
+        document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('refreshBtn').addEventListener('click', () => this.refreshSkills());
+        document.getElementById('resumeBtn').addEventListener('click', () => this.resumeGame());
+        document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+        document.getElementById('returnFromPauseBtn').addEventListener('click', () => this.returnToMainMenu());
+        
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tab = item.dataset.tab;
+                this.switchTab(tab);
+            });
+        });
+        
+        try {
+            document.getElementById('gachaSingleBtn').addEventListener('click', () => this.doGacha(1));
+            document.getElementById('gachaTenBtn').addEventListener('click', () => this.doGacha(10));
+        } catch (e) {}
         
         this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e));
         this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e));
@@ -244,22 +308,223 @@ class DragonShooterGame {
         document.addEventListener('keyup', (e) => this.handleKeyUp(e));
     }
     
+    switchTab(tab) {
+        this.currentTab = tab;
+        
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.tab === tab);
+        });
+        
+        document.getElementById('battleTab').classList.toggle('hidden', tab !== 'battle');
+        document.getElementById('shopTab').classList.toggle('hidden', tab !== 'shop');
+        document.getElementById('characterTab').classList.toggle('hidden', tab !== 'character');
+        document.getElementById('equipmentTab').classList.toggle('hidden', tab !== 'equipment');
+        document.getElementById('challengeTab').classList.toggle('hidden', tab !== 'challenge');
+        
+        if (tab === 'equipment') {
+            this.renderEquipmentUI();
+        }
+    }
+    
+    renderEquipmentUI() {
+        const equipped = this.saveData.equippedItems || [];
+        const unlocked = this.saveData.unlockedItems || ['pistol'];
+        const itemLevels = this.saveData.itemLevels || { pistol: 1 };
+        
+        const equippedGrid = document.getElementById('equippedGrid');
+        const unlockedGrid = document.getElementById('unlockedGrid');
+        const lockedGrid = document.getElementById('lockedGrid');
+        
+        const maxEquipped = 8;
+        document.getElementById('equipCount').textContent = `${equipped.length}/${maxEquipped}`;
+        
+        equippedGrid.innerHTML = '';
+        for (let i = 0; i < maxEquipped; i++) {
+            const itemId = equipped[i];
+            const slot = document.createElement('div');
+            
+            if (itemId) {
+                const item = this.itemsConfig.find(it => it.id === itemId);
+                if (item) {
+                    const level = itemLevels[itemId] || 1;
+                    const maxLevel = 5;
+                    const progress = level / maxLevel;
+                    
+                    slot.className = `equip-slot rarity-${item.rarity}`;
+                    slot.innerHTML = `
+                        <div class="equip-icon">${item.icon}</div>
+                        <div class="equip-name">${item.name}</div>
+                        <div class="equip-level">Lv.${level}</div>
+                        <div class="equip-progress">
+                            <div class="equip-progress-fill" style="width: ${progress * 100}%"></div>
+                        </div>
+                        <div class="equip-progress-text">${level}/${maxLevel}</div>
+                    `;
+                }
+            } else {
+                slot.className = 'equip-slot equip-slot-empty';
+                slot.innerHTML = `
+                    <div class="equip-icon">+</div>
+                    <div class="equip-name">空槽位</div>
+                `;
+            }
+            
+            slot.addEventListener('click', () => {
+                if (itemId) {
+                    this.unequipItem(itemId);
+                }
+            });
+            
+            equippedGrid.appendChild(slot);
+        }
+        
+        unlockedGrid.innerHTML = '';
+        unlocked.forEach(itemId => {
+            if (equipped.includes(itemId)) return;
+            
+            const item = this.itemsConfig.find(it => it.id === itemId);
+            if (item) {
+                const level = itemLevels[itemId] || 1;
+                const maxLevel = 5;
+                const progress = level / maxLevel;
+                
+                const slot = document.createElement('div');
+                slot.className = `equip-slot rarity-${item.rarity}`;
+                slot.innerHTML = `
+                    <div class="equip-icon">${item.icon}</div>
+                    <div class="equip-name">${item.name}</div>
+                    <div class="equip-level">Lv.${level}</div>
+                    <div class="equip-progress">
+                        <div class="equip-progress-fill" style="width: ${progress * 100}%"></div>
+                    </div>
+                    <div class="equip-progress-text">${level}/${maxLevel}</div>
+                `;
+                
+                slot.addEventListener('click', () => {
+                    if (equipped.length < maxEquipped) {
+                        this.equipItem(itemId);
+                    } else {
+                        this.showToast('装备槽已满！');
+                    }
+                });
+                
+                unlockedGrid.appendChild(slot);
+            }
+        });
+        
+        lockedGrid.innerHTML = '';
+        this.itemsConfig.forEach(item => {
+            if (unlocked.includes(item.id)) return;
+            
+            const slot = document.createElement('div');
+            slot.className = 'equip-slot equip-slot-empty';
+            slot.innerHTML = `
+                <div class="equip-icon">🔒</div>
+                <div class="equip-name">${item.name}</div>
+                <div class="equip-level">未解锁</div>
+            `;
+            
+            lockedGrid.appendChild(slot);
+        });
+    }
+    
+    equipItem(itemId) {
+        if (!this.saveData.equippedItems) {
+            this.saveData.equippedItems = [];
+        }
+        
+        if (this.saveData.equippedItems.length >= 8) {
+            this.showToast('装备槽已满！');
+            return;
+        }
+        
+        if (!this.saveData.equippedItems.includes(itemId)) {
+            this.saveData.equippedItems.push(itemId);
+            this.saveGameData();
+            this.renderEquipmentUI();
+            this.showToast('装备成功！');
+        }
+    }
+    
+    unequipItem(itemId) {
+        if (this.saveData.equippedItems) {
+            const index = this.saveData.equippedItems.indexOf(itemId);
+            if (index > -1) {
+                this.saveData.equippedItems.splice(index, 1);
+                this.saveGameData();
+                this.renderEquipmentUI();
+                this.showToast('已卸下装备！');
+            }
+        }
+    }
+    
+    startGame() {
+        this.updateEnergy();
+        
+        if (this.saveData.energy < 3) {
+            this.showToast('体力不足！请等待恢复或使用钻石补充。');
+            return;
+        }
+        
+        this.consumeEnergy(3);
+        this.freeRefreshCount = 1;
+        this.startLevel(1);
+    }
+    
+    togglePause() {
+        if (this.gameState === 'playing') {
+            this.isPaused = true;
+            document.getElementById('pauseMenu').classList.add('show');
+        } else if (this.isPaused) {
+            this.resumeGame();
+        }
+    }
+    
+    resumeGame() {
+        this.isPaused = false;
+        document.getElementById('pauseMenu').classList.remove('show');
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+    
+    refreshSkills() {
+        if (this.freeRefreshCount > 0) {
+            this.freeRefreshCount--;
+            this.showSkillSelection();
+        } else {
+            this.showToast('免费刷新次数已用完！');
+        }
+    }
+    
     renderMainMenu() {
         this.gameState = 'mainMenu';
         
         document.getElementById('mainScreen').classList.remove('hidden');
-        document.getElementById('backBtn').classList.add('hidden');
+        
+        try {
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.classList.add('hidden');
+            }
+        } catch (e) {}
+        
         document.getElementById('levelUpScreen').classList.remove('show');
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('skillSelection').classList.remove('show');
+        document.getElementById('pauseMenu').classList.remove('show');
         
+        this.switchTab('battle');
         this.updateMainMenuUI();
     }
     
     updateMainMenuUI() {
+        this.updateEnergy();
+        document.getElementById('energyDisplay').textContent = `${this.saveData.energy}/${this.saveData.maxEnergy}`;
         document.getElementById('mainGoldDisplay').textContent = this.saveData.gold;
-        this.renderLevelGrid();
-        this.renderEquipGrid();
+        
+        const chapter = Math.ceil(this.saveData.maxUnlockedLevel / 9);
+        document.getElementById('chapterTitle').textContent = `${chapter}. 屠龙第${chapter}章`;
+        document.getElementById('bossStatus').textContent = this.saveData.maxUnlockedLevel > 1 ? '已通关部分关卡' : '未通关';
     }
     
     renderLevelGrid() {
@@ -894,8 +1159,9 @@ class DragonShooterGame {
     
     openChest(chest) {
         this.chestsOpened++;
-        this.goldEarned += 20;
-        this.score += 50;
+        const goldAmount = chest.goldAmount || 20;
+        this.goldEarned += goldAmount;
+        this.score += goldAmount * 2;
         
         this.createGoldParticles(chest.x, chest.y);
         
@@ -1071,12 +1337,14 @@ class DragonShooterGame {
         const margin = 80;
         const x = margin + Math.random() * (this.width - margin * 2);
         const y = margin + Math.random() * (this.height - margin * 2);
+        const goldAmount = 50 + Math.floor(Math.random() * 200);
         
         this.chests.push({
             x: x,
             y: y,
             radius: 30,
-            bobOffset: 0
+            bobOffset: 0,
+            goldAmount: goldAmount
         });
     }
     
@@ -1189,11 +1457,19 @@ class DragonShooterGame {
         
         availableSkills.forEach((skill, index) => {
             const card = document.createElement('div');
-            card.className = 'skill-card';
+            const rarityClass = skill.rarity === 'A' ? 'rarity-a' : 'rarity-b';
+            card.className = `skill-card ${rarityClass}`;
+            
             card.innerHTML = `
-                <div class="skill-icon">${skill.icon}</div>
-                <div class="skill-name">${skill.name}</div>
-                <div class="skill-desc">${skill.description}</div>
+                <div class="skill-icon-box">
+                    <span class="skill-rarity-badge">${skill.rarity}</span>
+                    <span class="skill-icon">${skill.icon}</span>
+                </div>
+                <div class="skill-content">
+                    <div class="skill-subtitle">${skill.name}</div>
+                    <div class="skill-desc">${skill.description}</div>
+                </div>
+                <div class="skill-index">${index + 1}</div>
             `;
             
             card.addEventListener('click', () => {
@@ -1206,6 +1482,9 @@ class DragonShooterGame {
             
             skillContainer.appendChild(card);
         });
+        
+        document.getElementById('freeRefreshCount').textContent = this.freeRefreshCount;
+        document.getElementById('refreshBtn').disabled = this.freeRefreshCount <= 0;
         
         document.getElementById('skillSelection').classList.add('show');
     }
@@ -1222,7 +1501,7 @@ class DragonShooterGame {
                 this.playerStats.fireRate *= 0.8;
                 break;
             case 'damage':
-                this.playerStats.bulletDamage = Math.floor(this.playerStats.bulletDamage * 1.25);
+                this.playerStats.bulletDamage = Math.floor(this.playerStats.bulletDamage * 1.5);
                 break;
             case 'health':
                 this.playerStats.health = Math.min(
@@ -1578,7 +1857,16 @@ class DragonShooterGame {
             this.ctx.font = `${chest.radius * 1.2}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillText('📦', 0, 0);
+            this.ctx.fillText('📦', 0, -5);
+            
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 2;
+            this.ctx.textAlign = 'center';
+            const goldText = `${chest.goldAmount}`;
+            this.ctx.strokeText(goldText, 0, 28);
+            this.ctx.fillText(goldText, 0, 28);
             
             this.ctx.restore();
         });
