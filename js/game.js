@@ -499,15 +499,18 @@ class DragonShooterGame {
     renderMainMenu() {
         this.gameState = 'mainMenu';
         
+        // 显示主界面
         document.getElementById('mainScreen').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.remove('hidden');
+        document.getElementById('topBar').classList.remove('hidden');
         
-        try {
-            const backBtn = document.getElementById('backBtn');
-            if (backBtn) {
-                backBtn.classList.add('hidden');
-            }
-        } catch (e) {}
+        // 隐藏战斗界面
+        document.getElementById('battleInfo').classList.add('hidden');
+        document.getElementById('battleUI').classList.add('hidden');
+        document.getElementById('pauseBtn').classList.add('hidden');
+        document.getElementById('fenceBar').classList.add('hidden');
         
+        // 隐藏其他弹窗
         document.getElementById('levelUpScreen').classList.remove('show');
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('skillSelection').classList.remove('show');
@@ -710,8 +713,19 @@ class DragonShooterGame {
         this.totalEnemiesInLevel = config.enemyCount;
         this.enemiesInLevel = 0;
         
+        // 隐藏主界面
         document.getElementById('mainScreen').classList.add('hidden');
-        document.getElementById('backBtn').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.add('hidden');
+        document.getElementById('topBar').classList.add('hidden');
+        
+        // 显示战斗界面
+        document.getElementById('battleInfo').classList.remove('hidden');
+        document.getElementById('battleUI').classList.remove('hidden');
+        document.getElementById('pauseBtn').classList.remove('hidden');
+        document.getElementById('fenceBar').classList.remove('hidden');
+        
+        // 更新关卡显示
+        document.getElementById('battleLevelDisplay').textContent = `当前第${this.currentLevel}关`;
         
         this.gameState = 'playing';
         this.updateUI();
