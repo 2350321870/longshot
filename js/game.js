@@ -163,15 +163,15 @@ class DragonShooterGame {
         ];
         
         this.levelConfigs = {
-            1: { enemyCount: 8, enemyHealth: 40, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 3 },
-            2: { enemyCount: 10, enemyHealth: 50, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 4 },
-            3: { enemyCount: 12, enemyHealth: 65, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 5, unlockAbility: true },
-            4: { enemyCount: 15, enemyHealth: 80, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 5 },
-            5: { enemyCount: 18, enemyHealth: 100, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 6 },
-            6: { enemyCount: 20, enemyHealth: 120, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 6, unlockAbility: true },
-            7: { enemyCount: 25, enemyHealth: 150, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 7 },
-            8: { enemyCount: 28, enemyHealth: 180, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 7 },
-            9: { enemyCount: 30, enemyHealth: 220, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 8, unlockAbility: true }
+            1: { enemyCount: 8, enemyHealth: 500, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 15, chestDropChance: 0.15 },
+            2: { enemyCount: 10, enemyHealth: 800, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 20, chestDropChance: 0.15 },
+            3: { enemyCount: 12, enemyHealth: 1200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 25, unlockAbility: true, chestDropChance: 0.18 },
+            4: { enemyCount: 15, enemyHealth: 1800, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 30, chestDropChance: 0.18 },
+            5: { enemyCount: 18, enemyHealth: 2500, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 35, chestDropChance: 0.2 },
+            6: { enemyCount: 20, enemyHealth: 3500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 40, unlockAbility: true, chestDropChance: 0.2 },
+            7: { enemyCount: 25, enemyHealth: 5000, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 45, chestDropChance: 0.22 },
+            8: { enemyCount: 28, enemyHealth: 7000, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 50, chestDropChance: 0.22 },
+            9: { enemyCount: 30, enemyHealth: 10000, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 60, unlockAbility: true, chestDropChance: 0.25 }
         };
 
         this.skills = [
@@ -1165,7 +1165,8 @@ class DragonShooterGame {
             enemySpeed: baseConfig.enemySpeed + (multiplier - 1) * 0.1,
             enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
             dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
-            segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 2), 12),
+            segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 5), 100),
+            chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.4),
             unlockAbility: baseConfig.unlockAbility || false
         };
     }
@@ -1488,6 +1489,20 @@ class DragonShooterGame {
                             this.bullets.splice(j, 1);
                         }
                         
+                        const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+                        for (const segment of destroyedSegments) {
+                            const segX = enemy.x + segment.offsetX;
+                            const segY = enemy.y + segment.offsetY;
+                            
+                            if (Math.random() < levelConfig.chestDropChance) {
+                                this.spawnChest(segX, segY);
+                            }
+                            
+                            if (Math.random() < levelConfig.dropChance * 0.5) {
+                                this.spawnPowerup(segX, segY);
+                            }
+                        }
+                        
                         enemy.segments = enemy.segments.filter(s => s.health > 0);
                         
                         if (enemy.segments.length === 0 || enemy.health <= 0) {
@@ -1749,15 +1764,12 @@ class DragonShooterGame {
         this.enemies.push(dragon);
     }
     
-    spawnChest() {
-        const margin = 80;
-        const x = margin + Math.random() * (this.width - margin * 2);
-        const y = margin + Math.random() * (this.height - margin * 2);
+    spawnChest(x, y) {
         const goldAmount = 50 + Math.floor(Math.random() * 200);
         
         this.chests.push({
-            x: x,
-            y: y,
+            x: x || (80 + Math.random() * (this.width - 160)),
+            y: y || (80 + Math.random() * (this.height - 160)),
             radius: 30,
             bobOffset: 0,
             goldAmount: goldAmount
