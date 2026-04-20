@@ -1567,8 +1567,22 @@ class DragonShooterGame {
                         if (dist < needle.radius + 15) {
                             hit = true;
                             
-                            this.damageDragonSegment(enemy, segment, needle.damage);
-                            this.createDamageNumber(segment.x, segment.y, needle.damage, needle.isCrit);
+                            if (segment.health > 0) {
+                                segment.health -= needle.damage;
+                                enemy.health -= needle.damage;
+                                
+                                const segRadius = segment.index === 0 ? 22 : 18;
+                                this.damageNumbers.push({
+                                    x: segment.x,
+                                    y: segment.y - segRadius,
+                                    value: needle.damage,
+                                    isCrit: needle.isCrit,
+                                    lifetime: 1,
+                                    vy: -2
+                                });
+                                
+                                this.createHitParticles(needle.x, needle.y, needle.color);
+                            }
                             
                             this.burstNeedles(needle);
                             break;
@@ -1678,8 +1692,20 @@ class DragonShooterGame {
                     if (dist < 200) {
                         hitSegments.push({ enemy, segment });
                         
-                        this.damageDragonSegment(enemy, segment, damage);
-                        this.createDamageNumber(segment.x, segment.y, damage, isCrit);
+                        if (segment.health > 0) {
+                            segment.health -= damage;
+                            enemy.health -= damage;
+                            
+                            const segRadius = segment.index === 0 ? 22 : 18;
+                            this.damageNumbers.push({
+                                x: segment.x,
+                                y: segment.y - segRadius,
+                                value: damage,
+                                isCrit: isCrit,
+                                lifetime: 1,
+                                vy: -2
+                            });
+                        }
                         
                         this.createThunderEffect(segment.x, segment.y);
                     }
@@ -1757,8 +1783,20 @@ class DragonShooterGame {
                         if (dist < hail.radius + 15) {
                             hit = true;
                             
-                            this.damageDragonSegment(enemy, segment, hail.damage);
-                            this.createDamageNumber(segment.x, segment.y, hail.damage, hail.isCrit);
+                            if (segment.health > 0) {
+                                segment.health -= hail.damage;
+                                enemy.health -= hail.damage;
+                                
+                                const segRadius = segment.index === 0 ? 22 : 18;
+                                this.damageNumbers.push({
+                                    x: segment.x,
+                                    y: segment.y - segRadius,
+                                    value: hail.damage,
+                                    isCrit: hail.isCrit,
+                                    lifetime: 1,
+                                    vy: -2
+                                });
+                            }
                             
                             this.applySlowEffect(enemy, segment, hail.slowDuration, hail.slowAmount);
                             
@@ -2179,7 +2217,65 @@ class DragonShooterGame {
             }
         }
         
+        this.processDestroyedSegments(levelConfig);
+        
         this.updateUI();
+    }
+    
+    processDestroyedSegments(levelConfig) {
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+            
+            if (!enemy.isWinding || !enemy.segments) continue;
+            
+            const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+            const destroyedCount = destroyedSegments.length;
+            
+            if (destroyedCount > 0) {
+                this.segmentsDestroyed += destroyedCount;
+                
+                const cfg = window.GameConfig || {};
+                const dragonCfg = cfg.dragon || {};
+                const segmentsPerSkill = dragonCfg.segmentsPerSkillSelection || 20;
+                
+                const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
+                const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
+                
+                if (currentSegmentGroup > lastSegmentGroup) {
+                    this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                    this.showSkillSelection();
+                }
+                
+                for (const segment of destroyedSegments) {
+                    if (Math.random() < levelConfig.chestDropChance) {
+                        this.spawnChest(segment.x, segment.y);
+                    }
+                    
+                    if (Math.random() < levelConfig.dropChance * 0.5) {
+                        this.spawnPowerup(segment.x, segment.y);
+                    }
+                    
+                    this.createDeathParticles(segment.x, segment.y, enemy.color);
+                }
+                
+                enemy.segments = enemy.segments.filter(s => s.health > 0);
+                
+                if (enemy.segments.length === 0 || enemy.health <= 0) {
+                    this.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                    this.enemiesKilled++;
+                    this.score += enemy.maxHealth;
+                    this.goldEarned += Math.floor(enemy.maxHealth / 5);
+                    
+                    if (Math.random() < levelConfig.dropChance) {
+                        this.spawnPowerup(enemy.x, enemy.y);
+                    }
+                    
+                    this.enemies.splice(i, 1);
+                    
+                    this.levelComplete();
+                }
+            }
+        }
     }
     
     updateChests(dt) {
