@@ -416,7 +416,10 @@ class DragonShooterGame {
         
         if (distance < 0) return null;
         
-        if (distance >= this.totalPathLength) return null;
+        if (distance >= this.totalPathLength) {
+            const lastPoint = this.path[this.path.length - 1];
+            return { x: lastPoint.x, y: lastPoint.y, isEnd: true };
+        }
         
         for (let i = 1; i < this.path.length; i++) {
             const prevPoint = this.path[i - 1];
@@ -481,6 +484,8 @@ class DragonShooterGame {
         document.getElementById('returnMainBtn').addEventListener('click', () => this.returnToMainMenu());
         document.getElementById('returnMainBtn2').addEventListener('click', () => this.returnToMainMenu());
         document.getElementById('retryBtn').addEventListener('click', () => this.retryLevel());
+        document.getElementById('reviveBtn').addEventListener('click', () => this.revive());
+        document.getElementById('cancelReviveBtn').addEventListener('click', () => this.cancelRevive());
         
         try {
             const backBtn = document.getElementById('backBtn');
@@ -1252,6 +1257,11 @@ class DragonShooterGame {
         
         this.path = this.generatePath();
         
+        const cfg = window.GameConfig || {};
+        const levelCfg = cfg.level || {};
+        this.reviveCount = levelCfg.reviveCount || 3;
+        this.maxReviveCount = this.reviveCount;
+        
         const baseStats = this.getBaseStats();
         this.playerStats.maxHealth = 100 + baseStats.maxHealth;
         this.playerStats.health = 100 + baseStats.maxHealth;
@@ -1265,22 +1275,18 @@ class DragonShooterGame {
         this.totalEnemiesInLevel = config.enemyCount;
         this.enemiesInLevel = 0;
         
-        // 立即生成第一条龙
         this.spawnDragon(config);
         this.enemiesInLevel++;
         
-        // 隐藏主界面
         document.getElementById('mainScreen').classList.add('hidden');
         document.getElementById('bottomNav').classList.add('hidden');
         document.getElementById('topBar').classList.add('hidden');
         
-        // 显示战斗界面
         document.getElementById('battleInfo').classList.remove('hidden');
         document.getElementById('battleUI').classList.remove('hidden');
         document.getElementById('pauseBtn').classList.remove('hidden');
         document.getElementById('fenceBar').classList.remove('hidden');
         
-        // 更新关卡显示
         document.getElementById('battleLevelDisplay').textContent = `当前第${this.currentLevel}关`;
         
         this.gameState = 'playing';
@@ -1577,6 +1583,10 @@ class DragonShooterGame {
                 
                 const headPoint = this.getPointAtDistance(enemy.pathDistance);
                 if (headPoint) {
+                    if (headPoint.isEnd) {
+                        this.dragonReachedEnd(enemy);
+                        return;
+                    }
                     head.x = headPoint.x;
                     head.y = headPoint.y;
                 } else {
@@ -2103,6 +2113,38 @@ class DragonShooterGame {
         if (this.playerStats.health <= 0) {
             this.gameOver();
         }
+    }
+    
+    dragonReachedEnd(enemy) {
+        if (this.reviveCount > 0) {
+            this.gameState = 'reviving';
+            document.getElementById('reviveCountDisplay').textContent = this.reviveCount;
+            document.getElementById('reviveScreen').classList.add('show');
+        } else {
+            this.gameOver();
+        }
+    }
+    
+    revive() {
+        if (this.reviveCount <= 0) return;
+        
+        this.reviveCount--;
+        
+        for (const enemy of this.enemies) {
+            if (enemy.isWinding && enemy.pathDistance !== undefined) {
+                enemy.pathDistance = this.totalPathLength / 2;
+            }
+        }
+        
+        document.getElementById('reviveScreen').classList.remove('show');
+        this.gameState = 'playing';
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+    
+    cancelRevive() {
+        document.getElementById('reviveScreen').classList.remove('show');
+        this.gameOver();
     }
     
     gameOver() {

@@ -2,7 +2,7 @@ const GameConfig = {
     dragon: {
         segments: 1000,
         segmentSpacing: 20,
-        baseHealthPerLevel: 50,
+        baseHealthPerLevel: 10,
         healthMultiplier: 1.1,
         segmentsPerSkillSelection: 5,
         moveSpeed: 1
@@ -14,7 +14,8 @@ const GameConfig = {
         leftPadding: 80,
         rightPadding: 80,
         topPadding: 20,
-        turnRadius: 20
+        turnRadius: 20,
+        reviveCount: 3
     },
     
     enemy: {
