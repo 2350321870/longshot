@@ -321,52 +321,120 @@ class DragonShooterGame {
             channels: []
         };
         
-        const firstRowY = topPadding;
-        path.push({ x: rightBound, y: -50 });
-        path.push({ x: rightBound, y: firstRowY });
-        
         for (let i = 0; i < channelCount; i++) {
-            const isEvenRow = i % 2 === 1;
+            const isRightToLeft = i % 2 === 0;
             const rowY = topPadding + i * channelHeight;
             
             this.pathBoundaries.channels.push({
                 rowY: rowY,
-                isEvenRow: isEvenRow
+                isEvenRow: !isRightToLeft
             });
             
             if (i > 0) {
                 this.pathBoundaries.channelLines.push(rowY);
             }
             
-            if (isEvenRow) {
-                path.push({ x: rightBound, y: rowY });
+            if (i === 0) {
+                path.push({ x: rightBound, y: -50, distance: 0 });
+                path.push({ x: rightBound, y: rowY, distance: 50 });
+            }
+            
+            const prevPoint = path[path.length - 1];
+            const baseDistance = prevPoint ? prevPoint.distance : 0;
+            
+            if (isRightToLeft) {
+                if (i > 0) {
+                    const startX = rightBound;
+                    const startY = rowY;
+                    const dist = baseDistance;
+                    path.push({ x: startX, y: startY, distance: dist });
+                }
+                
+                const endX = leftBound;
+                const endY = rowY;
+                const segmentLength = Math.abs(endX - (path[path.length - 1].x));
+                path.push({ x: endX, y: endY, distance: path[path.length - 1].distance + segmentLength });
             } else {
-                path.push({ x: leftBound, y: rowY });
+                if (i > 0) {
+                    const startX = leftBound;
+                    const startY = rowY;
+                    const dist = baseDistance;
+                    path.push({ x: startX, y: startY, distance: dist });
+                }
+                
+                const endX = rightBound;
+                const endY = rowY;
+                const segmentLength = Math.abs(endX - (path[path.length - 1].x));
+                path.push({ x: endX, y: endY, distance: path[path.length - 1].distance + segmentLength });
             }
             
             if (i < channelCount - 1) {
                 const nextRowY = rowY + channelHeight;
                 const pointsInTurn = 12;
+                const arcLength = (Math.PI * turnRadius) / 2;
+                const stepDistance = arcLength / pointsInTurn;
                 
-                if (isEvenRow) {
-                    for (let j = 1; j <= pointsInTurn; j++) {
-                        const angle = (Math.PI / pointsInTurn) * j;
-                        const x = rightBound - turnRadius * Math.sin(angle);
-                        const y = rowY + turnRadius * (1 - Math.cos(angle));
-                        path.push({ x, y });
-                    }
-                } else {
+                const lastPoint = path[path.length - 1];
+                let currentDist = lastPoint.distance;
+                
+                if (isRightToLeft) {
                     for (let j = 1; j <= pointsInTurn; j++) {
                         const angle = (Math.PI / pointsInTurn) * j;
                         const x = leftBound + turnRadius * Math.sin(angle);
                         const y = rowY + turnRadius * (1 - Math.cos(angle));
-                        path.push({ x, y });
+                        currentDist += stepDistance;
+                        path.push({ x, y, distance: currentDist });
+                    }
+                } else {
+                    for (let j = 1; j <= pointsInTurn; j++) {
+                        const angle = (Math.PI / pointsInTurn) * j;
+                        const x = rightBound - turnRadius * Math.sin(angle);
+                        const y = rowY + turnRadius * (1 - Math.cos(angle));
+                        currentDist += stepDistance;
+                        path.push({ x, y, distance: currentDist });
                     }
                 }
             }
         }
         
+        let totalDist = 0;
+        for (let i = 1; i < path.length; i++) {
+            const dx = path[i].x - path[i-1].x;
+            const dy = path[i].y - path[i-1].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            totalDist += dist;
+            path[i].distance = totalDist;
+        }
+        
+        this.totalPathLength = totalDist;
+        
         return path;
+    }
+    
+    getPointAtDistance(distance) {
+        if (!this.path || this.path.length < 2) return null;
+        
+        if (distance < 0) return null;
+        
+        if (distance >= this.totalPathLength) return null;
+        
+        for (let i = 1; i < this.path.length; i++) {
+            const prevPoint = this.path[i - 1];
+            const currPoint = this.path[i];
+            
+            if (distance >= prevPoint.distance && distance <= currPoint.distance) {
+                const segmentDist = currPoint.distance - prevPoint.distance;
+                if (segmentDist <= 0) return { x: currPoint.x, y: currPoint.y };
+                
+                const ratio = (distance - prevPoint.distance) / segmentDist;
+                return {
+                    x: prevPoint.x + (currPoint.x - prevPoint.x) * ratio,
+                    y: prevPoint.y + (currPoint.y - prevPoint.y) * ratio
+                };
+            }
+        }
+        
+        return null;
     }
     
     getBaseStats() {
@@ -1496,46 +1564,66 @@ class DragonShooterGame {
                     enemy.currentPathIndex = 0;
                 }
                 
+                if (enemy.pathDistance === undefined) {
+                    enemy.pathDistance = 0;
+                }
+                
                 const cfg = window.GameConfig || {};
                 const dragonCfg = cfg.dragon || {};
                 const moveSpeed = dragonCfg.moveSpeed || 3;
+                const segmentSpacing = enemy.segmentSpacing || 35;
                 
-                const currentPoint = this.path[enemy.currentPathIndex];
-                if (currentPoint) {
-                    const dx = currentPoint.x - head.x;
-                    const dy = currentPoint.y - head.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist < moveSpeed * 60 * dt) {
-                        head.x = currentPoint.x;
-                        head.y = currentPoint.y;
-                        enemy.currentPathIndex++;
-                    } else {
-                        const angle = Math.atan2(dy, dx);
-                        head.x += Math.cos(angle) * moveSpeed * 60 * dt;
-                        head.y += Math.sin(angle) * moveSpeed * 60 * dt;
+                enemy.pathDistance += moveSpeed * 60 * dt;
+                
+                const headPoint = this.getPointAtDistance(enemy.pathDistance);
+                if (headPoint) {
+                    head.x = headPoint.x;
+                    head.y = headPoint.y;
+                } else {
+                    const currentPoint = this.path[enemy.currentPathIndex];
+                    if (currentPoint) {
+                        const dx = currentPoint.x - head.x;
+                        const dy = currentPoint.y - head.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < moveSpeed * 60 * dt) {
+                            head.x = currentPoint.x;
+                            head.y = currentPoint.y;
+                            enemy.currentPathIndex++;
+                        } else {
+                            const angle = Math.atan2(dy, dx);
+                            head.x += Math.cos(angle) * moveSpeed * 60 * dt;
+                            head.y += Math.sin(angle) * moveSpeed * 60 * dt;
+                        }
                     }
                 }
                 
                 enemy.x = head.x;
                 enemy.y = head.y;
                 
-                const spacing = enemy.segmentSpacing || 35;
-                const followSpeed = 0.3;
-                
                 for (let j = 1; j < enemy.segments.length; j++) {
                     const current = enemy.segments[j];
-                    const prev = enemy.segments[j - 1];
+                    const segmentDistance = enemy.pathDistance - j * segmentSpacing;
                     
-                    const dx = prev.x - current.x;
-                    const dy = prev.y - current.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist > spacing) {
-                        const angle = Math.atan2(dy, dx);
-                        const targetDist = dist - spacing;
-                        current.x += Math.cos(angle) * targetDist * followSpeed;
-                        current.y += Math.sin(angle) * targetDist * followSpeed;
+                    const segmentPoint = this.getPointAtDistance(segmentDistance);
+                    if (segmentPoint) {
+                        current.x = segmentPoint.x;
+                        current.y = segmentPoint.y;
+                    } else {
+                        const prev = enemy.segments[j - 1];
+                        const spacing = enemy.segmentSpacing || 35;
+                        const followSpeed = 0.3;
+                        
+                        const dx = prev.x - current.x;
+                        const dy = prev.y - current.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > spacing) {
+                            const angle = Math.atan2(dy, dx);
+                            const targetDist = dist - spacing;
+                            current.x += Math.cos(angle) * targetDist * followSpeed;
+                            current.y += Math.sin(angle) * targetDist * followSpeed;
+                        }
                     }
                 }
             } else {
