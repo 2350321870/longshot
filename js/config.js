@@ -13,8 +13,8 @@ const GameConfig = {
         channelHeight: 50,
         leftPadding: 80,
         rightPadding: 80,
-        topPadding: 60,
-        turnRadius: 80
+        topPadding: 20,
+        turnRadius: 20
     },
     
     enemy: {
