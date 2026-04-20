@@ -290,6 +290,75 @@ class DragonShooterGame {
         
         this.targetPosition = null;
         this.isMoving = false;
+        
+        this.path = [];
+        this.pathBoundaries = {
+            leftBound: 0,
+            rightBound: 0,
+            channelLines: []
+        };
+    }
+    
+    generatePath() {
+        const cfg = window.GameConfig || {};
+        const levelCfg = cfg.level || {};
+        
+        const channelCount = levelCfg.channelCount || 5;
+        const channelHeight = levelCfg.channelHeight || 120;
+        const leftPadding = levelCfg.leftPadding || 50;
+        const rightPadding = levelCfg.rightPadding || 50;
+        const topPadding = levelCfg.topPadding || 80;
+        const turnRadius = levelCfg.turnRadius || 40;
+        
+        const path = [];
+        const leftBound = leftPadding;
+        const rightBound = this.width - rightPadding;
+        
+        this.pathBoundaries = {
+            leftBound: leftBound,
+            rightBound: rightBound,
+            channelLines: []
+        };
+        
+        for (let i = 0; i < channelCount; i++) {
+            const isEvenRow = i % 2 === 0;
+            const rowY = topPadding + i * channelHeight;
+            
+            if (i > 0) {
+                this.pathBoundaries.channelLines.push(rowY);
+            }
+            
+            if (isEvenRow) {
+                path.push({ x: leftBound, y: rowY });
+                path.push({ x: rightBound, y: rowY });
+            } else {
+                path.push({ x: rightBound, y: rowY });
+                path.push({ x: leftBound, y: rowY });
+            }
+            
+            if (i < channelCount - 1) {
+                const nextRowY = rowY + channelHeight;
+                const pointsInTurn = 12;
+                
+                if (isEvenRow) {
+                    for (let j = 1; j <= pointsInTurn; j++) {
+                        const angle = (Math.PI / pointsInTurn) * j;
+                        const x = rightBound - turnRadius * Math.sin(angle);
+                        const y = rowY + turnRadius * (1 - Math.cos(angle));
+                        path.push({ x, y });
+                    }
+                } else {
+                    for (let j = 1; j <= pointsInTurn; j++) {
+                        const angle = (Math.PI / pointsInTurn) * j;
+                        const x = leftBound + turnRadius * Math.sin(angle);
+                        const y = rowY + turnRadius * (1 - Math.cos(angle));
+                        path.push({ x, y });
+                    }
+                }
+            }
+        }
+        
+        return path;
     }
     
     getBaseStats() {
@@ -1105,6 +1174,8 @@ class DragonShooterGame {
         this.currentLevel = levelNum;
         this.initGame();
         
+        this.path = this.generatePath();
+        
         const baseStats = this.getBaseStats();
         this.playerStats.maxHealth = 100 + baseStats.maxHealth;
         this.playerStats.health = 100 + baseStats.maxHealth;
@@ -1410,19 +1481,32 @@ class DragonShooterGame {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             
-            if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
-                if (enemy.rightBound === 0) {
-                    enemy.rightBound = this.width - 50;
+            if (enemy.isWinding && enemy.segments && enemy.segments.length > 0 && this.path && this.path.length > 0) {
+                const head = enemy.segments[0];
+                
+                if (enemy.currentPathIndex === undefined) {
+                    enemy.currentPathIndex = 0;
                 }
                 
-                const head = enemy.segments[0];
-                head.x += enemy.moveDirection * enemy.horizontalSpeed * 60 * dt;
-                head.y += enemy.verticalSpeed * 6 * dt;
+                const cfg = window.GameConfig || {};
+                const dragonCfg = cfg.dragon || {};
+                const moveSpeed = dragonCfg.moveSpeed || 3;
                 
-                if (enemy.moveDirection === 1 && head.x >= enemy.rightBound) {
-                    enemy.moveDirection = -1;
-                } else if (enemy.moveDirection === -1 && head.x <= enemy.leftBound) {
-                    enemy.moveDirection = 1;
+                const currentPoint = this.path[enemy.currentPathIndex];
+                if (currentPoint) {
+                    const dx = currentPoint.x - head.x;
+                    const dy = currentPoint.y - head.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < moveSpeed * 60 * dt) {
+                        head.x = currentPoint.x;
+                        head.y = currentPoint.y;
+                        enemy.currentPathIndex++;
+                    } else {
+                        const angle = Math.atan2(dy, dx);
+                        head.x += Math.cos(angle) * moveSpeed * 60 * dt;
+                        head.y += Math.sin(angle) * moveSpeed * 60 * dt;
+                    }
                 }
                 
                 enemy.x = head.x;
@@ -1803,8 +1887,14 @@ class DragonShooterGame {
         
         const segments = dragonCfg.segments || 1000;
         const segmentSpacing = dragonCfg.segmentSpacing || 35;
-        const startX = 50;
-        const startY = 100;
+        
+        let startX = 50;
+        let startY = 100;
+        
+        if (this.path && this.path.length > 0) {
+            startX = this.path[0].x;
+            startY = this.path[0].y;
+        }
         
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
         const color = colors[Math.floor(Math.random() * colors.length)];
@@ -1842,7 +1932,8 @@ class DragonShooterGame {
             rightBound: 0,
             segmentSpacing: segmentSpacing,
             targetX: startX,
-            targetY: startY
+            targetY: startY,
+            currentPathIndex: 0
         };
         
         for (let i = 0; i < segments; i++) {
@@ -2145,6 +2236,7 @@ class DragonShooterGame {
         this.ctx.clearRect(0, 0, this.width, this.height);
         
         this.drawBackground();
+        this.drawPath();
         this.drawParticles();
         this.drawPowerups();
         this.drawChests();
@@ -2152,6 +2244,51 @@ class DragonShooterGame {
         this.drawEnemies();
         this.drawPlayer();
         this.drawDamageNumbers();
+    }
+    
+    drawPath() {
+        if (!this.path || this.path.length < 2) return;
+        
+        this.ctx.save();
+        
+        // 绘制路径（黑色线条）
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.path[0].x, this.path[0].y);
+        
+        for (let i = 1; i < this.path.length; i++) {
+            this.ctx.lineTo(this.path[i].x, this.path[i].y);
+        }
+        this.ctx.stroke();
+        
+        // 绘制边界（红色线条）
+        if (this.pathBoundaries) {
+            this.ctx.strokeStyle = '#FF0000';
+            this.ctx.lineWidth = 1;
+            
+            // 左边界
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.pathBoundaries.leftBound, 0);
+            this.ctx.lineTo(this.pathBoundaries.leftBound, this.height);
+            this.ctx.stroke();
+            
+            // 右边界
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.pathBoundaries.rightBound, 0);
+            this.ctx.lineTo(this.pathBoundaries.rightBound, this.height);
+            this.ctx.stroke();
+            
+            // 通道分隔线
+            for (const y of this.pathBoundaries.channelLines) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.pathBoundaries.leftBound, y);
+                this.ctx.lineTo(this.pathBoundaries.rightBound, y);
+                this.ctx.stroke();
+            }
+        }
+        
+        this.ctx.restore();
     }
     
     drawBackground() {

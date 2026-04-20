@@ -3,8 +3,18 @@ const GameConfig = {
         segments: 1000,
         segmentSpacing: 20,
         baseHealthPerLevel: 50,
-        healthMultiplier: 1.2,
-        segmentsPerSkillSelection: 20
+        healthMultiplier: 1.1,
+        segmentsPerSkillSelection: 5,
+        moveSpeed: 1
+    },
+    
+    level: {
+        channelCount: 10,
+        channelHeight: 50,
+        leftPadding: 80,
+        rightPadding: 80,
+        topPadding: 60,
+        turnRadius: 80
     },
     
     enemy: {
