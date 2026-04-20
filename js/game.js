@@ -1410,19 +1410,41 @@ class DragonShooterGame {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             
-            if (enemy.isWinding) {
+            if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
                 if (enemy.rightBound === 0) {
                     enemy.rightBound = this.width - 50;
                 }
                 
-                enemy.x += enemy.moveDirection * enemy.horizontalSpeed * 60 * dt;
+                const head = enemy.segments[0];
+                head.x += enemy.moveDirection * enemy.horizontalSpeed * 60 * dt;
+                head.y += enemy.verticalSpeed * 6 * dt;
                 
-                if (enemy.moveDirection === 1 && enemy.x >= enemy.rightBound) {
+                if (enemy.moveDirection === 1 && head.x >= enemy.rightBound) {
                     enemy.moveDirection = -1;
-                    enemy.y += enemy.verticalStep;
-                } else if (enemy.moveDirection === -1 && enemy.x <= enemy.leftBound) {
+                } else if (enemy.moveDirection === -1 && head.x <= enemy.leftBound) {
                     enemy.moveDirection = 1;
-                    enemy.y += enemy.verticalStep;
+                }
+                
+                enemy.x = head.x;
+                enemy.y = head.y;
+                
+                const spacing = enemy.segmentSpacing || 35;
+                const followSpeed = 0.3;
+                
+                for (let j = 1; j < enemy.segments.length; j++) {
+                    const current = enemy.segments[j];
+                    const prev = enemy.segments[j - 1];
+                    
+                    const dx = prev.x - current.x;
+                    const dy = prev.y - current.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist > spacing) {
+                        const angle = Math.atan2(dy, dx);
+                        const targetDist = dist - spacing;
+                        current.x += Math.cos(angle) * targetDist * followSpeed;
+                        current.y += Math.sin(angle) * targetDist * followSpeed;
+                    }
                 }
             } else {
                 enemy.y += enemy.speed * 60 * dt;
@@ -1444,11 +1466,9 @@ class DragonShooterGame {
             if (enemy.segments && enemy.segments.length > 0) {
                 let playerHit = false;
                 for (const segment of enemy.segments) {
-                    const segX = enemy.x + segment.offsetX;
-                    const segY = enemy.y + segment.offsetY;
                     const segRadius = segment.index === 0 ? 22 : 18;
                     
-                    const segObj = { x: segX, y: segY, radius: segRadius };
+                    const segObj = { x: segment.x, y: segment.y, radius: segRadius };
                     if (this.checkCollision(segObj, this.player)) {
                         playerHit = true;
                         break;
@@ -1466,19 +1486,17 @@ class DragonShooterGame {
                     for (const segment of enemy.segments) {
                         if (segment.health <= 0) continue;
                         
-                        const segX = enemy.x + segment.offsetX;
-                        const segY = enemy.y + segment.offsetY;
                         const segRadius = segment.index === 0 ? 22 : 18;
                         
-                        const segObj = { x: segX, y: segY, radius: segRadius };
+                        const segObj = { x: segment.x, y: segment.y, radius: segRadius };
                         
                         if (this.checkCircleCollision(bullet, segObj)) {
                             segment.health -= bullet.damage;
                             enemy.health -= bullet.damage;
                             
                             this.damageNumbers.push({
-                                x: segX,
-                                y: segY - segRadius,
+                                x: segment.x,
+                                y: segment.y - segRadius,
                                 value: bullet.damage,
                                 isCrit: bullet.isCrit,
                                 lifetime: 1,
@@ -1519,15 +1537,12 @@ class DragonShooterGame {
                         }
                         
                         for (const segment of destroyedSegments) {
-                            const segX = enemy.x + segment.offsetX;
-                            const segY = enemy.y + segment.offsetY;
-                            
                             if (Math.random() < levelConfig.chestDropChance) {
-                                this.spawnChest(segX, segY);
+                                this.spawnChest(segment.x, segment.y);
                             }
                             
                             if (Math.random() < levelConfig.dropChance * 0.5) {
-                                this.spawnPowerup(segX, segY);
+                                this.spawnPowerup(segment.x, segment.y);
                             }
                         }
                         
@@ -1822,15 +1837,18 @@ class DragonShooterGame {
             isWinding: true,
             moveDirection: 1,
             horizontalSpeed: config.enemySpeed * 2,
+            verticalSpeed: config.enemySpeed * 0.5,
             leftBound: 50,
             rightBound: 0,
-            verticalStep: 30
+            segmentSpacing: segmentSpacing,
+            targetX: startX,
+            targetY: startY
         };
         
         for (let i = 0; i < segments; i++) {
             dragon.segments.push({
-                offsetX: 0,
-                offsetY: -i * segmentSpacing,
+                x: startX,
+                y: startY - i * segmentSpacing,
                 health: segmentHealths[i],
                 maxHealth: segmentHealths[i],
                 index: i
@@ -2222,11 +2240,9 @@ class DragonShooterGame {
             if (enemy.segments && enemy.segments.length > 0) {
                 for (let i = enemy.segments.length - 1; i >= 0; i--) {
                     const segment = enemy.segments[i];
-                    const segX = enemy.x + segment.offsetX;
-                    const segY = enemy.y + segment.offsetY;
                     
                     this.ctx.save();
-                    this.ctx.translate(segX, segY);
+                    this.ctx.translate(segment.x, segment.y);
                     
                     const segRadius = i === 0 ? 22 : 18;
                     
