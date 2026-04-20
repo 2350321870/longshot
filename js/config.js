@@ -1,7 +1,7 @@
 const GameConfig = {
     dragon: {
         segments: 1000,
-        segmentSpacing: 20,
+        segmentSpacing: 46,
         baseHealthPerLevel: 10,
         healthMultiplier: 1.1,
         segmentsPerSkillSelection: 5,
