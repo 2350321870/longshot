@@ -1745,7 +1745,7 @@ class DragonShooterGame {
         const segments = config.segments || 3;
         const segmentSpacing = 35;
         const startX = 50 + Math.random() * (this.width - 100);
-        const startY = -segments * segmentSpacing - 50;
+        const startY = -100;
         
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
         const color = colors[Math.floor(Math.random() * colors.length)];
