@@ -1115,6 +1115,10 @@ class DragonShooterGame {
         this.totalEnemiesInLevel = config.enemyCount;
         this.enemiesInLevel = 0;
         
+        // 立即生成第一条龙
+        this.spawnDragon(config);
+        this.enemiesInLevel++;
+        
         // 隐藏主界面
         document.getElementById('mainScreen').classList.add('hidden');
         document.getElementById('bottomNav').classList.add('hidden');
@@ -1745,7 +1749,7 @@ class DragonShooterGame {
         const segments = config.segments || 3;
         const segmentSpacing = 35;
         const startX = 50 + Math.random() * (this.width - 100);
-        const startY = 50;
+        const startY = -segments * segmentSpacing / 2;
         
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
         const color = colors[Math.floor(Math.random() * colors.length)];
@@ -1783,7 +1787,7 @@ class DragonShooterGame {
         for (let i = 0; i < segments; i++) {
             dragon.segments.push({
                 offsetX: 0,
-                offsetY: -i * segmentSpacing,
+                offsetY: i * segmentSpacing,
                 health: segmentHealths[i],
                 maxHealth: segmentHealths[i],
                 index: i
