@@ -3215,48 +3215,85 @@ class DragonShooterGame {
                     this.ctx.translate(segment.x, segment.y);
                     
                     const healthPercent = segment.health / segment.maxHealth;
-                    const baseRadius = i === 0 ? 22 : 18;
-                    const segRadius = baseRadius * (0.5 + healthPercent * 0.5);
+                    const baseHeight = i === 0 ? 28 : 22;
+                    const baseWidth = i === 0 ? 60 : 50;
+                    
+                    const segHeight = baseHeight;
+                    const segWidth = baseWidth * (0.5 + healthPercent * 0.5);
+                    
+                    const halfWidth = segWidth / 2;
+                    const halfHeight = segHeight / 2;
                     
                     this.ctx.shadowColor = enemy.color;
                     this.ctx.shadowBlur = 15;
                     
                     this.ctx.beginPath();
-                    this.ctx.arc(0, 0, segRadius, 0, Math.PI * 2);
+                    this.ctx.moveTo(-halfWidth + halfHeight, -halfHeight);
+                    this.ctx.lineTo(halfWidth - halfHeight, -halfHeight);
+                    this.ctx.arcTo(halfWidth, -halfHeight, halfWidth, halfHeight, halfHeight);
+                    this.ctx.lineTo(halfWidth, halfHeight - halfHeight);
+                    this.ctx.arcTo(halfWidth, halfHeight, -halfWidth, halfHeight, halfHeight);
+                    this.ctx.lineTo(-halfWidth + halfHeight, halfHeight);
+                    this.ctx.arcTo(-halfWidth, halfHeight, -halfWidth, -halfHeight, halfHeight);
+                    this.ctx.lineTo(-halfWidth, -halfHeight + halfHeight);
+                    this.ctx.arcTo(-halfWidth, -halfHeight, halfWidth, -halfHeight, halfHeight);
+                    this.ctx.closePath();
                     
-                    const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, segRadius);
-                    gradient.addColorStop(0, enemy.color);
-                    gradient.addColorStop(1, this.darkenColor(enemy.color, 0.5));
+                    const gradient = this.ctx.createLinearGradient(-halfWidth, 0, halfWidth, 0);
+                    gradient.addColorStop(0, this.darkenColor(enemy.color, 0.3));
+                    gradient.addColorStop(0.5, enemy.color);
+                    gradient.addColorStop(1, this.darkenColor(enemy.color, 0.3));
                     this.ctx.fillStyle = gradient;
                     this.ctx.fill();
                     
                     this.ctx.shadowBlur = 0;
                     
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, 0, segRadius * 0.7, 0, Math.PI * 2);
-                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-                    this.ctx.fill();
+                    const innerPadding = 4;
+                    const innerHalfWidth = halfWidth - innerPadding;
+                    const innerHalfHeight = halfHeight - innerPadding;
                     
                     this.ctx.beginPath();
-                    this.ctx.arc(0, 0, segRadius * 0.7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * healthPercent);
-                    this.ctx.lineTo(0, 0);
+                    this.ctx.moveTo(-innerHalfWidth + innerHalfHeight, -innerHalfHeight);
+                    this.ctx.lineTo(innerHalfWidth - innerHalfHeight, -innerHalfHeight);
+                    this.ctx.arcTo(innerHalfWidth, -innerHalfHeight, innerHalfWidth, innerHalfHeight, innerHalfHeight);
+                    this.ctx.lineTo(innerHalfWidth, innerHalfHeight - innerHalfHeight);
+                    this.ctx.arcTo(innerHalfWidth, innerHalfHeight, -innerHalfWidth, innerHalfHeight, innerHalfHeight);
+                    this.ctx.lineTo(-innerHalfWidth + innerHalfHeight, innerHalfHeight);
+                    this.ctx.arcTo(-innerHalfWidth, innerHalfHeight, -innerHalfWidth, -innerHalfHeight, innerHalfHeight);
+                    this.ctx.lineTo(-innerHalfWidth, -innerHalfHeight + innerHalfHeight);
+                    this.ctx.arcTo(-innerHalfWidth, -innerHalfHeight, innerHalfWidth, -innerHalfHeight, innerHalfHeight);
                     this.ctx.closePath();
-                    
-                    const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
-                    this.ctx.fillStyle = healthColor;
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
                     this.ctx.fill();
+                    
+                    const barWidth = (innerHalfWidth * 2) * healthPercent;
+                    const barHeight = innerHalfHeight * 2 - 4;
+                    
+                    if (barWidth > 0) {
+                        this.ctx.beginPath();
+                        this.ctx.rect(-innerHalfWidth, -barHeight / 2, barWidth, barHeight);
+                        
+                        const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
+                        const healthGradient = this.ctx.createLinearGradient(0, -barHeight / 2, 0, barHeight / 2);
+                        healthGradient.addColorStop(0, healthColor);
+                        healthGradient.addColorStop(0.5, this.lightenColor(healthColor, 0.3));
+                        healthGradient.addColorStop(1, healthColor);
+                        this.ctx.fillStyle = healthGradient;
+                        this.ctx.fill();
+                    }
                     
                     if (i === 0) {
-                        this.ctx.font = `${segRadius * 1.0}px Arial`;
+                        this.ctx.font = `${segHeight * 0.8}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
                         this.ctx.fillText('🐲', 0, 0);
                     } else {
-                        this.ctx.font = `${segRadius * 0.6}px Arial`;
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.font = `bold ${Math.min(segHeight * 0.5, 14)}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
-                        this.ctx.fillStyle = '#FFFFFF';
-                        this.ctx.fillText(Math.ceil(segment.health), 0, 0);
+                        const healthText = Math.ceil(segment.health) + '/' + Math.ceil(segment.maxHealth);
+                        this.ctx.fillText(healthText, 0, 0);
                     }
                     
                     this.ctx.restore();
@@ -3418,6 +3455,14 @@ class DragonShooterGame {
         const r = Math.max(0, parseInt(hex.substr(0, 2), 16) * (1 - amount));
         const g = Math.max(0, parseInt(hex.substr(2, 2), 16) * (1 - amount));
         const b = Math.max(0, parseInt(hex.substr(4, 2), 16) * (1 - amount));
+        return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+    }
+    
+    lightenColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.min(255, parseInt(hex.substr(0, 2), 16) * (1 + amount));
+        const g = Math.min(255, parseInt(hex.substr(2, 2), 16) * (1 + amount));
+        const b = Math.min(255, parseInt(hex.substr(4, 2), 16) * (1 + amount));
         return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
     }
     
