@@ -321,8 +321,12 @@ class DragonShooterGame {
             channels: []
         };
         
+        const firstRowY = topPadding;
+        path.push({ x: rightBound, y: -50 });
+        path.push({ x: rightBound, y: firstRowY });
+        
         for (let i = 0; i < channelCount; i++) {
-            const isEvenRow = i % 2 === 0;
+            const isEvenRow = i % 2 === 1;
             const rowY = topPadding + i * channelHeight;
             
             this.pathBoundaries.channels.push({
@@ -335,10 +339,8 @@ class DragonShooterGame {
             }
             
             if (isEvenRow) {
-                path.push({ x: leftBound, y: rowY });
                 path.push({ x: rightBound, y: rowY });
             } else {
-                path.push({ x: rightBound, y: rowY });
                 path.push({ x: leftBound, y: rowY });
             }
             
