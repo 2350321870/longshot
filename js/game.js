@@ -258,6 +258,9 @@ class DragonShooterGame {
         this.enemiesInLevel = 0;
         this.totalEnemiesInLevel = 0;
         
+        this.segmentsDestroyed = 0;
+        this.lastSkillSelectionAtSegment = 0;
+        
         this.lastTime = 0;
         this.shootTimer = 0;
         this.spawnTimer = 0;
@@ -1164,12 +1167,12 @@ class DragonShooterGame {
         const baseConfig = this.levelConfigs[baseLevel] || this.levelConfigs[9];
         
         return {
-            enemyCount: baseConfig.enemyCount + (multiplier - 1) * 5,
+            enemyCount: 1,
             enemyHealth: Math.floor(baseConfig.enemyHealth * (1 + (multiplier - 1) * 0.3)),
             enemySpeed: baseConfig.enemySpeed + (multiplier - 1) * 0.1,
             enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
             dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
-            segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 5), 100),
+            segments: 1000,
             chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.9),
             unlockAbility: baseConfig.unlockAbility || false
         };
@@ -1481,6 +1484,24 @@ class DragonShooterGame {
                         }
                         
                         const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+                        const destroyedCount = destroyedSegments.length;
+                        
+                        if (destroyedCount > 0) {
+                            this.segmentsDestroyed += destroyedCount;
+                            
+                            const cfg = window.GameConfig || {};
+                            const dragonCfg = cfg.dragon || {};
+                            const segmentsPerSkill = dragonCfg.segmentsPerSkillSelection || 20;
+                            
+                            const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
+                            const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
+                            
+                            if (currentSegmentGroup > lastSegmentGroup) {
+                                this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                                this.showSkillSelection();
+                            }
+                        }
+                        
                         for (const segment of destroyedSegments) {
                             const segX = enemy.x + segment.offsetX;
                             const segY = enemy.y + segment.offsetY;
@@ -1508,7 +1529,7 @@ class DragonShooterGame {
                             
                             this.enemies.splice(i, 1);
                             
-                            this.showSkillSelection();
+                            this.levelComplete();
                             break;
                         }
                     }
@@ -1746,8 +1767,11 @@ class DragonShooterGame {
     }
     
     spawnDragon(config) {
-        const segments = config.segments || 3;
-        const segmentSpacing = 35;
+        const cfg = window.GameConfig || {};
+        const dragonCfg = cfg.dragon || {};
+        
+        const segments = dragonCfg.segments || 1000;
+        const segmentSpacing = dragonCfg.segmentSpacing || 35;
         const startX = 50 + Math.random() * (this.width - 100);
         const startY = 100;
         
@@ -1755,17 +1779,14 @@ class DragonShooterGame {
         const color = colors[Math.floor(Math.random() * colors.length)];
         
         let totalHealth = 0;
-        const healthMultiplier = 1.1;
-        let baseHealth = config.enemyHealth;
+        const healthMultiplier = dragonCfg.healthMultiplier || 1.2;
+        const baseHealthPerLevel = dragonCfg.baseHealthPerLevel || 200;
         
-        if (segments > 1) {
-            const ratio = (Math.pow(healthMultiplier, segments) - 1) / (healthMultiplier - 1);
-            baseHealth = Math.ceil(config.enemyHealth / ratio);
-        }
+        let firstSegmentHealth = baseHealthPerLevel * this.currentLevel;
         
         const segmentHealths = [];
         for (let i = 0; i < segments; i++) {
-            const health = Math.ceil(baseHealth * Math.pow(healthMultiplier, i));
+            const health = Math.ceil(firstSegmentHealth * Math.pow(healthMultiplier, i));
             segmentHealths.push(health);
             totalHealth += health;
         }
