@@ -175,8 +175,7 @@ class DragonShooterGame {
         };
 
         this.skills = [
-            { id: "bullet_count", name: "龙之力", description: "子弹数量+1", icon: "🎯", rarity: "A" },
-            { id: "bullet_spread", name: "龙息", description: "子弹覆盖范围扩大", icon: "🌟", rarity: "B" },
+            { id: "bullet_count", name: "龙之力", description: "子弹数量+1，范围+15°", icon: "🎯", rarity: "A" },
             { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡", rarity: "B" },
             { id: "damage", name: "龙之力", description: "子弹伤害+50%", icon: "💥", rarity: "A" },
             { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️", rarity: "B" },
@@ -1628,16 +1627,20 @@ class DragonShooterGame {
     }
     
     launchThunderDragon(stats) {
+        const startX = Math.random() * 0.6 + 0.2;
+        const startY = Math.random() * 0.6 + 0.2;
+        
         this.thunderDragon = {
-            x: -50,
-            y: this.height / 2,
-            vx: stats.moveSpeed,
-            vy: stats.moveSpeed * 0.3,
+            x: this.width * startX,
+            y: this.height * startY,
+            vx: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed,
+            vy: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed * 0.6,
             damage: stats.damage,
             lightningTimer: 0,
             lightningFrequency: stats.lightningFrequency,
             duration: stats.duration,
-            elapsed: 0
+            elapsed: 0,
+            targetChangeTimer: 0
         };
         this.thunderDragonTimer = stats.duration;
     }
@@ -1656,14 +1659,27 @@ class DragonShooterGame {
             return;
         }
         
-        this.thunderDragon.x += this.thunderDragon.vx * dt;
-        this.thunderDragon.y += this.thunderDragon.vy * dt;
+        this.thunderDragon.x += this.thunderDragon.vx * 60 * dt;
+        this.thunderDragon.y += this.thunderDragon.vy * 60 * dt;
         
-        if (this.thunderDragon.x < 0 || this.thunderDragon.x > this.width) {
+        if (this.thunderDragon.x < 50 || this.thunderDragon.x > this.width - 50) {
             this.thunderDragon.vx *= -1;
+            this.thunderDragon.x = Math.max(50, Math.min(this.width - 50, this.thunderDragon.x));
         }
-        if (this.thunderDragon.y < 50 || this.thunderDragon.y > this.height - 100) {
+        if (this.thunderDragon.y < 80 || this.thunderDragon.y > this.height - 80) {
             this.thunderDragon.vy *= -1;
+            this.thunderDragon.y = Math.max(80, Math.min(this.height - 80, this.thunderDragon.y));
+        }
+        
+        this.thunderDragon.targetChangeTimer += dt;
+        if (this.thunderDragon.targetChangeTimer > 2 + Math.random() * 2) {
+            this.thunderDragon.targetChangeTimer = 0;
+            if (Math.random() < 0.4) {
+                this.thunderDragon.vx *= -1;
+            }
+            if (Math.random() < 0.4) {
+                this.thunderDragon.vy *= -1;
+            }
         }
         
         this.thunderDragon.lightningTimer += dt;
@@ -2764,9 +2780,7 @@ class DragonShooterGame {
             switch (skill.id) {
                 case 'bullet_count':
                     this.playerStats.bulletCount++;
-                    break;
-                case 'bullet_spread':
-                    this.playerStats.bulletSpread += 15;
+                    this.playerStats.bulletSpread += 1;
                     break;
                 case 'fire_rate':
                     this.playerStats.fireRate *= 0.8;
@@ -3200,7 +3214,9 @@ class DragonShooterGame {
                     this.ctx.save();
                     this.ctx.translate(segment.x, segment.y);
                     
-                    const segRadius = i === 0 ? 22 : 18;
+                    const healthPercent = segment.health / segment.maxHealth;
+                    const baseRadius = i === 0 ? 22 : 18;
+                    const segRadius = baseRadius * (0.5 + healthPercent * 0.5);
                     
                     this.ctx.shadowColor = enemy.color;
                     this.ctx.shadowBlur = 15;
@@ -3216,47 +3232,32 @@ class DragonShooterGame {
                     
                     this.ctx.shadowBlur = 0;
                     
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, segRadius * 0.7, 0, Math.PI * 2);
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    this.ctx.fill();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, segRadius * 0.7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * healthPercent);
+                    this.ctx.lineTo(0, 0);
+                    this.ctx.closePath();
+                    
+                    const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
+                    this.ctx.fillStyle = healthColor;
+                    this.ctx.fill();
+                    
                     if (i === 0) {
-                        this.ctx.font = `${segRadius * 1.2}px Arial`;
+                        this.ctx.font = `${segRadius * 1.0}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
                         this.ctx.fillText('🐲', 0, 0);
                     } else {
-                        this.ctx.font = `${segRadius * 0.8}px Arial`;
+                        this.ctx.font = `${segRadius * 0.6}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
-                        this.ctx.fillText('●', 0, 0);
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.fillText(Math.ceil(segment.health), 0, 0);
                     }
-                    
-                    const healthPercent = segment.health / segment.maxHealth;
-                    const healthBarWidth = segRadius * 1.5;
-                    const healthBarHeight = 5;
-                    
-                    this.ctx.fillStyle = '#333333';
-                    this.ctx.fillRect(
-                        -healthBarWidth / 2,
-                        -segRadius - 10,
-                        healthBarWidth,
-                        healthBarHeight
-                    );
-                    
-                    const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
-                    this.ctx.fillStyle = healthColor;
-                    this.ctx.fillRect(
-                        -healthBarWidth / 2,
-                        -segRadius - 10,
-                        healthBarWidth * healthPercent,
-                        healthBarHeight
-                    );
-                    
-                    this.ctx.fillStyle = '#FFFFFF';
-                    this.ctx.font = 'bold 11px Arial';
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(
-                        Math.ceil(segment.health),
-                        0,
-                        -segRadius - 12
-                    );
                     
                     this.ctx.restore();
                 }
