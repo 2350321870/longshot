@@ -29,6 +29,7 @@ class DragonShooterGame {
             gold: 100,
             diamonds: 0,
             maxUnlockedLevel: 1,
+            highestLevelPassed: 0,
             energy: 30,
             maxEnergy: 30,
             lastEnergyTime: Date.now(),
@@ -45,10 +46,67 @@ class DragonShooterGame {
             },
             unlockedItems: ['pistol'],
             equippedItems: [],
-            itemLevels: { pistol: 1 }
+            itemLevels: { pistol: 1 },
+            claimedRewards: {},
+            selectedCharacter: 'default',
+            unlockedCharacters: ['default']
         };
         
         this.updateEnergy();
+        
+        this.characterConfig = {
+            default: {
+                name: '默认勇者',
+                icon: '👦',
+                color: '#4488ff',
+                unlocked: true,
+                price: 0,
+                stats: { health: 0, damage: 0, speed: 0 },
+                description: '初始角色，均衡属性'
+            },
+            archer: {
+                name: '弓箭手',
+                icon: '🏹',
+                color: '#44cc44',
+                unlocked: false,
+                price: 500,
+                stats: { health: -10, damage: 5, speed: 0.1 },
+                description: '高伤害高速度，但血量较低'
+            },
+            warrior: {
+                name: '战士',
+                icon: '⚔️',
+                color: '#ff4444',
+                unlocked: false,
+                price: 500,
+                stats: { health: 30, damage: 0, speed: -0.05 },
+                description: '高血量，适合持久战'
+            },
+            mage: {
+                name: '法师',
+                icon: '🧙',
+                color: '#aa44ff',
+                unlocked: false,
+                price: 800,
+                stats: { health: -20, damage: 10, speed: 0.05 },
+                description: '最高伤害，但非常脆弱'
+            },
+            knight: {
+                name: '骑士',
+                icon: '🛡️',
+                color: '#ffaa00',
+                unlocked: false,
+                price: 800,
+                stats: { health: 50, damage: 0, speed: -0.1 },
+                description: '坦克角色，血量极高'
+            }
+        };
+        
+        this.levelRewards = {
+            3: { type: 'gold', amount: 100, name: '金币x100', icon: '💰' },
+            6: { type: 'gold', amount: 200, name: '金币x200', icon: '💰' },
+            9: { type: 'gold', amount: 500, name: '金币x500', icon: '👑' }
+        };
         
         this.equipmentConfig = {
             weapon: {
@@ -105,15 +163,15 @@ class DragonShooterGame {
         ];
         
         this.levelConfigs = {
-            1: { enemyCount: 8, enemyHealth: 40, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 3 },
-            2: { enemyCount: 10, enemyHealth: 50, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 4 },
-            3: { enemyCount: 12, enemyHealth: 65, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 5, unlockAbility: true },
-            4: { enemyCount: 15, enemyHealth: 80, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 5 },
-            5: { enemyCount: 18, enemyHealth: 100, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 6 },
-            6: { enemyCount: 20, enemyHealth: 120, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 6, unlockAbility: true },
-            7: { enemyCount: 25, enemyHealth: 150, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 7 },
-            8: { enemyCount: 28, enemyHealth: 180, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 7 },
-            9: { enemyCount: 30, enemyHealth: 220, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 8, unlockAbility: true }
+            1: { enemyCount: 8, enemyHealth: 100, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 10, chestDropChance: 0.6 },
+            2: { enemyCount: 10, enemyHealth: 150, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 12, chestDropChance: 0.6 },
+            3: { enemyCount: 12, enemyHealth: 200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 15, unlockAbility: true, chestDropChance: 0.65 },
+            4: { enemyCount: 15, enemyHealth: 300, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 18, chestDropChance: 0.65 },
+            5: { enemyCount: 18, enemyHealth: 400, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 20, chestDropChance: 0.7 },
+            6: { enemyCount: 20, enemyHealth: 500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 22, unlockAbility: true, chestDropChance: 0.7 },
+            7: { enemyCount: 25, enemyHealth: 600, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 25, chestDropChance: 0.75 },
+            8: { enemyCount: 28, enemyHealth: 700, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 28, chestDropChance: 0.75 },
+            9: { enemyCount: 30, enemyHealth: 800, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 30, unlockAbility: true, chestDropChance: 0.8 }
         };
 
         this.skills = [
@@ -200,6 +258,9 @@ class DragonShooterGame {
         this.enemiesInLevel = 0;
         this.totalEnemiesInLevel = 0;
         
+        this.segmentsDestroyed = 0;
+        this.lastSkillSelectionAtSegment = 0;
+        
         this.lastTime = 0;
         this.shootTimer = 0;
         this.spawnTimer = 0;
@@ -262,6 +323,11 @@ class DragonShooterGame {
         stats.maxHealth += pu.maxHealth * 10;
         stats.moveSpeedBonus += pu.moveSpeed * 0.05;
         
+        const charStats = this.getCharacterStats();
+        stats.bulletDamage += charStats.damage;
+        stats.maxHealth += charStats.health;
+        stats.moveSpeedBonus += charStats.speed;
+        
         return stats;
     }
     
@@ -321,9 +387,443 @@ class DragonShooterGame {
         document.getElementById('equipmentTab').classList.toggle('hidden', tab !== 'equipment');
         document.getElementById('challengeTab').classList.toggle('hidden', tab !== 'challenge');
         
-        if (tab === 'equipment') {
-            this.renderEquipmentUI();
+        if (tab === 'battle') {
+            this.renderBattleTab();
+        } else if (tab === 'character') {
+            this.renderCharacterTab();
+        } else if (tab === 'shop') {
+            this.renderShopTab();
+        } else if (tab === 'equipment') {
+            this.renderEquipmentTab();
         }
+    }
+    
+    renderBattleTab() {
+        this.renderLevelGrid();
+        this.renderLevelRewards();
+    }
+    
+    renderCharacterTab() {
+        const grid = document.getElementById('characterGrid');
+        grid.innerHTML = '';
+        
+        for (const [id, config] of Object.entries(this.characterConfig)) {
+            const isUnlocked = this.saveData.unlockedCharacters.includes(id);
+            const isSelected = this.saveData.selectedCharacter === id;
+            
+            const card = document.createElement('div');
+            card.className = `character-card ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+            
+            let statsHtml = '';
+            if (config.stats.health !== 0) {
+                const className = config.stats.health > 0 ? 'positive' : 'negative';
+                statsHtml += `<span class="character-stat ${className}">❤️${config.stats.health > 0 ? '+' : ''}${config.stats.health}</span>`;
+            }
+            if (config.stats.damage !== 0) {
+                const className = config.stats.damage > 0 ? 'positive' : 'negative';
+                statsHtml += `<span class="character-stat ${className}">💥${config.stats.damage > 0 ? '+' : ''}${config.stats.damage}</span>`;
+            }
+            if (config.stats.speed !== 0) {
+                const className = config.stats.speed > 0 ? 'positive' : 'negative';
+                statsHtml += `<span class="character-stat ${className}">🏃${config.stats.speed > 0 ? '+' : ''}${(config.stats.speed * 100).toFixed(0)}%</span>`;
+            }
+            
+            let actionHtml = '';
+            if (!isUnlocked) {
+                actionHtml = `<div class="character-price">💰 ${config.price}</div>
+                    <button class="character-unlock-btn" data-id="${id}">解锁</button>`;
+            } else if (isSelected) {
+                actionHtml = `<div style="color: #44ff44; font-weight: bold;">✓ 已选中</div>`;
+            } else {
+                actionHtml = `<button class="character-unlock-btn" data-id="${id}" data-select="true">选择</button>`;
+            }
+            
+            card.innerHTML = `
+                <div class="character-icon">${config.icon}</div>
+                <div class="character-name">${config.name}</div>
+                <div class="character-desc">${config.description}</div>
+                <div class="character-stats">${statsHtml}</div>
+                ${actionHtml}
+            `;
+            
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.character-unlock-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                if (btn.dataset.select === 'true') {
+                    this.selectCharacter(id);
+                } else {
+                    this.unlockCharacter(id);
+                }
+            });
+        });
+    }
+    
+    selectCharacter(id) {
+        if (!this.saveData.unlockedCharacters.includes(id)) {
+            this.showToast('角色未解锁！');
+            return;
+        }
+        this.saveData.selectedCharacter = id;
+        this.saveGameData();
+        this.renderCharacterTab();
+        this.showToast(`已选择 ${this.characterConfig[id].name}！`);
+    }
+    
+    unlockCharacter(id) {
+        const config = this.characterConfig[id];
+        if (this.saveData.gold >= config.price) {
+            this.saveData.gold -= config.price;
+            if (!this.saveData.unlockedCharacters.includes(id)) {
+                this.saveData.unlockedCharacters.push(id);
+            }
+            this.saveGameData();
+            this.updateMainMenuUI();
+            this.renderCharacterTab();
+            this.showToast(`${config.name} 解锁成功！`);
+        } else {
+            this.showToast('金币不足！');
+        }
+    }
+    
+    getCharacterStats() {
+        const charId = this.saveData.selectedCharacter || 'default';
+        return this.characterConfig[charId]?.stats || { health: 0, damage: 0, speed: 0 };
+    }
+    
+    renderShopTab() {
+        this.renderShopItems();
+        this.renderUpgradeItems();
+    }
+    
+    renderShopItems() {
+        const grid = document.getElementById('shopGrid');
+        grid.innerHTML = '';
+        
+        const shopItems = [
+            { id: 'smallGold', name: '小金币包', icon: '💰', price: 50, description: '获得 100 金币', type: 'gold', amount: 100 },
+            { id: 'mediumGold', name: '中金币包', icon: '💎', price: 200, description: '获得 500 金币', type: 'gold', amount: 500 },
+            { id: 'largeGold', name: '大金币包', icon: '👑', price: 500, description: '获得 1500 金币', type: 'gold', amount: 1500 },
+            { id: 'energy', name: '体力恢复', icon: '⚡', price: 100, description: '恢复 10 点体力', type: 'energy', amount: 10 }
+        ];
+        
+        for (const item of shopItems) {
+            const canBuy = this.saveData.gold >= item.price;
+            const card = document.createElement('div');
+            card.className = 'shop-item';
+            card.innerHTML = `
+                <div class="shop-icon">${item.icon}</div>
+                <div class="shop-name">${item.name}</div>
+                <div class="shop-desc">${item.description}</div>
+                <div class="shop-price">
+                    <span class="shop-price-icon">💰</span>
+                    <span class="shop-price-value">${item.price}</span>
+                </div>
+                <button class="shop-buy-btn" data-id="${item.id}" ${!canBuy ? 'disabled' : ''}>
+                    购买
+                </button>
+            `;
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.shop-buy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                this.buyShopItem(id);
+            });
+        });
+    }
+    
+    buyShopItem(id) {
+        const shopItems = {
+            smallGold: { price: 50, type: 'gold', amount: 100 },
+            mediumGold: { price: 200, type: 'gold', amount: 500 },
+            largeGold: { price: 500, type: 'gold', amount: 1500 },
+            energy: { price: 100, type: 'energy', amount: 10 }
+        };
+        
+        const item = shopItems[id];
+        if (!item) return;
+        
+        if (this.saveData.gold >= item.price) {
+            this.saveData.gold -= item.price;
+            
+            if (item.type === 'gold') {
+                this.saveData.gold += item.amount;
+                this.showToast(`获得 ${item.amount} 金币！`);
+            } else if (item.type === 'energy') {
+                this.saveData.energy = Math.min(this.saveData.maxEnergy, this.saveData.energy + item.amount);
+                this.showToast(`恢复 ${item.amount} 体力！`);
+            }
+            
+            this.saveGameData();
+            this.updateMainMenuUI();
+            this.renderShopTab();
+        } else {
+            this.showToast('金币不足！');
+        }
+    }
+    
+    renderUpgradeItems() {
+        const grid = document.getElementById('upgradeGrid');
+        grid.innerHTML = '';
+        
+        const upgrades = [
+            { id: 'bulletDamage', name: '攻击强化', icon: '💥', basePrice: 100, description: '永久提升子弹伤害 +5' },
+            { id: 'maxHealth', name: '生命强化', icon: '❤️', basePrice: 100, description: '永久提升最大生命值 +20' },
+            { id: 'moveSpeed', name: '速度强化', icon: '🏃', basePrice: 100, description: '永久提升移动速度 +5%' }
+        ];
+        
+        for (const upgrade of upgrades) {
+            const currentLevel = this.saveData.permanentUpgrades[upgrade.id] || 0;
+            const price = upgrade.basePrice * (currentLevel + 1);
+            const canBuy = this.saveData.gold >= price;
+            
+            const card = document.createElement('div');
+            card.className = 'upgrade-item';
+            card.innerHTML = `
+                <div class="upgrade-icon">${upgrade.icon}</div>
+                <div class="upgrade-name">${upgrade.name}</div>
+                <div class="upgrade-desc">${upgrade.description}</div>
+                <div class="upgrade-level">当前等级: Lv.${currentLevel}</div>
+                <div class="upgrade-price">
+                    <span class="upgrade-price-icon">💰</span>
+                    <span class="upgrade-price-value">${price}</span>
+                </div>
+                <button class="upgrade-btn" data-id="${upgrade.id}" ${!canBuy ? 'disabled' : ''}>
+                    强化
+                </button>
+            `;
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.upgrade-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                this.upgradePermanent(id);
+            });
+        });
+    }
+    
+    upgradePermanent(id) {
+        const basePrices = {
+            bulletDamage: 100,
+            maxHealth: 100,
+            moveSpeed: 100
+        };
+        
+        const currentLevel = this.saveData.permanentUpgrades[id] || 0;
+        const price = basePrices[id] * (currentLevel + 1);
+        
+        if (this.saveData.gold >= price) {
+            this.saveData.gold -= price;
+            this.saveData.permanentUpgrades[id] = currentLevel + 1;
+            this.saveGameData();
+            this.updateMainMenuUI();
+            this.renderUpgradeItems();
+            
+            const names = {
+                bulletDamage: '攻击强化',
+                maxHealth: '生命强化',
+                moveSpeed: '速度强化'
+            };
+            this.showToast(`${names[id]} 升级到 Lv.${currentLevel + 1}！`);
+        } else {
+            this.showToast('金币不足！');
+        }
+    }
+    
+    renderEquipmentTab() {
+        this.renderEquipUpgradeGrid();
+        this.renderEquipmentUI();
+    }
+    
+    renderEquipUpgradeGrid() {
+        const grid = document.getElementById('equipGrid');
+        grid.innerHTML = '';
+        
+        for (const [key, config] of Object.entries(this.equipmentConfig)) {
+            const equip = this.saveData.equipment[key];
+            const owned = equip.owned;
+            const level = equip.level || 0;
+            
+            const card = document.createElement('div');
+            card.className = `equip-card ${owned ? 'owned' : ''}`;
+            
+            let actionHtml = '';
+            let priceHtml = '';
+            
+            if (!owned) {
+                priceHtml = `<div class="equip-card-price">
+                    <span class="equip-card-price-value">💰 ${config.basePrice}</span>
+                </div>`;
+                actionHtml = `<button class="equip-card-btn" data-type="${key}" data-action="buy">购买</button>`;
+            } else {
+                const upgradePrice = config.upgradePrice * (level + 1);
+                priceHtml = `<div class="equip-card-price">
+                    <span class="equip-card-price-value">💰 ${upgradePrice}</span>
+                </div>`;
+                actionHtml = `<button class="equip-card-btn" data-type="${key}" data-action="upgrade">强化</button>`;
+            }
+            
+            card.innerHTML = `
+                <div class="equip-card-icon">${config.icon}</div>
+                <div class="equip-card-name">${config.name}</div>
+                <div class="equip-card-level">${owned ? `Lv.${level}` : '未拥有'}</div>
+                <div class="equip-card-desc">${owned ? config.upgradeDescription : config.buyDescription}</div>
+                ${priceHtml}
+                ${actionHtml}
+            `;
+            
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.equip-card-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const action = btn.dataset.action;
+                this.handleEquipUpgrade(type, action);
+            });
+        });
+    }
+    
+    handleEquipUpgrade(type, action) {
+        const config = this.equipmentConfig[type];
+        const equip = this.saveData.equipment[type];
+        
+        if (action === 'buy') {
+            if (this.saveData.gold >= config.basePrice) {
+                this.saveData.gold -= config.basePrice;
+                equip.owned = true;
+                equip.level = 0;
+                this.saveGameData();
+                this.updateMainMenuUI();
+                this.renderEquipUpgradeGrid();
+                this.showToast(`${config.name}购买成功！`);
+            } else {
+                this.showToast('金币不足！');
+            }
+        } else if (action === 'upgrade') {
+            const price = config.upgradePrice * (equip.level + 1);
+            if (this.saveData.gold >= price) {
+                this.saveData.gold -= price;
+                equip.level++;
+                this.saveGameData();
+                this.updateMainMenuUI();
+                this.renderEquipUpgradeGrid();
+                this.showToast(`${config.name}强化到 Lv.${equip.level}！`);
+            } else {
+                this.showToast('金币不足！');
+            }
+        }
+    }
+    
+    renderLevelGrid() {
+        const grid = document.getElementById('levelGrid');
+        grid.innerHTML = '';
+        
+        for (let i = 1; i <= 9; i++) {
+            const isUnlocked = i <= this.saveData.maxUnlockedLevel;
+            const isCompleted = i <= this.saveData.highestLevelPassed;
+            const isCurrent = i === this.saveData.maxUnlockedLevel && isUnlocked;
+            
+            const btn = document.createElement('div');
+            let className = 'level-btn';
+            if (!isUnlocked) className += ' locked';
+            if (isCompleted) className += ' completed';
+            if (isCurrent) className += ' current';
+            
+            btn.className = className;
+            btn.innerHTML = `
+                <div class="level-number">${isUnlocked ? i : '🔒'}</div>
+                <div class="level-name">${isCompleted ? '✓ 已通关' : (isUnlocked ? '关卡 ' + i : '未解锁')}</div>
+            `;
+            
+            if (isUnlocked) {
+                btn.addEventListener('click', () => this.startLevel(i));
+            }
+            
+            grid.appendChild(btn);
+        }
+    }
+    
+    renderLevelRewards() {
+        const container = document.getElementById('progressRewards');
+        container.innerHTML = '';
+        
+        const rewardLevels = Object.keys(this.levelRewards).map(Number).sort((a, b) => a - b);
+        
+        for (const level of rewardLevels) {
+            const reward = this.levelRewards[level];
+            const isPassed = this.saveData.highestLevelPassed >= level;
+            const isClaimed = this.saveData.claimedRewards[level];
+            
+            const card = document.createElement('div');
+            let className = 'reward-card';
+            if (isPassed && !isClaimed) {
+                className += ' claimable';
+            } else if (isClaimed) {
+                className += ' claimed';
+            }
+            
+            card.className = className;
+            
+            let actionHtml = '';
+            if (isClaimed) {
+                actionHtml = '<span class="reward-claimed-text">✓ 已领取</span>';
+            } else if (isPassed) {
+                actionHtml = `<button class="reward-claim-btn" data-level="${level}">领取</button>`;
+            } else {
+                actionHtml = `<button class="reward-claim-btn" disabled>通过第${level}关</button>`;
+            }
+            
+            card.innerHTML = `
+                <div class="reward-info">
+                    <div class="reward-icon">${reward.icon}</div>
+                    <div class="reward-details">
+                        <div class="reward-name">${reward.name}</div>
+                        <div class="reward-requirement">通关第 ${level} 关</div>
+                    </div>
+                </div>
+                ${actionHtml}
+            `;
+            
+            container.appendChild(card);
+        }
+        
+        container.querySelectorAll('.reward-claim-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const level = parseInt(btn.dataset.level);
+                this.claimLevelReward(level);
+            });
+        });
+    }
+    
+    claimLevelReward(level) {
+        const reward = this.levelRewards[level];
+        if (!reward) return;
+        
+        if (this.saveData.claimedRewards[level]) {
+            this.showToast('已领取过该奖励！');
+            return;
+        }
+        
+        if (this.saveData.highestLevelPassed < level) {
+            this.showToast('未通关该关卡！');
+            return;
+        }
+        
+        if (reward.type === 'gold') {
+            this.saveData.gold += reward.amount;
+        }
+        
+        this.saveData.claimedRewards[level] = true;
+        this.saveGameData();
+        this.updateMainMenuUI();
+        this.renderLevelRewards();
+        this.showToast(`领取成功：${reward.name}！`);
     }
     
     renderEquipmentUI() {
@@ -499,15 +999,18 @@ class DragonShooterGame {
     renderMainMenu() {
         this.gameState = 'mainMenu';
         
+        // 显示主界面
         document.getElementById('mainScreen').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.remove('hidden');
+        document.getElementById('topBar').classList.remove('hidden');
         
-        try {
-            const backBtn = document.getElementById('backBtn');
-            if (backBtn) {
-                backBtn.classList.add('hidden');
-            }
-        } catch (e) {}
+        // 隐藏战斗界面
+        document.getElementById('battleInfo').classList.add('hidden');
+        document.getElementById('battleUI').classList.add('hidden');
+        document.getElementById('pauseBtn').classList.add('hidden');
+        document.getElementById('fenceBar').classList.add('hidden');
         
+        // 隐藏其他弹窗
         document.getElementById('levelUpScreen').classList.remove('show');
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('skillSelection').classList.remove('show');
@@ -524,104 +1027,9 @@ class DragonShooterGame {
         
         const chapter = Math.ceil(this.saveData.maxUnlockedLevel / 9);
         document.getElementById('chapterTitle').textContent = `${chapter}. 屠龙第${chapter}章`;
-        document.getElementById('bossStatus').textContent = this.saveData.maxUnlockedLevel > 1 ? '已通关部分关卡' : '未通关';
-    }
-    
-    renderLevelGrid() {
-        const grid = document.getElementById('levelGrid');
-        grid.innerHTML = '';
         
-        for (let i = 1; i <= 9; i++) {
-            const isUnlocked = i <= this.saveData.maxUnlockedLevel;
-            const btn = document.createElement('div');
-            btn.className = `level-btn ${isUnlocked ? '' : 'locked'}`;
-            btn.innerHTML = `
-                <div class="level-number">${isUnlocked ? i : '🔒'}</div>
-                <div>关卡 ${i}</div>
-            `;
-            
-            if (isUnlocked) {
-                btn.addEventListener('click', () => this.startLevel(i));
-            }
-            
-            grid.appendChild(btn);
-        }
-    }
-    
-    renderEquipGrid() {
-        const grid = document.getElementById('equipGrid');
-        grid.innerHTML = '';
-        
-        for (const [key, config] of Object.entries(this.equipmentConfig)) {
-            const equip = this.saveData.equipment[key];
-            const card = document.createElement('div');
-            card.className = 'equip-card';
-            
-            let actionButtons = '';
-            
-            if (!equip.owned) {
-                actionButtons = `
-                    <button class="equip-btn buy" data-type="${key}" data-action="buy">
-                        购买 💰${config.basePrice}
-                    </button>
-                `;
-            } else {
-                const upgradePrice = config.upgradePrice * (equip.level + 1);
-                actionButtons = `
-                    <button class="equip-btn" data-type="${key}" data-action="upgrade">
-                        强化 💰${upgradePrice}
-                    </button>
-                `;
-            }
-            
-            card.innerHTML = `
-                <div class="equip-icon">${config.icon}</div>
-                <div class="equip-name">${config.name}</div>
-                <div class="equip-level">${equip.owned ? `Lv.${equip.level}` : '未拥有'}</div>
-                <div class="equip-stats">${equip.owned ? config.upgradeDescription : config.buyDescription}</div>
-                <div class="equip-action">
-                    ${actionButtons}
-                </div>
-            `;
-            
-            grid.appendChild(card);
-        }
-        
-        grid.querySelectorAll('.equip-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.type;
-                const action = btn.dataset.action;
-                this.handleEquipAction(type, action);
-            });
-        });
-    }
-    
-    handleEquipAction(type, action) {
-        const config = this.equipmentConfig[type];
-        const equip = this.saveData.equipment[type];
-        
-        if (action === 'buy') {
-            if (this.saveData.gold >= config.basePrice) {
-                this.saveData.gold -= config.basePrice;
-                equip.owned = true;
-                equip.level = 0;
-                this.saveGameData();
-                this.updateMainMenuUI();
-                this.showToast(`${config.name}购买成功！`);
-            } else {
-                this.showToast('金币不足！');
-            }
-        } else if (action === 'upgrade') {
-            const price = config.upgradePrice * (equip.level + 1);
-            if (this.saveData.gold >= price) {
-                this.saveData.gold -= price;
-                equip.level++;
-                this.saveGameData();
-                this.updateMainMenuUI();
-                this.showToast(`${config.name}强化到 Lv.${equip.level}！`);
-            } else {
-                this.showToast('金币不足！');
-            }
+        if (this.currentTab === 'battle') {
+            this.renderBattleTab();
         }
     }
     
@@ -710,8 +1118,23 @@ class DragonShooterGame {
         this.totalEnemiesInLevel = config.enemyCount;
         this.enemiesInLevel = 0;
         
+        // 立即生成第一条龙
+        this.spawnDragon(config);
+        this.enemiesInLevel++;
+        
+        // 隐藏主界面
         document.getElementById('mainScreen').classList.add('hidden');
-        document.getElementById('backBtn').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.add('hidden');
+        document.getElementById('topBar').classList.add('hidden');
+        
+        // 显示战斗界面
+        document.getElementById('battleInfo').classList.remove('hidden');
+        document.getElementById('battleUI').classList.remove('hidden');
+        document.getElementById('pauseBtn').classList.remove('hidden');
+        document.getElementById('fenceBar').classList.remove('hidden');
+        
+        // 更新关卡显示
+        document.getElementById('battleLevelDisplay').textContent = `当前第${this.currentLevel}关`;
         
         this.gameState = 'playing';
         this.updateUI();
@@ -744,12 +1167,13 @@ class DragonShooterGame {
         const baseConfig = this.levelConfigs[baseLevel] || this.levelConfigs[9];
         
         return {
-            enemyCount: baseConfig.enemyCount + (multiplier - 1) * 5,
+            enemyCount: 1,
             enemyHealth: Math.floor(baseConfig.enemyHealth * (1 + (multiplier - 1) * 0.3)),
             enemySpeed: baseConfig.enemySpeed + (multiplier - 1) * 0.1,
             enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
             dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
-            segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 2), 12),
+            segments: 1000,
+            chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.9),
             unlockAbility: baseConfig.unlockAbility || false
         };
     }
@@ -885,43 +1309,30 @@ class DragonShooterGame {
         const keys = this.keys || {};
         let dx = 0, dy = 0;
         
-        if (keys['w'] || keys['arrowup']) dy -= 1;
-        if (keys['s'] || keys['arrowdown']) dy += 1;
         if (keys['a'] || keys['arrowleft']) dx -= 1;
         if (keys['d'] || keys['arrowright']) dx += 1;
         
         if (this.isMoving && this.targetPosition) {
             const targetX = this.targetPosition.x;
-            const targetY = this.targetPosition.y;
             
             dx = targetX - this.player.x;
-            dy = targetY - this.player.y;
             
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const dist = Math.abs(dx);
             if (dist > 5) {
-                dx /= dist;
-                dy /= dist;
+                dx = dx > 0 ? 1 : -1;
             } else {
                 dx = 0;
-                dy = 0;
             }
+            dy = 0;
         }
         
-        if (dx !== 0 || dy !== 0) {
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len > 0) {
-                dx /= len;
-                dy /= len;
-            }
-            
+        if (dx !== 0) {
             const speedMultiplier = this.getBuffMultiplier('speed_boost');
             const speed = this.playerStats.speed * speedMultiplier * 60 * dt;
             
             this.player.x += dx * speed;
-            this.player.y += dy * speed;
             
             this.player.x = Math.max(this.player.radius, Math.min(this.width - this.player.radius, this.player.x));
-            this.player.y = Math.max(this.player.radius, Math.min(this.height - this.player.radius, this.player.y));
         }
         
         if (this.player.invincible > 0) {
@@ -1072,6 +1483,38 @@ class DragonShooterGame {
                             this.bullets.splice(j, 1);
                         }
                         
+                        const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+                        const destroyedCount = destroyedSegments.length;
+                        
+                        if (destroyedCount > 0) {
+                            this.segmentsDestroyed += destroyedCount;
+                            
+                            const cfg = window.GameConfig || {};
+                            const dragonCfg = cfg.dragon || {};
+                            const segmentsPerSkill = dragonCfg.segmentsPerSkillSelection || 20;
+                            
+                            const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
+                            const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
+                            
+                            if (currentSegmentGroup > lastSegmentGroup) {
+                                this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                                this.showSkillSelection();
+                            }
+                        }
+                        
+                        for (const segment of destroyedSegments) {
+                            const segX = enemy.x + segment.offsetX;
+                            const segY = enemy.y + segment.offsetY;
+                            
+                            if (Math.random() < levelConfig.chestDropChance) {
+                                this.spawnChest(segX, segY);
+                            }
+                            
+                            if (Math.random() < levelConfig.dropChance * 0.5) {
+                                this.spawnPowerup(segX, segY);
+                            }
+                        }
+                        
                         enemy.segments = enemy.segments.filter(s => s.health > 0);
                         
                         if (enemy.segments.length === 0 || enemy.health <= 0) {
@@ -1086,7 +1529,7 @@ class DragonShooterGame {
                             
                             this.enemies.splice(i, 1);
                             
-                            this.showSkillSelection();
+                            this.levelComplete();
                             break;
                         }
                     }
@@ -1146,8 +1589,22 @@ class DragonShooterGame {
     }
     
     updateChests(dt) {
+        const gravity = 5;
+        const maxFallSpeed = 10;
+        
         for (let i = this.chests.length - 1; i >= 0; i--) {
             const chest = this.chests[i];
+            
+            if (chest.falling) {
+                chest.vy = Math.min(chest.vy + gravity * dt, maxFallSpeed);
+                chest.y += chest.vy * 60 * dt;
+                
+                if (chest.y > this.height + chest.radius) {
+                    this.chests.splice(i, 1);
+                    continue;
+                }
+            }
+            
             chest.bobOffset = Math.sin(Date.now() / 500 + i) * 5;
             
             if (this.checkCollision(chest, this.player)) {
@@ -1178,8 +1635,22 @@ class DragonShooterGame {
     }
     
     updatePowerups(dt) {
+        const gravity = 4;
+        const maxFallSpeed = 8;
+        
         for (let i = this.powerups.length - 1; i >= 0; i--) {
             const powerup = this.powerups[i];
+            
+            if (powerup.falling) {
+                powerup.vy = Math.min(powerup.vy + gravity * dt, maxFallSpeed);
+                powerup.y += powerup.vy * 60 * dt;
+                
+                if (powerup.y > this.height + powerup.radius) {
+                    this.powerups.splice(i, 1);
+                    continue;
+                }
+            }
+            
             powerup.angle += dt * 2;
             powerup.bobOffset = Math.sin(Date.now() / 300 + i) * 3;
             
@@ -1296,22 +1767,36 @@ class DragonShooterGame {
     }
     
     spawnDragon(config) {
-        const segments = config.segments || 3;
-        const segmentSpacing = 35;
+        const cfg = window.GameConfig || {};
+        const dragonCfg = cfg.dragon || {};
+        
+        const segments = dragonCfg.segments || 1000;
+        const segmentSpacing = dragonCfg.segmentSpacing || 35;
         const startX = 50 + Math.random() * (this.width - 100);
-        const startY = -segments * segmentSpacing - 50;
+        const startY = 100;
         
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
         const color = colors[Math.floor(Math.random() * colors.length)];
         
-        const healthPerSegment = Math.ceil(config.enemyHealth / segments);
+        let totalHealth = 0;
+        const healthMultiplier = dragonCfg.healthMultiplier || 1.2;
+        const baseHealthPerLevel = dragonCfg.baseHealthPerLevel || 200;
+        
+        let firstSegmentHealth = baseHealthPerLevel * this.currentLevel;
+        
+        const segmentHealths = [];
+        for (let i = 0; i < segments; i++) {
+            const health = Math.ceil(firstSegmentHealth * Math.pow(healthMultiplier, i));
+            segmentHealths.push(health);
+            totalHealth += health;
+        }
         
         const dragon = {
             x: startX,
             y: startY,
             radius: 22,
-            health: config.enemyHealth,
-            maxHealth: config.enemyHealth,
+            health: totalHealth,
+            maxHealth: totalHealth,
             speed: config.enemySpeed,
             damage: config.enemyDamage,
             angle: 0,
@@ -1324,8 +1809,8 @@ class DragonShooterGame {
             dragon.segments.push({
                 offsetX: 0,
                 offsetY: -i * segmentSpacing,
-                health: healthPerSegment,
-                maxHealth: healthPerSegment,
+                health: segmentHealths[i],
+                maxHealth: segmentHealths[i],
                 index: i
             });
         }
@@ -1333,18 +1818,17 @@ class DragonShooterGame {
         this.enemies.push(dragon);
     }
     
-    spawnChest() {
-        const margin = 80;
-        const x = margin + Math.random() * (this.width - margin * 2);
-        const y = margin + Math.random() * (this.height - margin * 2);
+    spawnChest(x, y) {
         const goldAmount = 50 + Math.floor(Math.random() * 200);
         
         this.chests.push({
-            x: x,
-            y: y,
+            x: x || (80 + Math.random() * (this.width - 160)),
+            y: y || -50,
             radius: 30,
             bobOffset: 0,
-            goldAmount: goldAmount
+            goldAmount: goldAmount,
+            vy: 0,
+            falling: true
         });
     }
     
@@ -1358,6 +1842,8 @@ class DragonShooterGame {
             radius: 15,
             angle: 0,
             bobOffset: 0,
+            vy: 0,
+            falling: true,
             ...type
         });
     }
@@ -1426,6 +1912,9 @@ class DragonShooterGame {
         if (this.currentLevel >= this.saveData.maxUnlockedLevel) {
             this.saveData.maxUnlockedLevel = Math.max(this.saveData.maxUnlockedLevel, this.currentLevel + 1);
         }
+        if (this.currentLevel > this.saveData.highestLevelPassed) {
+            this.saveData.highestLevelPassed = this.currentLevel;
+        }
         this.saveGameData();
         
         document.getElementById('levelupStats').innerHTML = `
@@ -1437,6 +1926,9 @@ class DragonShooterGame {
         let unlockText = '';
         if (config.unlockAbility) {
             unlockText = '🎉 解锁了新能力！';
+        }
+        if (this.levelRewards[this.currentLevel]) {
+            unlockText += ` 🎁 新奖励可领取：${this.levelRewards[this.currentLevel].name}`;
         }
         
         document.getElementById('unlockText').textContent = unlockText;
@@ -1935,12 +2427,12 @@ class DragonShooterGame {
     }
     
     updateUI() {
-        const healthPercent = (this.playerStats.health / this.playerStats.maxHealth) * 100;
-        document.getElementById('healthBar').style.width = `${healthPercent}%`;
-        document.getElementById('healthText').textContent = 
-            `${Math.max(0, Math.ceil(this.playerStats.health))} / ${this.playerStats.maxHealth}`;
+        const healthText = `❤️ ${Math.max(0, Math.ceil(this.playerStats.health))}/${this.playerStats.maxHealth}`;
+        const battleHealthDisplay = document.getElementById('battleHealthDisplay');
+        if (battleHealthDisplay) {
+            battleHealthDisplay.textContent = healthText;
+        }
         
-        document.getElementById('levelDisplay').textContent = this.currentLevel;
         document.getElementById('goldDisplay').textContent = this.goldEarned;
         document.getElementById('scoreDisplay').textContent = this.score;
     }
