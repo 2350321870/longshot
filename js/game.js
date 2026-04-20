@@ -317,12 +317,18 @@ class DragonShooterGame {
         this.pathBoundaries = {
             leftBound: leftBound,
             rightBound: rightBound,
-            channelLines: []
+            channelLines: [],
+            channels: []
         };
         
         for (let i = 0; i < channelCount; i++) {
             const isEvenRow = i % 2 === 0;
             const rowY = topPadding + i * channelHeight;
+            
+            this.pathBoundaries.channels.push({
+                rowY: rowY,
+                isEvenRow: isEvenRow
+            });
             
             if (i > 0) {
                 this.pathBoundaries.channelLines.push(rowY);
@@ -2251,7 +2257,6 @@ class DragonShooterGame {
         
         this.ctx.save();
         
-        // 绘制路径（黑色线条）
         this.ctx.strokeStyle = '#000000';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
@@ -2262,24 +2267,39 @@ class DragonShooterGame {
         }
         this.ctx.stroke();
         
-        // 绘制边界（红色线条）
-        if (this.pathBoundaries) {
+        if (this.pathBoundaries && this.pathBoundaries.channels) {
+            const cfg = window.GameConfig || {};
+            const levelCfg = cfg.level || {};
+            const channelHeight = levelCfg.channelHeight || 120;
+            const turnRadius = levelCfg.turnRadius || 40;
+            
+            this.ctx.strokeStyle = '#FF0000';
+            this.ctx.lineWidth = 2;
+            
+            for (let i = 0; i < this.pathBoundaries.channels.length; i++) {
+                const channel = this.pathBoundaries.channels[i];
+                const rowY = channel.rowY;
+                const isEvenRow = channel.isEvenRow;
+                
+                const nextRowY = rowY + channelHeight;
+                const turnStartY = nextRowY - turnRadius;
+                
+                if (isEvenRow) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.pathBoundaries.rightBound, rowY);
+                    this.ctx.lineTo(this.pathBoundaries.rightBound, turnStartY);
+                    this.ctx.stroke();
+                } else {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.pathBoundaries.leftBound, rowY);
+                    this.ctx.lineTo(this.pathBoundaries.leftBound, turnStartY);
+                    this.ctx.stroke();
+                }
+            }
+            
             this.ctx.strokeStyle = '#FF0000';
             this.ctx.lineWidth = 1;
             
-            // 左边界
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.pathBoundaries.leftBound, 0);
-            this.ctx.lineTo(this.pathBoundaries.leftBound, this.height);
-            this.ctx.stroke();
-            
-            // 右边界
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.pathBoundaries.rightBound, 0);
-            this.ctx.lineTo(this.pathBoundaries.rightBound, this.height);
-            this.ctx.stroke();
-            
-            // 通道分隔线
             for (const y of this.pathBoundaries.channelLines) {
                 this.ctx.beginPath();
                 this.ctx.moveTo(this.pathBoundaries.leftBound, y);
