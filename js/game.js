@@ -1410,13 +1410,29 @@ class DragonShooterGame {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             
-            enemy.y += enemy.speed * 60 * dt;
-            enemy.angle += dt * 2;
-            
-            if (this.player) {
-                const dx = this.player.x - enemy.x;
-                if (Math.abs(dx) > 5) {
-                    enemy.x += Math.sign(dx) * enemy.speed * 0.3 * 60 * dt;
+            if (enemy.isWinding) {
+                if (enemy.rightBound === 0) {
+                    enemy.rightBound = this.width - 50;
+                }
+                
+                enemy.x += enemy.moveDirection * enemy.horizontalSpeed * 60 * dt;
+                
+                if (enemy.moveDirection === 1 && enemy.x >= enemy.rightBound) {
+                    enemy.moveDirection = -1;
+                    enemy.y += enemy.verticalStep;
+                } else if (enemy.moveDirection === -1 && enemy.x <= enemy.leftBound) {
+                    enemy.moveDirection = 1;
+                    enemy.y += enemy.verticalStep;
+                }
+            } else {
+                enemy.y += enemy.speed * 60 * dt;
+                enemy.angle += dt * 2;
+                
+                if (this.player) {
+                    const dx = this.player.x - enemy.x;
+                    if (Math.abs(dx) > 5) {
+                        enemy.x += Math.sign(dx) * enemy.speed * 0.3 * 60 * dt;
+                    }
                 }
             }
             
@@ -1772,7 +1788,7 @@ class DragonShooterGame {
         
         const segments = dragonCfg.segments || 1000;
         const segmentSpacing = dragonCfg.segmentSpacing || 35;
-        const startX = 50 + Math.random() * (this.width - 100);
+        const startX = 50;
         const startY = 100;
         
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
@@ -1802,7 +1818,13 @@ class DragonShooterGame {
             angle: 0,
             color: color,
             segments: [],
-            isHead: true
+            isHead: true,
+            isWinding: true,
+            moveDirection: 1,
+            horizontalSpeed: config.enemySpeed * 2,
+            leftBound: 50,
+            rightBound: 0,
+            verticalStep: 30
         };
         
         for (let i = 0; i < segments; i++) {
