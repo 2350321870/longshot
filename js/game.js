@@ -4905,12 +4905,12 @@ class DragonShooterGame {
         const cfg = window.GameConfig || {};
         const dragonCfg = cfg.dragon || {};
         
-        const early = (dragonCfg.segmentsPerSkillSelectionEarly || 2) * 4;
-        const mid = (dragonCfg.segmentsPerSkillSelectionMid || 4) * 4;
-        const late = (dragonCfg.segmentsPerSkillSelectionLate || 6) * 4;
+        const early = (dragonCfg.segmentsPerSkillSelectionEarly || 3) * 6;
+        const mid = (dragonCfg.segmentsPerSkillSelectionMid || 5) * 6;
+        const late = (dragonCfg.segmentsPerSkillSelectionLate || 7) * 6;
         
-        if (this.segmentsDestroyed < 10) return early;
-        if (this.segmentsDestroyed < 30) return mid;
+        if (this.segmentsDestroyed < 15) return early;
+        if (this.segmentsDestroyed < 40) return mid;
         return late;
     }
     
@@ -4918,9 +4918,9 @@ class DragonShooterGame {
         const cfg = window.GameConfig || {};
         const dragonCfg = cfg.dragon || {};
         
-        const baseSegments = dragonCfg.baseSegments || 30;
-        const segmentsPerLevel = dragonCfg.segmentsPerLevel || 5;
-        const maxSegments = dragonCfg.maxSegments || 80;
+        const baseSegments = dragonCfg.baseSegments || 50;
+        const segmentsPerLevel = dragonCfg.segmentsPerLevel || 8;
+        const maxSegments = dragonCfg.maxSegments || 150;
         const segments = Math.min(maxSegments, baseSegments + (this.currentLevel - 1) * segmentsPerLevel);
         
         const segmentSpacing = dragonCfg.segmentSpacing || 46;
@@ -4937,8 +4937,8 @@ class DragonShooterGame {
         const color = colors[Math.floor(Math.random() * colors.length)];
         
         let totalHealth = 0;
-        const baseHealthPerSegment = dragonCfg.baseHealthPerSegment || 15;
-        const healthPerLevel = dragonCfg.healthPerLevel || 5;
+        const baseHealthPerSegment = dragonCfg.baseHealthPerSegment || 25;
+        const healthPerLevel = dragonCfg.healthPerLevel || 10;
         const frontMultiplier = dragonCfg.healthDistributionFrontMultiplier || 0.5;
         const backMultiplier = dragonCfg.healthDistributionBackMultiplier || 2.0;
         
@@ -5004,7 +5004,7 @@ class DragonShooterGame {
         };
         
         for (let i = 0; i < segments; i++) {
-            const isChestSegment = (i + 1) % 4 === 0;
+            const isChestSegment = (i + 1) % 6 === 0;
             dragon.segments.push({
                 x: startX,
                 y: startY - i * segmentSpacing,
