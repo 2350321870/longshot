@@ -3292,7 +3292,7 @@ class DragonShooterGame {
                         this.ctx.font = `bold ${Math.min(segHeight * 0.5, 14)}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
-                        const healthText = Math.ceil(segment.health) + '/' + Math.ceil(segment.maxHealth);
+                        const healthText = Math.ceil(segment.health)+ '\r\n' + Math.ceil(segment.maxHealth);
                         this.ctx.fillText(healthText, 0, 0);
                     }
                     
