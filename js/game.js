@@ -1824,6 +1824,11 @@ class DragonShooterGame {
         const list = document.getElementById('achievementsList');
         list.innerHTML = '';
         
+        if (filter === 'stats') {
+            this.renderStatisticsTab(list);
+            return;
+        }
+        
         const achievements = this.getAchievementsWithProgress();
         
         let filteredAchievements = achievements;
@@ -1877,6 +1882,13 @@ class DragonShooterGame {
                 <div class="achievement-content">
                     <div class="achievement-name">${achievement.name}</div>
                     <div class="achievement-description">${achievement.description}</div>
+                    ${!achievement.unlocked ? `
+                        <div class="task-progress-container" style="margin-top: 8px;">
+                            <div class="task-progress-bar">
+                                <div class="task-progress-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                        </div>
+                    ` : ''}
                     <div class="achievement-footer">
                         <div>
                             <span class="achievement-points-text">🏆 ${achievement.achievementPoints} 成就点</span>
@@ -1899,6 +1911,179 @@ class DragonShooterGame {
         
         document.querySelectorAll('.achievement-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.filter === filter);
+        });
+    }
+    
+    renderStatisticsTab(list) {
+        const stats = this.saveData.statistics || {};
+        const achievements = this.getAchievementsWithProgress();
+        const unlockedCount = achievements.filter(a => a.unlocked).length;
+        const totalPoints = this.saveData.achievementPoints || 0;
+        
+        const formatNumber = (num) => {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num || 0;
+        };
+        
+        const formatTime = (seconds) => {
+            if (!seconds) return '0 分钟';
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            if (hours > 0) {
+                return `${hours} 小时 ${minutes % 60} 分钟`;
+            }
+            return `${minutes} 分钟`;
+        };
+        
+        list.innerHTML = `
+            <div class="stats-header">
+                <div class="stats-title">📊 游戏统计</div>
+                <div class="stats-summary">
+                    <div class="summary-item">
+                        <div class="summary-value">${totalPoints}</div>
+                        <div class="summary-label">总成就点</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-value">${unlockedCount}/${achievements.length}</div>
+                        <div class="summary-label">成就解锁</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-section">
+                <div class="stats-section-title">🎮 战斗统计</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">⚔️</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalKills)}</div>
+                            <div class="stat-label">总击杀数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🏆</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalCleared)}</div>
+                            <div class="stat-label">通关次数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💥</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalDamageDealt)}</div>
+                            <div class="stat-label">总输出伤害</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.highestSingleDamage)}</div>
+                            <div class="stat-label">最高单次伤害</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🛡️</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalDamageTaken)}</div>
+                            <div class="stat-label">总承受伤害</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👑</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalBossKills)}</div>
+                            <div class="stat-label">Boss 击杀</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-section">
+                <div class="stats-section-title">🎯 活动统计</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">✨</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalSkillsUsed)}</div>
+                            <div class="stat-label">技能使用次数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalChestsOpened)}</div>
+                            <div class="stat-label">宝箱开启</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💎</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalPowerupsCollected)}</div>
+                            <div class="stat-label">道具收集</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalGoldEarned)}</div>
+                            <div class="stat-label">总获得金币</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.perfectLevels)}</div>
+                            <div class="stat-label">完美通关</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-section">
+                <div class="stats-section-title">📈 游戏统计</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalPlayCount)}</div>
+                            <div class="stat-label">游戏次数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatTime(stats.totalGameTime)}</div>
+                            <div class="stat-label">游戏时长</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💀</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalDeaths)}</div>
+                            <div class="stat-label">死亡次数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔄</div>
+                        <div class="stat-info">
+                            <div class="stat-value">${formatNumber(stats.totalRevivesUsed)}</div>
+                            <div class="stat-label">复活次数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🚀</div>
+                        <div class="stat-info">
+                            <div class="stat-value">第 ${this.saveData.maxUnlockedLevel || 1} 关</div>
+                            <div class="stat-label">最高到达关卡</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.querySelectorAll('.achievement-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.filter === 'stats');
         });
     }
     
@@ -2691,12 +2876,18 @@ class DragonShooterGame {
         const container = document.getElementById('progressRewards');
         container.innerHTML = '';
         
+        if (!this.levelRewards) return;
+        
         const rewardLevels = Object.keys(this.levelRewards).map(Number).sort((a, b) => a - b);
+        
+        if (!this.saveData.claimedRewards) {
+            this.saveData.claimedRewards = {};
+        }
         
         for (const level of rewardLevels) {
             const reward = this.levelRewards[level];
             const isPassed = this.saveData.highestLevelPassed >= level;
-            const isClaimed = this.saveData.claimedRewards[level];
+            const isClaimed = this.saveData.claimedRewards[level] === true;
             
             const card = document.createElement('div');
             let className = 'reward-card';
