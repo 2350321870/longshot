@@ -1729,6 +1729,8 @@ class DragonShooterGame {
         
         this.checkDailyTasksRefresh();
         
+        this.syncSpecificLevelTaskProgress();
+        
         const dailyTasks = this.saveData.dailyTasks?.tasks || [];
         if (dailyTasks.length === 0) {
             list.innerHTML = '<div style="color: #aaa; text-align: center; padding: 40px;">暂无每日任务</div>';
@@ -4902,6 +4904,8 @@ class DragonShooterGame {
         
         this.updateStatistics('clear', 1);
         
+        this.updateSpecificLevelTask(this.currentLevel);
+        
         if (this.currentLevel >= this.saveData.maxUnlockedLevel) {
             this.saveData.maxUnlockedLevel = Math.max(this.saveData.maxUnlockedLevel, this.currentLevel + 1);
         }
@@ -4926,6 +4930,58 @@ class DragonShooterGame {
         
         document.getElementById('unlockText').textContent = unlockText;
         document.getElementById('levelUpScreen').classList.add('show');
+    }
+    
+    updateSpecificLevelTask(clearedLevel) {
+        if (!this.saveData.dailyTasks || !this.saveData.dailyTasks.tasks) return;
+        
+        let hasUpdates = false;
+        
+        for (const task of this.saveData.dailyTasks.tasks) {
+            if (task.type === 'complete_specific_level' && !task.completed) {
+                if (clearedLevel >= task.target) {
+                    task.progress = task.target;
+                    task.completed = true;
+                    hasUpdates = true;
+                } else {
+                    task.progress = Math.max(task.progress || 0, clearedLevel);
+                    hasUpdates = true;
+                }
+            }
+        }
+        
+        if (hasUpdates) {
+            this.saveGameData();
+        }
+    }
+    
+    syncSpecificLevelTaskProgress() {
+        if (!this.saveData.dailyTasks || !this.saveData.dailyTasks.tasks) return;
+        
+        const highestLevel = this.saveData.highestLevelPassed || 0;
+        if (highestLevel <= 0) return;
+        
+        let hasUpdates = false;
+        
+        for (const task of this.saveData.dailyTasks.tasks) {
+            if (task.type === 'complete_specific_level' && !task.completed) {
+                const currentProgress = task.progress || 0;
+                
+                if (highestLevel > currentProgress) {
+                    if (highestLevel >= task.target) {
+                        task.progress = task.target;
+                        task.completed = true;
+                    } else {
+                        task.progress = highestLevel;
+                    }
+                    hasUpdates = true;
+                }
+            }
+        }
+        
+        if (hasUpdates) {
+            this.saveGameData();
+        }
     }
     
     showSkillSelection() {
