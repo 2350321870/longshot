@@ -316,40 +316,472 @@
             margin-top: 5px;
         }
 
+        .section-title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: left;
+            padding-left: 5px;
+            border-left: 4px solid #ffd700;
+        }
+        
+        .level-select-section, .progress-rewards-section {
+            margin-bottom: 25px;
+        }
+        
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        
+        .level-btn {
+            background: linear-gradient(180deg, rgba(100, 100, 100, 0.6), rgba(60, 60, 60, 0.6));
+            border: 2px solid #666;
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .level-btn:hover:not(.locked) {
+            transform: scale(1.02);
+            border-color: #ffd700;
+            background: linear-gradient(180deg, rgba(120, 120, 120, 0.6), rgba(80, 80, 80, 0.6));
+        }
+        
+        .level-btn.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-style: dashed;
+        }
+        
+        .level-btn.current {
+            border-color: #44ff44;
+            background: linear-gradient(180deg, rgba(68, 255, 68, 0.2), rgba(60, 60, 60, 0.6));
+        }
+        
+        .level-btn.completed {
+            border-color: #44ccff;
+        }
+        
+        .level-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+        
+        .level-btn.locked .level-number {
+            color: #888;
+        }
+        
+        .level-name {
+            font-size: 13px;
+            color: #fff;
+        }
+        
+        .progress-rewards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .reward-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 12px 15px;
+            transition: all 0.2s ease;
+        }
+        
+        .reward-card.claimable {
+            border-color: #44ff44;
+            background: linear-gradient(90deg, rgba(68, 255, 68, 0.15), rgba(0, 0, 0, 0.4));
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(68, 255, 68, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(68, 255, 68, 0); }
+        }
+        
+        .reward-card.claimed {
+            opacity: 0.6;
+        }
+        
+        .reward-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .reward-icon {
+            font-size: 32px;
+        }
+        
+        .reward-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .reward-name {
+            color: #fff;
+            font-size: 15px;
+            font-weight: bold;
+        }
+        
+        .reward-requirement {
+            color: #aaa;
+            font-size: 12px;
+        }
+        
+        .reward-claim-btn {
+            background: linear-gradient(180deg, #44ff44, #22cc22);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #111;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .reward-claim-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 10px rgba(68, 255, 68, 0.5);
+        }
+        
+        .reward-claim-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .reward-claimed-text {
+            color: #44ff44;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .character-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #555;
+            border-radius: 15px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .character-card:hover:not(.locked) {
+            transform: scale(1.02);
+            border-color: #ffd700;
+        }
+        
+        .character-card.selected {
+            border-color: #44ff44;
+            background: linear-gradient(180deg, rgba(68, 255, 68, 0.15), rgba(0, 0, 0, 0.4));
+        }
+        
+        .character-card.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .character-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+        
+        .character-name {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .character-desc {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .character-stats {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .character-stat {
+            font-size: 11px;
+        }
+        
+        .character-stat.positive {
+            color: #44ff44;
+        }
+        
+        .character-stat.negative {
+            color: #ff4444;
+        }
+        
+        .character-price {
+            color: #ffd700;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .character-unlock-btn {
+            background: linear-gradient(180deg, #ffd700, #cc9900);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            color: #111;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+            transition: all 0.2s ease;
+        }
+        
+        .character-unlock-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .shop-grid, .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .shop-item, .upgrade-item {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .shop-item:hover, .upgrade-item:hover {
+            border-color: #ffd700;
+        }
+        
+        .shop-icon, .upgrade-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+        
+        .shop-name, .upgrade-name {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .shop-desc, .upgrade-desc {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        
+        .shop-price, .upgrade-price {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .shop-price-icon, .upgrade-price-icon {
+            font-size: 18px;
+        }
+        
+        .shop-price-value, .upgrade-price-value {
+            color: #ffd700;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .shop-level, .upgrade-level {
+            color: #44ff44;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .shop-buy-btn, .upgrade-btn {
+            background: linear-gradient(180deg, #ffd700, #cc9900);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            color: #111;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .shop-buy-btn:hover, .upgrade-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .shop-buy-btn:disabled, .upgrade-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+        
+        .equip-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .equip-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #555;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .equip-card.owned {
+            border-color: #44ff44;
+        }
+        
+        .equip-card-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+        
+        .equip-card-name {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .equip-card-level {
+            color: #44ff44;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        
+        .equip-card-desc {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        
+        .equip-card-price {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .equip-card-price-value {
+            color: #ffd700;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .equip-card-btn {
+            background: linear-gradient(180deg, #ffd700, #cc9900);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #111;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .equip-card-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        
+        .equip-card-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
         .pause-btn {
             position: absolute;
-            top: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 3px solid #888;
-            border-radius: 10px;
-            padding: 10px 15px;
-            color: #fff;
-            font-size: 24px;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            padding: 6px 8px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
             cursor: pointer;
             z-index: 100;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .pause-btn:hover {
+            background: rgba(0, 0, 0, 0.6);
+            border-color: rgba(255, 255, 255, 0.4);
         }
         
         .battle-info {
             position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
+            top: 10px;
+            left: 10px;
             z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
         }
         
         .battle-level {
-            color: #fff;
-            font-size: 20px;
+            color: rgba(255, 215, 0, 0.85);
+            font-size: 12px;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.25);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .battle-health {
+            color: rgba(255, 100, 100, 0.9);
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.25);
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
         }
         
         .battle-difficulty {
-            color: #44ff44;
-            font-size: 18px;
-            font-weight: bold;
+            display: none;
         }
 
         .skill-selection {
@@ -649,27 +1081,32 @@
 
         .fence-bar {
             position: absolute;
-            bottom: 60px;
+            bottom: 0;
             left: 0;
             right: 0;
-            height: 50px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
+            height: 40px;
             z-index: 50;
+            background: linear-gradient(0deg, rgba(139, 69, 19, 0.9), rgba(139, 69, 19, 0.3), transparent);
+            border-top: 3px solid #8B4513;
         }
         
         .fence-pickets {
             display: flex;
-            gap: 5px;
+            justify-content: center;
+            gap: 8px;
+            position: absolute;
+            top: -30px;
+            left: 0;
+            right: 0;
         }
         
         .fence-picket {
-            width: 15px;
-            height: 35px;
-            background: linear-gradient(180deg, #8B4513 0%, #654321 100%);
-            border-radius: 3px 3px 0 0;
+            width: 12px;
+            height: 30px;
+            background: linear-gradient(180deg, #A0522D 0%, #8B4513 100%);
+            border-radius: 2px 2px 0 0;
             position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .fence-picket::before {
@@ -680,35 +1117,36 @@
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-bottom: 10px solid #A0522D;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 8px solid #CD853F;
         }
         
         .fence-rail {
             position: absolute;
-            bottom: 8px;
+            top: 5px;
             left: 0;
             right: 0;
-            height: 8px;
-            background: linear-gradient(180deg, #8B4513, #654321);
+            height: 6px;
+            background: linear-gradient(180deg, #A0522D, #8B4513);
         }
         
         .fence-post {
             position: absolute;
             bottom: 0;
-            width: 20px;
-            height: 45px;
+            width: 16px;
+            height: 40px;
             background: linear-gradient(180deg, #654321, #4a3520);
-            border-radius: 5px 5px 0 0;
+            border-radius: 3px 3px 0 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .fence-post.left {
-            left: 20px;
+            left: 15px;
         }
         
         .fence-post.right {
-            right: 20px;
+            right: 15px;
         }
 
         .pause-menu {
@@ -903,64 +1341,46 @@
 
         .battle-ui {
             position: absolute;
-            top: 60px;
-            left: 15px;
-            right: 15px;
+            bottom: 45px;
+            right: 10px;
             z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
         }
         
         .health-bar-container {
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #444;
-            border-radius: 10px;
-            padding: 8px 15px;
-            margin-bottom: 10px;
-        }
-        
-        .health-bar-bg {
-            height: 12px;
-            background: #333;
-            border-radius: 6px;
-            overflow: hidden;
-            margin-bottom: 5px;
-        }
-        
-        .health-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ff4444, #ff8844);
-            border-radius: 6px;
-            transition: width 0.3s ease;
-        }
-        
-        .health-text {
-            color: #fff;
-            font-size: 12px;
-            text-align: center;
-            font-weight: bold;
+            display: none;
         }
         
         .battle-stats {
             display: flex;
-            justify-content: space-between;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #444;
-            border-radius: 10px;
-            padding: 8px 15px;
+            flex-direction: column;
+            gap: 2px;
+            background: transparent;
+            border: none;
+            padding: 0;
         }
         
         .stat-item {
-            text-align: center;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 1px 6px;
+            border-radius: 4px;
+            text-align: right;
         }
         
         .stat-label {
-            color: #aaa;
-            font-size: 11px;
+            color: rgba(170, 170, 170, 0.7);
+            font-size: 10px;
+            display: inline;
+            margin-right: 2px;
         }
         
         .stat-value {
-            color: #fff;
-            font-size: 14px;
-            font-weight: bold;
+            color: rgba(255, 215, 0, 0.85);
+            font-size: 11px;
+            font-weight: normal;
+            display: inline;
         }
 
         @media (max-width: 500px) {
@@ -1008,22 +1428,12 @@
             <button class="pause-btn hidden" id="pauseBtn">⏸️</button>
             
             <div class="battle-info hidden" id="battleInfo">
-                <div class="battle-level" id="battleLevelDisplay">当前第1关</div>
-                <div class="battle-difficulty">难度:普通</div>
+                <div class="battle-level" id="battleLevelDisplay">第1关</div>
+                <div class="battle-health" id="battleHealthDisplay">❤️ 100/100</div>
             </div>
 
             <div class="battle-ui hidden" id="battleUI">
-                <div class="health-bar-container">
-                    <div class="health-bar-bg">
-                        <div class="health-bar-fill" id="healthBar" style="width: 100%"></div>
-                    </div>
-                    <div class="health-text" id="healthText">100 / 100</div>
-                </div>
                 <div class="battle-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">关卡:</span>
-                        <span class="stat-value" id="levelDisplay">1</span>
-                    </div>
                     <div class="stat-item">
                         <span class="stat-label">金币:</span>
                         <span class="stat-value" id="goldDisplay">0</span>
@@ -1062,66 +1472,56 @@
         <div class="main-screen active" id="mainScreen">
             <div class="main-content" id="battleTab">
                 <div class="chapter-title" id="chapterTitle">1. 屠龙第1章</div>
-                <div class="difficulty-info">
-                    <span class="difficulty-text">难度:<span id="difficultySpan">普通</span></span>
-                    <button class="difficulty-btn" id="difficultyBtn">难度选择</button>
-                </div>
-                <div class="boss-status" id="bossStatus">未通关</div>
                 
-                <div class="dragon-image-container">
-                    <div class="dragon-image">
-                        <div class="dragon-placeholder">🐲</div>
+                <div class="level-select-section">
+                    <div class="section-title">选择关卡</div>
+                    <div class="level-grid" id="levelGrid">
                     </div>
                 </div>
                 
-                <div class="progress-rewards">
-                    <div class="progress-title">关卡进度奖励</div>
-                    <div class="progress-bar-track">
-                        <div class="progress-markers">
-                            <div class="progress-marker"></div>
-                            <div class="progress-marker"></div>
-                            <div class="progress-marker"></div>
-                            <div class="progress-marker"></div>
-                            <div class="progress-marker"></div>
-                        </div>
-                    </div>
-                    <div class="progress-rewards-items">
-                        <div class="reward-item">
-                            <div class="reward-egg">🥚</div>
-                            <div class="reward-percent">25%</div>
-                        </div>
-                        <div class="reward-item">
-                            <div class="reward-egg">🥚</div>
-                            <div class="reward-percent">50%</div>
-                        </div>
-                        <div class="reward-item">
-                            <div class="reward-egg">🥚</div>
-                            <div class="reward-percent">100%</div>
-                        </div>
+                <div class="progress-rewards-section">
+                    <div class="section-title">关卡进度奖励</div>
+                    <div class="progress-rewards-list" id="progressRewards">
                     </div>
                 </div>
                 
                 <div class="start-btn-container">
-                    <button class="start-game-btn" id="startGameBtn">开始游戏</button>
+                    <button class="start-game-btn" id="startGameBtn">开始挑战</button>
                     <div class="start-cost">⚡ x3</div>
                 </div>
             </div>
 
             <div class="shop-screen hidden" id="shopTab">
-                <div class="coming-soon-icon">🏪</div>
-                <div class="coming-soon">商店功能开发中...</div>
+                <div class="section-title">商店</div>
+                <div class="shop-grid" id="shopGrid">
+                </div>
+                
+                <div class="section-title" style="margin-top: 30px;">永久强化</div>
+                <div class="upgrade-grid" id="upgradeGrid">
+                </div>
             </div>
 
             <div class="character-screen hidden" id="characterTab">
-                <div class="coming-soon-icon">👦</div>
-                <div class="coming-soon">角色功能开发中...</div>
+                <div class="section-title">选择角色</div>
+                <div class="character-grid" id="characterGrid">
+                </div>
             </div>
 
             <div class="equipment-screen hidden" id="equipmentTab">
                 <div class="equipment-header">
                     <div class="equipment-title">
-                        <span class="nav-icon">💀</span>
-                        上阵装备
+                        <span class="nav-icon">⚔️</span>
+                        装备强化
+                    </div>
+                </div>
+                
+                <div class="equip-grid" id="equipGrid">
+                </div>
+                
+                <div class="equipment-header" style="margin-top: 20px;">
+                    <div class="equipment-title">
+                        <span class="nav-icon">🎒</span>
+                        武器装备
                     </div>
                     <div class="equipment-count" id="equipCount">0/8</div>
                 </div>
@@ -1173,6 +1573,17 @@
             </div>
         </div>
 
+        <div class="game-over-screen" id="reviveScreen">
+            <div class="gameover-title" style="color: #ffd700;">⚠️ 龙已到达终点</div>
+            <div class="gameover-stats">
+                <div>剩余复活次数: <span class="highlight" id="reviveCountDisplay">3</span></div>
+            </div>
+            <div class="gameover-buttons">
+                <button class="gameover-btn" id="reviveBtn">✨ 复活</button>
+                <button class="gameover-btn return" id="cancelReviveBtn">放弃</button>
+            </div>
+        </div>
+
         <div class="game-over-screen" id="gameOverScreen">
             <div class="gameover-title">游戏结束</div>
             <div class="gameover-stats">
@@ -1195,6 +1606,7 @@
         </div>
     </div>
     
+    <script src="js/config.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>

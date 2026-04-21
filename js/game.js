@@ -29,14 +29,15 @@ class DragonShooterGame {
             gold: 100,
             diamonds: 0,
             maxUnlockedLevel: 1,
+            highestLevelPassed: 0,
             energy: 30,
             maxEnergy: 30,
             lastEnergyTime: Date.now(),
             equipment: {
-                weapon: { level: 0, owned: false },
-                armor: { level: 0, owned: false },
-                boots: { level: 0, owned: false },
-                ring: { level: 0, owned: false }
+                weapon: { level: 0, owned: false, equippedItem: null },
+                armor: { level: 0, owned: false, equippedItem: null },
+                boots: { level: 0, owned: false, equippedItem: null },
+                ring: { level: 0, owned: false, equippedItem: null }
             },
             permanentUpgrades: {
                 bulletDamage: 0,
@@ -45,10 +46,106 @@ class DragonShooterGame {
             },
             unlockedItems: ['pistol'],
             equippedItems: [],
-            itemLevels: { pistol: 1 }
+            itemLevels: { pistol: 1 },
+            claimedRewards: {},
+            selectedCharacter: 'default',
+            unlockedCharacters: ['default'],
+            inventory: []
         };
         
         this.updateEnergy();
+        
+        this.characterConfig = {
+            default: {
+                name: '默认勇者',
+                icon: '👦',
+                color: '#4488ff',
+                unlocked: true,
+                price: 0,
+                stats: { health: 0, damage: 0, speed: 0 },
+                description: '初始角色，均衡属性',
+                passive: {
+                    id: 'beginner_luck',
+                    name: '新手运气',
+                    description: '每30秒必定触发一次暴击',
+                    cooldown: 30,
+                    type: 'guaranteed_crit'
+                }
+            },
+            archer: {
+                name: '弓箭手',
+                icon: '🏹',
+                color: '#44cc44',
+                unlocked: false,
+                price: 500,
+                stats: { health: -10, damage: 5, speed: 0.1 },
+                description: '高伤害高速度，但血量较低',
+                passive: {
+                    id: 'precision',
+                    name: '精准射击',
+                    description: '移动速度的20%转化为暴击伤害',
+                    conversionRate: 0.2,
+                    type: 'speed_to_crit_damage'
+                }
+            },
+            warrior: {
+                name: '战士',
+                icon: '⚔️',
+                color: '#ff4444',
+                unlocked: false,
+                price: 500,
+                stats: { health: 30, damage: 0, speed: -0.05 },
+                description: '高血量，适合持久战',
+                passive: {
+                    id: 'toughness',
+                    name: '坚韧',
+                    description: '每损失20%生命值，获得10%伤害减免',
+                    threshold: 0.20,
+                    reductionPerThreshold: 0.10,
+                    type: 'health_based_reduction'
+                }
+            },
+            mage: {
+                name: '法师',
+                icon: '🧙',
+                color: '#aa44ff',
+                unlocked: false,
+                price: 800,
+                stats: { health: -20, damage: 10, speed: 0.05 },
+                description: '最高伤害，但非常脆弱',
+                passive: {
+                    id: 'arcane_boost',
+                    name: '奥术增幅',
+                    description: '主动技能伤害+30%，冷却-15%',
+                    skillDamageBonus: 0.30,
+                    cooldownReduction: 0.15,
+                    type: 'skill_enhancement'
+                }
+            },
+            knight: {
+                name: '骑士',
+                icon: '🛡️',
+                color: '#ffaa00',
+                unlocked: false,
+                price: 800,
+                stats: { health: 50, damage: 0, speed: -0.1 },
+                description: '坦克角色，血量极高',
+                passive: {
+                    id: 'shield_wall',
+                    name: '盾墙',
+                    description: '获得一个可吸收50伤害的护盾，每20秒刷新',
+                    shieldAmount: 50,
+                    shieldCooldown: 20,
+                    type: 'periodic_shield'
+                }
+            }
+        };
+        
+        this.levelRewards = {
+            3: { type: 'gold', amount: 100, name: '金币x100', icon: '💰' },
+            6: { type: 'gold', amount: 200, name: '金币x200', icon: '💰' },
+            9: { type: 'gold', amount: 500, name: '金币x500', icon: '👑' }
+        };
         
         this.equipmentConfig = {
             weapon: {
@@ -57,7 +154,9 @@ class DragonShooterGame {
                 basePrice: 100,
                 upgradePrice: 80,
                 buyDescription: '购买：永久增加基础伤害+5',
-                upgradeDescription: '强化：每级伤害+3'
+                upgradeDescription: '强化：每级伤害+3',
+                slot: 'weapon',
+                possibleAffixes: ['damage', 'crit_chance', 'crit_damage', 'attack_speed', 'pierce']
             },
             armor: {
                 name: '护甲',
@@ -65,7 +164,9 @@ class DragonShooterGame {
                 basePrice: 100,
                 upgradePrice: 80,
                 buyDescription: '购买：永久增加最大生命+20',
-                upgradeDescription: '强化：每级最大生命+10'
+                upgradeDescription: '强化：每级最大生命+10',
+                slot: 'armor',
+                possibleAffixes: ['health', 'damage_reduction', 'regen', 'max_health']
             },
             boots: {
                 name: '靴子',
@@ -73,7 +174,9 @@ class DragonShooterGame {
                 basePrice: 80,
                 upgradePrice: 60,
                 buyDescription: '购买：永久增加移动速度+10%',
-                upgradeDescription: '强化：每级速度+5%'
+                upgradeDescription: '强化：每级速度+5%',
+                slot: 'boots',
+                possibleAffixes: ['speed', 'dodge', 'move_speed_attack']
             },
             ring: {
                 name: '戒指',
@@ -81,7 +184,167 @@ class DragonShooterGame {
                 basePrice: 150,
                 upgradePrice: 100,
                 buyDescription: '购买：暴击几率+5%',
-                upgradeDescription: '强化：每级暴击几率+2%'
+                upgradeDescription: '强化：每级暴击几率+2%',
+                slot: 'ring',
+                possibleAffixes: ['crit_chance', 'crit_damage', 'skill_damage', 'cooldown_reduction']
+            }
+        };
+        
+        this.qualityConfig = {
+            common: {
+                name: '普通',
+                color: '#ffffff',
+                borderColor: '#aaaaaa',
+                affixCount: 0,
+                statMultiplier: 1.0,
+                dropRate: 0.50
+            },
+            uncommon: {
+                name: '优秀',
+                color: '#44ff44',
+                borderColor: '#22cc22',
+                affixCount: 1,
+                statMultiplier: 1.2,
+                dropRate: 0.30
+            },
+            rare: {
+                name: '稀有',
+                color: '#4488ff',
+                borderColor: '#2266cc',
+                affixCount: 2,
+                statMultiplier: 1.5,
+                dropRate: 0.15
+            },
+            epic: {
+                name: '史诗',
+                color: '#aa44ff',
+                borderColor: '#8822cc',
+                affixCount: 3,
+                statMultiplier: 2.0,
+                dropRate: 0.04
+            },
+            legendary: {
+                name: '传说',
+                color: '#ffaa00',
+                borderColor: '#cc8800',
+                affixCount: 4,
+                statMultiplier: 3.0,
+                dropRate: 0.01
+            }
+        };
+        
+        this.affixConfig = {
+            damage: {
+                name: '攻击强化',
+                description: '增加攻击伤害',
+                stat: 'bulletDamage',
+                baseValue: 3,
+                valuePerQuality: 1,
+                displayFormat: '+{value} 伤害'
+            },
+            crit_chance: {
+                name: '精准',
+                description: '增加暴击几率',
+                stat: 'critChanceBonus',
+                baseValue: 0.03,
+                valuePerQuality: 0.015,
+                displayFormat: '+{value}% 暴击'
+            },
+            crit_damage: {
+                name: '致命一击',
+                description: '增加暴击伤害',
+                stat: 'critDamageBonus',
+                baseValue: 0.15,
+                valuePerQuality: 0.075,
+                displayFormat: '+{value}% 暴击伤害'
+            },
+            attack_speed: {
+                name: '急速',
+                description: '增加攻击速度',
+                stat: 'attackSpeedBonus',
+                baseValue: 0.10,
+                valuePerQuality: 0.05,
+                displayFormat: '+{value}% 攻速'
+            },
+            pierce: {
+                name: '穿透',
+                description: '增加子弹穿透数量',
+                stat: 'bulletPierceBonus',
+                baseValue: 1,
+                valuePerQuality: 0,
+                displayFormat: '+{value} 穿透'
+            },
+            health: {
+                name: '生命强化',
+                description: '增加当前生命值',
+                stat: 'currentHealthBonus',
+                baseValue: 15,
+                valuePerQuality: 8,
+                displayFormat: '+{value} 生命'
+            },
+            max_health: {
+                name: '生命上限',
+                description: '增加最大生命值',
+                stat: 'maxHealth',
+                baseValue: 20,
+                valuePerQuality: 10,
+                displayFormat: '+{value} 最大生命'
+            },
+            damage_reduction: {
+                name: '坚韧',
+                description: '减少受到的伤害',
+                stat: 'damageReduction',
+                baseValue: 0.05,
+                valuePerQuality: 0.025,
+                displayFormat: '+{value}% 减伤'
+            },
+            regen: {
+                name: '回复',
+                description: '每秒恢复生命值',
+                stat: 'healthRegen',
+                baseValue: 2,
+                valuePerQuality: 1,
+                displayFormat: '+{value}/秒 回复'
+            },
+            speed: {
+                name: '迅捷',
+                description: '增加移动速度',
+                stat: 'moveSpeedBonus',
+                baseValue: 0.08,
+                valuePerQuality: 0.04,
+                displayFormat: '+{value}% 移速'
+            },
+            dodge: {
+                name: '闪避',
+                description: '有几率完全闪避攻击',
+                stat: 'dodgeChance',
+                baseValue: 0.05,
+                valuePerQuality: 0.025,
+                displayFormat: '+{value}% 闪避'
+            },
+            move_speed_attack: {
+                name: '疾风',
+                description: '移速转化为攻击伤害',
+                stat: 'speedToDamage',
+                baseValue: 0.15,
+                valuePerQuality: 0.075,
+                displayFormat: '+{value}% 移速转伤害'
+            },
+            skill_damage: {
+                name: '奥术增幅',
+                description: '增加技能伤害',
+                stat: 'skillDamageBonus',
+                baseValue: 0.10,
+                valuePerQuality: 0.05,
+                displayFormat: '+{value}% 技能伤害'
+            },
+            cooldown_reduction: {
+                name: '冷却缩减',
+                description: '减少技能冷却时间',
+                stat: 'cooldownReduction',
+                baseValue: 0.08,
+                valuePerQuality: 0.04,
+                displayFormat: '+{value}% 冷却缩减'
             }
         };
         
@@ -105,20 +368,19 @@ class DragonShooterGame {
         ];
         
         this.levelConfigs = {
-            1: { enemyCount: 8, enemyHealth: 40, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 3 },
-            2: { enemyCount: 10, enemyHealth: 50, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 4 },
-            3: { enemyCount: 12, enemyHealth: 65, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 5, unlockAbility: true },
-            4: { enemyCount: 15, enemyHealth: 80, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 5 },
-            5: { enemyCount: 18, enemyHealth: 100, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 6 },
-            6: { enemyCount: 20, enemyHealth: 120, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 6, unlockAbility: true },
-            7: { enemyCount: 25, enemyHealth: 150, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 7 },
-            8: { enemyCount: 28, enemyHealth: 180, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 7 },
-            9: { enemyCount: 30, enemyHealth: 220, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 8, unlockAbility: true }
+            1: { enemyCount: 8, enemyHealth: 100, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 10, chestDropChance: 0.6 },
+            2: { enemyCount: 10, enemyHealth: 150, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 12, chestDropChance: 0.6 },
+            3: { enemyCount: 12, enemyHealth: 200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 15, unlockAbility: true, chestDropChance: 0.65 },
+            4: { enemyCount: 15, enemyHealth: 300, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 18, chestDropChance: 0.65 },
+            5: { enemyCount: 18, enemyHealth: 400, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 20, chestDropChance: 0.7 },
+            6: { enemyCount: 20, enemyHealth: 500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 22, unlockAbility: true, chestDropChance: 0.7 },
+            7: { enemyCount: 25, enemyHealth: 600, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 25, chestDropChance: 0.75 },
+            8: { enemyCount: 28, enemyHealth: 700, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 28, chestDropChance: 0.75 },
+            9: { enemyCount: 30, enemyHealth: 800, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 30, unlockAbility: true, chestDropChance: 0.8 }
         };
 
         this.skills = [
-            { id: "bullet_count", name: "龙之力", description: "子弹数量+1", icon: "🎯", rarity: "A" },
-            { id: "bullet_spread", name: "龙息", description: "子弹覆盖范围扩大", icon: "🌟", rarity: "B" },
+            { id: "bullet_count", name: "龙之力", description: "子弹数量+1，范围+15°", icon: "🎯", rarity: "A" },
             { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡", rarity: "B" },
             { id: "damage", name: "龙之力", description: "子弹伤害+50%", icon: "💥", rarity: "A" },
             { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️", rarity: "B" },
@@ -128,7 +390,10 @@ class DragonShooterGame {
             { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯", rarity: "A" },
             { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐", rarity: "B" },
             { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫", rarity: "A" },
-            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲", rarity: "B" }
+            { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲", rarity: "B" },
+            { id: "rain_of_needles", name: "暴雨梨花针", description: "发射针雨攻击龙，击中后爆开", icon: "🗡️", rarity: "A", type: "active", cooldown: 1.0, baseDamage: 20, burstCount: 5, projectileCount: 8, spread: 45 },
+            { id: "thunder_dragon", name: "雷龙", description: "召唤雷龙全屏攻击", icon: "⚡", rarity: "A", type: "active", cooldown: 2.0, baseDamage: 30, duration: 3.0, moveSpeed: 200, lightningFrequency: 0.3 },
+            { id: "ice_storm", name: "冰雪", description: "全屏下冰雹雪，减速并伤害龙", icon: "❄️", rarity: "A", type: "active", cooldown: 1.5, baseDamage: 15, slowDuration: 2.0, slowAmount: 0.5, hailRate: 0.3 }
         ];
 
         this.powerupTypes = [
@@ -200,10 +465,25 @@ class DragonShooterGame {
         this.enemiesInLevel = 0;
         this.totalEnemiesInLevel = 0;
         
+        this.segmentsDestroyed = 0;
+        this.lastSkillSelectionAtSegment = 0;
+        
         this.lastTime = 0;
         this.shootTimer = 0;
         this.spawnTimer = 0;
         this.chestSpawnTimer = 0;
+        
+        this.skillLevels = {};
+        this.skillCooldowns = {};
+        this.activeSkills = [];
+        
+        this.needles = [];
+        this.thunderDragon = null;
+        this.thunderDragonTimer = 0;
+        this.hailStones = [];
+        this.iceStormActive = false;
+        this.iceStormTimer = 0;
+        this.slowEffects = [];
         
         const baseStats = this.getBaseStats();
         
@@ -217,11 +497,18 @@ class DragonShooterGame {
             bulletSpread: 0,
             fireRate: 0.15,
             bulletSize: 8,
-            bulletPierce: 0,
+            bulletPierce: 0 + (baseStats.bulletPierceBonus || 0),
             criticalChance: 0.05 + baseStats.critChanceBonus,
-            criticalDamage: 1.5,
+            criticalDamage: 1.5 + (baseStats.critDamageBonus || 0),
             bulletBounce: 0,
-            magnetRange: 50
+            magnetRange: 50,
+            attackSpeedBonus: baseStats.attackSpeedBonus || 0,
+            damageReduction: baseStats.damageReduction || 0,
+            healthRegen: baseStats.healthRegen || 0,
+            dodgeChance: baseStats.dodgeChance || 0,
+            speedToDamage: baseStats.speedToDamage || 0,
+            skillDamageBonus: baseStats.skillDamageBonus || 0,
+            cooldownReduction: baseStats.cooldownReduction || 0
         };
         
         this.unlockedSkills = [];
@@ -229,6 +516,154 @@ class DragonShooterGame {
         
         this.targetPosition = null;
         this.isMoving = false;
+        
+        this.path = [];
+        this.pathBoundaries = {
+            leftBound: 0,
+            rightBound: 0,
+            channelLines: []
+        };
+    }
+    
+    generatePath() {
+        const cfg = window.GameConfig || {};
+        const levelCfg = cfg.level || {};
+        
+        const channelCount = levelCfg.channelCount || 5;
+        const channelHeight = levelCfg.channelHeight || 120;
+        const leftPadding = levelCfg.leftPadding || 50;
+        const rightPadding = levelCfg.rightPadding || 50;
+        const topPadding = levelCfg.topPadding || 80;
+        const turnRadius = levelCfg.turnRadius || 40;
+        
+        const path = [];
+        const leftBound = leftPadding;
+        const rightBound = this.width - rightPadding;
+        
+        this.pathBoundaries = {
+            leftBound: leftBound,
+            rightBound: rightBound,
+            channelLines: [],
+            channels: []
+        };
+        
+        for (let i = 0; i < channelCount; i++) {
+            const isRightToLeft = i % 2 === 0;
+            const rowY = topPadding + i * channelHeight;
+            
+            this.pathBoundaries.channels.push({
+                rowY: rowY,
+                isEvenRow: !isRightToLeft
+            });
+            
+            if (i > 0) {
+                this.pathBoundaries.channelLines.push(rowY);
+            }
+            
+            if (i === 0) {
+                path.push({ x: rightBound, y: -50, distance: 0 });
+                path.push({ x: rightBound, y: rowY, distance: 50 });
+            }
+            
+            const prevPoint = path[path.length - 1];
+            const baseDistance = prevPoint ? prevPoint.distance : 0;
+            
+            if (isRightToLeft) {
+                if (i > 0) {
+                    const startX = rightBound;
+                    const startY = rowY;
+                    const dist = baseDistance;
+                    path.push({ x: startX, y: startY, distance: dist });
+                }
+                
+                const endX = leftBound;
+                const endY = rowY;
+                const segmentLength = Math.abs(endX - (path[path.length - 1].x));
+                path.push({ x: endX, y: endY, distance: path[path.length - 1].distance + segmentLength });
+            } else {
+                if (i > 0) {
+                    const startX = leftBound;
+                    const startY = rowY;
+                    const dist = baseDistance;
+                    path.push({ x: startX, y: startY, distance: dist });
+                }
+                
+                const endX = rightBound;
+                const endY = rowY;
+                const segmentLength = Math.abs(endX - (path[path.length - 1].x));
+                path.push({ x: endX, y: endY, distance: path[path.length - 1].distance + segmentLength });
+            }
+            
+            if (i < channelCount - 1) {
+                const nextRowY = rowY + channelHeight;
+                const pointsInTurn = 12;
+                const arcLength = (Math.PI * turnRadius) / 2;
+                const stepDistance = arcLength / pointsInTurn;
+                
+                const lastPoint = path[path.length - 1];
+                let currentDist = lastPoint.distance;
+                
+                if (isRightToLeft) {
+                    for (let j = 1; j <= pointsInTurn; j++) {
+                        const angle = (Math.PI / pointsInTurn) * j;
+                        const x = leftBound + turnRadius * Math.sin(angle);
+                        const y = rowY + turnRadius * (1 - Math.cos(angle));
+                        currentDist += stepDistance;
+                        path.push({ x, y, distance: currentDist });
+                    }
+                } else {
+                    for (let j = 1; j <= pointsInTurn; j++) {
+                        const angle = (Math.PI / pointsInTurn) * j;
+                        const x = rightBound - turnRadius * Math.sin(angle);
+                        const y = rowY + turnRadius * (1 - Math.cos(angle));
+                        currentDist += stepDistance;
+                        path.push({ x, y, distance: currentDist });
+                    }
+                }
+            }
+        }
+        
+        let totalDist = 0;
+        for (let i = 1; i < path.length; i++) {
+            const dx = path[i].x - path[i-1].x;
+            const dy = path[i].y - path[i-1].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            totalDist += dist;
+            path[i].distance = totalDist;
+        }
+        
+        this.totalPathLength = totalDist;
+        
+        return path;
+    }
+    
+    getPointAtDistance(distance) {
+        if (!this.path || this.path.length < 2) return null;
+        
+        if (distance < 0) return null;
+        
+        if (distance >= this.totalPathLength) {
+            const lastPoint = this.path[this.path.length - 1];
+            return { x: lastPoint.x, y: lastPoint.y, isEnd: true };
+        }
+        
+        for (let i = 1; i < this.path.length; i++) {
+            const prevPoint = this.path[i - 1];
+            const currPoint = this.path[i];
+            
+            if (distance >= prevPoint.distance && distance <= currPoint.distance) {
+                const segmentDist = currPoint.distance - prevPoint.distance;
+                if (segmentDist <= 0) return { x: currPoint.x, y: currPoint.y };
+                
+                const ratio = (distance - prevPoint.distance) / segmentDist;
+                return {
+                    x: prevPoint.x + (currPoint.x - prevPoint.x) * ratio,
+                    y: prevPoint.y + (currPoint.y - prevPoint.y) * ratio
+                };
+            }
+        }
+        
+        return null;
     }
     
     getBaseStats() {
@@ -236,7 +671,16 @@ class DragonShooterGame {
             bulletDamage: 0,
             maxHealth: 0,
             moveSpeedBonus: 0,
-            critChanceBonus: 0
+            critChanceBonus: 0,
+            critDamageBonus: 0,
+            attackSpeedBonus: 0,
+            bulletPierceBonus: 0,
+            damageReduction: 0,
+            healthRegen: 0,
+            dodgeChance: 0,
+            speedToDamage: 0,
+            skillDamageBonus: 0,
+            cooldownReduction: 0
         };
         
         const eq = this.saveData.equipment;
@@ -258,9 +702,21 @@ class DragonShooterGame {
             stats.critChanceBonus += 0.05 + eq.ring.level * 0.02;
         }
         
+        const equipStats = this.getTotalEquipStats();
+        for (const [key, value] of Object.entries(equipStats)) {
+            if (stats[key] !== undefined) {
+                stats[key] += value;
+            }
+        }
+        
         stats.bulletDamage += pu.bulletDamage * 2;
         stats.maxHealth += pu.maxHealth * 10;
         stats.moveSpeedBonus += pu.moveSpeed * 0.05;
+        
+        const charStats = this.getCharacterStats();
+        stats.bulletDamage += charStats.damage;
+        stats.maxHealth += charStats.health;
+        stats.moveSpeedBonus += charStats.speed;
         
         return stats;
     }
@@ -270,6 +726,8 @@ class DragonShooterGame {
         document.getElementById('returnMainBtn').addEventListener('click', () => this.returnToMainMenu());
         document.getElementById('returnMainBtn2').addEventListener('click', () => this.returnToMainMenu());
         document.getElementById('retryBtn').addEventListener('click', () => this.retryLevel());
+        document.getElementById('reviveBtn').addEventListener('click', () => this.revive());
+        document.getElementById('cancelReviveBtn').addEventListener('click', () => this.cancelRevive());
         
         try {
             const backBtn = document.getElementById('backBtn');
@@ -321,9 +779,867 @@ class DragonShooterGame {
         document.getElementById('equipmentTab').classList.toggle('hidden', tab !== 'equipment');
         document.getElementById('challengeTab').classList.toggle('hidden', tab !== 'challenge');
         
-        if (tab === 'equipment') {
-            this.renderEquipmentUI();
+        if (tab === 'battle') {
+            this.renderBattleTab();
+        } else if (tab === 'character') {
+            this.renderCharacterTab();
+        } else if (tab === 'shop') {
+            this.renderShopTab();
+        } else if (tab === 'equipment') {
+            this.renderEquipmentTab();
         }
+    }
+    
+    renderBattleTab() {
+        this.renderLevelGrid();
+        this.renderLevelRewards();
+    }
+    
+    renderCharacterTab() {
+        const grid = document.getElementById('characterGrid');
+        grid.innerHTML = '';
+        
+        for (const [id, config] of Object.entries(this.characterConfig)) {
+            const isUnlocked = this.saveData.unlockedCharacters.includes(id);
+            const isSelected = this.saveData.selectedCharacter === id;
+            
+            const card = document.createElement('div');
+            card.className = `character-card ${isUnlocked ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+            
+            let statsHtml = '';
+            if (config.stats.health !== 0) {
+                const className = config.stats.health > 0 ? 'positive' : 'negative';
+                statsHtml += `<span class="character-stat ${className}">❤️${config.stats.health > 0 ? '+' : ''}${config.stats.health}</span>`;
+            }
+            if (config.stats.damage !== 0) {
+                const className = config.stats.damage > 0 ? 'positive' : 'negative';
+                statsHtml += `<span class="character-stat ${className}">💥${config.stats.damage > 0 ? '+' : ''}${config.stats.damage}</span>`;
+            }
+            if (config.stats.speed !== 0) {
+                const className = config.stats.speed > 0 ? 'positive' : 'negative';
+                statsHtml += `<span class="character-stat ${className}">🏃${config.stats.speed > 0 ? '+' : ''}${(config.stats.speed * 100).toFixed(0)}%</span>`;
+            }
+            
+            let passiveHtml = '';
+            if (config.passive) {
+                passiveHtml = `
+                    <div class="character-passive">
+                        <div class="passive-title">🎯 ${config.passive.name}</div>
+                        <div class="passive-desc">${config.passive.description}</div>
+                    </div>
+                `;
+            }
+            
+            let actionHtml = '';
+            if (!isUnlocked) {
+                actionHtml = `<div class="character-price">💰 ${config.price}</div>
+                    <button class="character-unlock-btn" data-id="${id}">解锁</button>`;
+            } else if (isSelected) {
+                actionHtml = `<div style="color: #44ff44; font-weight: bold;">✓ 已选中</div>`;
+            } else {
+                actionHtml = `<button class="character-unlock-btn" data-id="${id}" data-select="true">选择</button>`;
+            }
+            
+            card.innerHTML = `
+                <div class="character-icon">${config.icon}</div>
+                <div class="character-name">${config.name}</div>
+                <div class="character-desc">${config.description}</div>
+                <div class="character-stats">${statsHtml}</div>
+                ${passiveHtml}
+                ${actionHtml}
+            `;
+            
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.character-unlock-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                if (btn.dataset.select === 'true') {
+                    this.selectCharacter(id);
+                } else {
+                    this.unlockCharacter(id);
+                }
+            });
+        });
+    }
+    
+    selectCharacter(id) {
+        if (!this.saveData.unlockedCharacters.includes(id)) {
+            this.showToast('角色未解锁！');
+            return;
+        }
+        this.saveData.selectedCharacter = id;
+        this.saveGameData();
+        this.renderCharacterTab();
+        this.showToast(`已选择 ${this.characterConfig[id].name}！`);
+    }
+    
+    unlockCharacter(id) {
+        const config = this.characterConfig[id];
+        if (this.saveData.gold >= config.price) {
+            this.saveData.gold -= config.price;
+            if (!this.saveData.unlockedCharacters.includes(id)) {
+                this.saveData.unlockedCharacters.push(id);
+            }
+            this.saveGameData();
+            this.updateMainMenuUI();
+            this.renderCharacterTab();
+            this.showToast(`${config.name} 解锁成功！`);
+        } else {
+            this.showToast('金币不足！');
+        }
+    }
+    
+    getCharacterStats() {
+        const charId = this.saveData.selectedCharacter || 'default';
+        return this.characterConfig[charId]?.stats || { health: 0, damage: 0, speed: 0 };
+    }
+    
+    getCharacterPassive() {
+        const charId = this.saveData.selectedCharacter || 'default';
+        return this.characterConfig[charId]?.passive || null;
+    }
+    
+    getRandomQuality(levelBonus = 0) {
+        const rand = Math.random() - levelBonus * 0.02;
+        
+        if (rand <= this.qualityConfig.legendary.dropRate) return 'legendary';
+        if (rand <= this.qualityConfig.legendary.dropRate + this.qualityConfig.epic.dropRate) return 'epic';
+        if (rand <= this.qualityConfig.legendary.dropRate + this.qualityConfig.epic.dropRate + this.qualityConfig.rare.dropRate) return 'rare';
+        if (rand <= this.qualityConfig.legendary.dropRate + this.qualityConfig.epic.dropRate + this.qualityConfig.rare.dropRate + this.qualityConfig.uncommon.dropRate) return 'uncommon';
+        return 'common';
+    }
+    
+    generateAffixValue(affixId, quality) {
+        const affix = this.affixConfig[affixId];
+        const qualityConfig = this.qualityConfig[quality];
+        if (!affix || !qualityConfig) return 0;
+        
+        const qualityIndex = ['common', 'uncommon', 'rare', 'epic', 'legendary'].indexOf(quality);
+        const value = affix.baseValue + affix.valuePerQuality * qualityIndex;
+        const variance = 0.8 + Math.random() * 0.4;
+        
+        return value * qualityConfig.statMultiplier * variance;
+    }
+    
+    formatAffixValue(affixId, value) {
+        const affix = this.affixConfig[affixId];
+        if (!affix) return '';
+        
+        let displayValue;
+        if (affix.stat === 'critChanceBonus' || affix.stat === 'critDamageBonus' || 
+            affix.stat === 'attackSpeedBonus' || affix.stat === 'moveSpeedBonus' ||
+            affix.stat === 'damageReduction' || affix.stat === 'dodgeChance' ||
+            affix.stat === 'speedToDamage' || affix.stat === 'skillDamageBonus' ||
+            affix.stat === 'cooldownReduction') {
+            displayValue = Math.round(value * 100);
+        } else {
+            displayValue = Math.round(value);
+        }
+        
+        return affix.displayFormat.replace('{value}', displayValue);
+    }
+    
+    generateAffixes(slot, quality, count) {
+        const equipConfig = this.equipmentConfig[slot];
+        if (!equipConfig || count <= 0) return [];
+        
+        const possibleAffixes = [...equipConfig.possibleAffixes];
+        const selectedAffixes = [];
+        
+        for (let i = 0; i < count && possibleAffixes.length > 0; i++) {
+            const index = Math.floor(Math.random() * possibleAffixes.length);
+            const affixId = possibleAffixes.splice(index, 1)[0];
+            const value = this.generateAffixValue(affixId, quality);
+            
+            selectedAffixes.push({
+                id: affixId,
+                value: value,
+                display: this.formatAffixValue(affixId, value)
+            });
+        }
+        
+        return selectedAffixes;
+    }
+    
+    generateRandomEquipment(slot, levelBonus = 0) {
+        const quality = this.getRandomQuality(levelBonus);
+        const qualityConfig = this.qualityConfig[quality];
+        const equipConfig = this.equipmentConfig[slot];
+        
+        if (!equipConfig) return null;
+        
+        const affixes = this.generateAffixes(slot, quality, qualityConfig.affixCount);
+        
+        return {
+            id: `equip_${slot}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+            slot: slot,
+            quality: quality,
+            name: this.generateEquipmentName(slot, quality),
+            icon: equipConfig.icon,
+            affixes: affixes,
+            baseStats: this.generateBaseStats(slot, quality),
+            level: 0,
+            equipped: false
+        };
+    }
+    
+    generateEquipmentName(slot, quality) {
+        const equipConfig = this.equipmentConfig[slot];
+        const qualityConfig = this.qualityConfig[quality];
+        
+        const prefixes = {
+            common: ['破旧', '普通'],
+            uncommon: ['精良', '优质'],
+            rare: ['华丽', '稀有'],
+            epic: ['史诗', '传说'],
+            legendary: ['神话', '至尊']
+        };
+        
+        const suffixes = {
+            common: [''],
+            uncommon: [''],
+            rare: ['之力', '之护', '之迅捷'],
+            epic: ['大师', '宗师'],
+            legendary: ['永恒', '不朽', '混沌']
+        };
+        
+        const prefix = prefixes[quality]?.[Math.floor(Math.random() * prefixes[quality].length)] || '';
+        const suffix = suffixes[quality]?.[Math.floor(Math.random() * suffixes[quality].length)] || '';
+        
+        if (quality === 'common' || quality === 'uncommon') {
+            return `${prefix}${equipConfig.name}`;
+        }
+        return `${prefix}${equipConfig.name}${suffix}`;
+    }
+    
+    generateBaseStats(slot, quality) {
+        const qualityConfig = this.qualityConfig[quality];
+        const multiplier = qualityConfig.statMultiplier;
+        
+        const baseStatsBySlot = {
+            weapon: { bulletDamage: Math.floor(5 * multiplier) },
+            armor: { maxHealth: Math.floor(20 * multiplier) },
+            boots: { moveSpeedBonus: 0.10 * multiplier },
+            ring: { critChanceBonus: 0.05 * multiplier }
+        };
+        
+        return baseStatsBySlot[slot] || {};
+    }
+    
+    getAffixTotalValue(stat) {
+        let total = 0;
+        
+        for (const [slot, equip] of Object.entries(this.saveData.equipment)) {
+            if (equip.owned && equip.equippedItem) {
+                for (const affix of equip.equippedItem.affixes) {
+                    const affixConfig = this.affixConfig[affix.id];
+                    if (affixConfig && affixConfig.stat === stat) {
+                        total += affix.value;
+                    }
+                }
+                if (equip.equippedItem.baseStats) {
+                    for (const [key, value] of Object.entries(equip.equippedItem.baseStats)) {
+                        if (key === stat) {
+                            total += value;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return total;
+    }
+    
+    addEquipmentToInventory(equip) {
+        if (!this.saveData.inventory) {
+            this.saveData.inventory = [];
+        }
+        
+        this.saveData.inventory.push(equip);
+        this.saveGameData();
+    }
+    
+    equipItem(equipId) {
+        if (!this.saveData.inventory) return false;
+        
+        const equipIndex = this.saveData.inventory.findIndex(e => e.id === equipId);
+        if (equipIndex === -1) return false;
+        
+        const equip = this.saveData.inventory[equipIndex];
+        const slot = equip.slot;
+        
+        const slotData = this.saveData.equipment[slot];
+        if (slotData && slotData.equippedItem) {
+            this.saveData.inventory.push(slotData.equippedItem);
+        }
+        
+        slotData.equippedItem = equip;
+        this.saveData.inventory.splice(equipIndex, 1);
+        slotData.equippedItem.equipped = true;
+        
+        this.saveGameData();
+        return true;
+    }
+    
+    unequipItem(slot) {
+        const slotData = this.saveData.equipment[slot];
+        if (!slotData || !slotData.equippedItem) return false;
+        
+        if (!this.saveData.inventory) {
+            this.saveData.inventory = [];
+        }
+        
+        slotData.equippedItem.equipped = false;
+        this.saveData.inventory.push(slotData.equippedItem);
+        slotData.equippedItem = null;
+        
+        this.saveGameData();
+        return true;
+    }
+    
+    getTotalEquipStats() {
+        let stats = {
+            bulletDamage: 0,
+            maxHealth: 0,
+            moveSpeedBonus: 0,
+            critChanceBonus: 0,
+            critDamageBonus: 0,
+            attackSpeedBonus: 0,
+            bulletPierceBonus: 0,
+            currentHealthBonus: 0,
+            damageReduction: 0,
+            healthRegen: 0,
+            dodgeChance: 0,
+            speedToDamage: 0,
+            skillDamageBonus: 0,
+            cooldownReduction: 0
+        };
+        
+        for (const [slot, equip] of Object.entries(this.saveData.equipment)) {
+            if (equip.owned && equip.equippedItem) {
+                const item = equip.equippedItem;
+                
+                for (const [key, value] of Object.entries(item.baseStats || {})) {
+                    if (stats[key] !== undefined) {
+                        stats[key] += value;
+                    }
+                }
+                
+                for (const affix of item.affixes) {
+                    const affixConfig = this.affixConfig[affix.id];
+                    if (affixConfig && stats[affixConfig.stat] !== undefined) {
+                        stats[affixConfig.stat] += affix.value;
+                    }
+                }
+            }
+        }
+        
+        return stats;
+    }
+    
+    initCharacterPassive() {
+        this.characterPassiveState = {};
+        const passive = this.getCharacterPassive();
+        if (!passive) return;
+        
+        const now = Date.now() / 1000;
+        
+        switch (passive.type) {
+            case 'guaranteed_crit':
+                this.characterPassiveState = {
+                    lastGuaranteedCritTime: now,
+                    guaranteedCritReady: false
+                };
+                break;
+            case 'periodic_shield':
+                this.characterPassiveState = {
+                    lastShieldTime: now,
+                    shieldAmount: passive.shieldAmount,
+                    currentShield: passive.shieldAmount
+                };
+                break;
+            case 'speed_to_crit_damage':
+                this.characterPassiveState = {
+                    conversionRate: passive.conversionRate
+                };
+                break;
+            case 'health_based_reduction':
+                this.characterPassiveState = {
+                    threshold: passive.threshold,
+                    reductionPerThreshold: passive.reductionPerThreshold
+                };
+                break;
+            case 'skill_enhancement':
+                this.characterPassiveState = {
+                    skillDamageBonus: passive.skillDamageBonus,
+                    cooldownReduction: passive.cooldownReduction
+                };
+                break;
+        }
+    }
+    
+    applyCharacterPassiveToCrit(isCrit) {
+        const passive = this.getCharacterPassive();
+        if (!passive || passive.type !== 'guaranteed_crit') return isCrit;
+        
+        const now = Date.now() / 1000;
+        if (!this.characterPassiveState) return isCrit;
+        
+        const elapsed = now - this.characterPassiveState.lastGuaranteedCritTime;
+        if (elapsed >= passive.cooldown || this.characterPassiveState.guaranteedCritReady) {
+            this.characterPassiveState.lastGuaranteedCritTime = now;
+            this.characterPassiveState.guaranteedCritReady = false;
+            return true;
+        }
+        
+        return isCrit;
+    }
+    
+    getCritDamageBonusFromPassive() {
+        const passive = this.getCharacterPassive();
+        if (!passive || passive.type !== 'speed_to_crit_damage') return 0;
+        
+        const conversionRate = this.characterPassiveState?.conversionRate || 0.2;
+        const speedBonus = (this.playerStats.speed / 5 - 1);
+        return speedBonus * conversionRate;
+    }
+    
+    getDamageReductionFromPassive() {
+        const passive = this.getCharacterPassive();
+        if (!passive || passive.type !== 'health_based_reduction') return 0;
+        
+        const threshold = this.characterPassiveState?.threshold || 0.20;
+        const reductionPerThreshold = this.characterPassiveState?.reductionPerThreshold || 0.10;
+        
+        const healthPercent = this.playerStats.health / this.playerStats.maxHealth;
+        const healthLost = 1 - healthPercent;
+        const thresholdsPassed = Math.floor(healthLost / threshold);
+        
+        return thresholdsPassed * reductionPerThreshold;
+    }
+    
+    getSkillDamageBonusFromPassive() {
+        const passive = this.getCharacterPassive();
+        let bonus = 0;
+        
+        if (passive && passive.type === 'skill_enhancement') {
+            bonus += this.characterPassiveState?.skillDamageBonus || 0;
+        }
+        
+        if (this.playerStats && this.playerStats.skillDamageBonus) {
+            bonus += this.playerStats.skillDamageBonus;
+        }
+        
+        return bonus;
+    }
+    
+    getCooldownReductionFromPassive() {
+        let reduction = 0;
+        
+        const passive = this.getCharacterPassive();
+        if (passive && passive.type === 'skill_enhancement') {
+            reduction += this.characterPassiveState?.cooldownReduction || 0;
+        }
+        
+        if (this.playerStats && this.playerStats.cooldownReduction) {
+            reduction += this.playerStats.cooldownReduction;
+        }
+        
+        return Math.min(0.5, reduction);
+    }
+    
+    takeDamageWithPassive(amount) {
+        const dodgeChance = this.playerStats.dodgeChance || 0;
+        if (dodgeChance > 0 && Math.random() < dodgeChance) {
+            this.createHitParticles(this.player.x, this.player.y, '#00FFFF');
+            return;
+        }
+        
+        const passive = this.getCharacterPassive();
+        
+        if (passive && passive.type === 'periodic_shield' && this.characterPassiveState) {
+            const shield = this.characterPassiveState.currentShield || 0;
+            if (shield > 0) {
+                const absorbed = Math.min(shield, amount);
+                this.characterPassiveState.currentShield -= absorbed;
+                amount -= absorbed;
+                
+                if (amount <= 0) {
+                    this.createHitParticles(this.player.x, this.player.y, '#00FFFF');
+                    return;
+                }
+            }
+        }
+        
+        const passiveReduction = this.getDamageReductionFromPassive();
+        const equipReduction = this.playerStats.damageReduction || 0;
+        const totalReduction = Math.min(0.9, passiveReduction + equipReduction);
+        
+        if (totalReduction > 0) {
+            amount = Math.max(1, Math.floor(amount * (1 - totalReduction)));
+        }
+        
+        this.takeDamage(amount);
+    }
+    
+    updateCharacterPassive(dt, currentTime) {
+        const passive = this.getCharacterPassive();
+        if (!passive || !this.characterPassiveState) return;
+        
+        const now = currentTime || (Date.now() / 1000);
+        
+        if (passive.type === 'guaranteed_crit') {
+            const elapsed = now - this.characterPassiveState.lastGuaranteedCritTime;
+            if (elapsed >= passive.cooldown && !this.characterPassiveState.guaranteedCritReady) {
+                this.characterPassiveState.guaranteedCritReady = true;
+            }
+        }
+        
+        if (passive.type === 'periodic_shield') {
+            const elapsed = now - this.characterPassiveState.lastShieldTime;
+            const maxShield = this.characterPassiveState.shieldAmount || 50;
+            const currentShield = this.characterPassiveState.currentShield || 0;
+            
+            if (elapsed >= passive.shieldCooldown && currentShield < maxShield) {
+                this.characterPassiveState.currentShield = maxShield;
+                this.characterPassiveState.lastShieldTime = now;
+            }
+        }
+    }
+    
+    renderShopTab() {
+        this.renderShopItems();
+        this.renderUpgradeItems();
+    }
+    
+    renderShopItems() {
+        const grid = document.getElementById('shopGrid');
+        grid.innerHTML = '';
+        
+        const shopItems = [
+            { id: 'smallGold', name: '小金币包', icon: '💰', price: 50, description: '获得 100 金币', type: 'gold', amount: 100 },
+            { id: 'mediumGold', name: '中金币包', icon: '💎', price: 200, description: '获得 500 金币', type: 'gold', amount: 500 },
+            { id: 'largeGold', name: '大金币包', icon: '👑', price: 500, description: '获得 1500 金币', type: 'gold', amount: 1500 },
+            { id: 'energy', name: '体力恢复', icon: '⚡', price: 100, description: '恢复 10 点体力', type: 'energy', amount: 10 }
+        ];
+        
+        for (const item of shopItems) {
+            const canBuy = this.saveData.gold >= item.price;
+            const card = document.createElement('div');
+            card.className = 'shop-item';
+            card.innerHTML = `
+                <div class="shop-icon">${item.icon}</div>
+                <div class="shop-name">${item.name}</div>
+                <div class="shop-desc">${item.description}</div>
+                <div class="shop-price">
+                    <span class="shop-price-icon">💰</span>
+                    <span class="shop-price-value">${item.price}</span>
+                </div>
+                <button class="shop-buy-btn" data-id="${item.id}" ${!canBuy ? 'disabled' : ''}>
+                    购买
+                </button>
+            `;
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.shop-buy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                this.buyShopItem(id);
+            });
+        });
+    }
+    
+    buyShopItem(id) {
+        const shopItems = {
+            smallGold: { price: 50, type: 'gold', amount: 100 },
+            mediumGold: { price: 200, type: 'gold', amount: 500 },
+            largeGold: { price: 500, type: 'gold', amount: 1500 },
+            energy: { price: 100, type: 'energy', amount: 10 }
+        };
+        
+        const item = shopItems[id];
+        if (!item) return;
+        
+        if (this.saveData.gold >= item.price) {
+            this.saveData.gold -= item.price;
+            
+            if (item.type === 'gold') {
+                this.saveData.gold += item.amount;
+                this.showToast(`获得 ${item.amount} 金币！`);
+            } else if (item.type === 'energy') {
+                this.saveData.energy = Math.min(this.saveData.maxEnergy, this.saveData.energy + item.amount);
+                this.showToast(`恢复 ${item.amount} 体力！`);
+            }
+            
+            this.saveGameData();
+            this.updateMainMenuUI();
+            this.renderShopTab();
+        } else {
+            this.showToast('金币不足！');
+        }
+    }
+    
+    renderUpgradeItems() {
+        const grid = document.getElementById('upgradeGrid');
+        grid.innerHTML = '';
+        
+        const upgrades = [
+            { id: 'bulletDamage', name: '攻击强化', icon: '💥', basePrice: 100, description: '永久提升子弹伤害 +5' },
+            { id: 'maxHealth', name: '生命强化', icon: '❤️', basePrice: 100, description: '永久提升最大生命值 +20' },
+            { id: 'moveSpeed', name: '速度强化', icon: '🏃', basePrice: 100, description: '永久提升移动速度 +5%' }
+        ];
+        
+        for (const upgrade of upgrades) {
+            const currentLevel = this.saveData.permanentUpgrades[upgrade.id] || 0;
+            const price = upgrade.basePrice * (currentLevel + 1);
+            const canBuy = this.saveData.gold >= price;
+            
+            const card = document.createElement('div');
+            card.className = 'upgrade-item';
+            card.innerHTML = `
+                <div class="upgrade-icon">${upgrade.icon}</div>
+                <div class="upgrade-name">${upgrade.name}</div>
+                <div class="upgrade-desc">${upgrade.description}</div>
+                <div class="upgrade-level">当前等级: Lv.${currentLevel}</div>
+                <div class="upgrade-price">
+                    <span class="upgrade-price-icon">💰</span>
+                    <span class="upgrade-price-value">${price}</span>
+                </div>
+                <button class="upgrade-btn" data-id="${upgrade.id}" ${!canBuy ? 'disabled' : ''}>
+                    强化
+                </button>
+            `;
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.upgrade-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                this.upgradePermanent(id);
+            });
+        });
+    }
+    
+    upgradePermanent(id) {
+        const basePrices = {
+            bulletDamage: 100,
+            maxHealth: 100,
+            moveSpeed: 100
+        };
+        
+        const currentLevel = this.saveData.permanentUpgrades[id] || 0;
+        const price = basePrices[id] * (currentLevel + 1);
+        
+        if (this.saveData.gold >= price) {
+            this.saveData.gold -= price;
+            this.saveData.permanentUpgrades[id] = currentLevel + 1;
+            this.saveGameData();
+            this.updateMainMenuUI();
+            this.renderUpgradeItems();
+            
+            const names = {
+                bulletDamage: '攻击强化',
+                maxHealth: '生命强化',
+                moveSpeed: '速度强化'
+            };
+            this.showToast(`${names[id]} 升级到 Lv.${currentLevel + 1}！`);
+        } else {
+            this.showToast('金币不足！');
+        }
+    }
+    
+    renderEquipmentTab() {
+        this.renderEquipUpgradeGrid();
+        this.renderEquipmentUI();
+    }
+    
+    renderEquipUpgradeGrid() {
+        const grid = document.getElementById('equipGrid');
+        grid.innerHTML = '';
+        
+        for (const [key, config] of Object.entries(this.equipmentConfig)) {
+            const equip = this.saveData.equipment[key];
+            const owned = equip.owned;
+            const level = equip.level || 0;
+            
+            const card = document.createElement('div');
+            card.className = `equip-card ${owned ? 'owned' : ''}`;
+            
+            let actionHtml = '';
+            let priceHtml = '';
+            
+            if (!owned) {
+                priceHtml = `<div class="equip-card-price">
+                    <span class="equip-card-price-value">💰 ${config.basePrice}</span>
+                </div>`;
+                actionHtml = `<button class="equip-card-btn" data-type="${key}" data-action="buy">购买</button>`;
+            } else {
+                const upgradePrice = config.upgradePrice * (level + 1);
+                priceHtml = `<div class="equip-card-price">
+                    <span class="equip-card-price-value">💰 ${upgradePrice}</span>
+                </div>`;
+                actionHtml = `<button class="equip-card-btn" data-type="${key}" data-action="upgrade">强化</button>`;
+            }
+            
+            card.innerHTML = `
+                <div class="equip-card-icon">${config.icon}</div>
+                <div class="equip-card-name">${config.name}</div>
+                <div class="equip-card-level">${owned ? `Lv.${level}` : '未拥有'}</div>
+                <div class="equip-card-desc">${owned ? config.upgradeDescription : config.buyDescription}</div>
+                ${priceHtml}
+                ${actionHtml}
+            `;
+            
+            grid.appendChild(card);
+        }
+        
+        grid.querySelectorAll('.equip-card-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.type;
+                const action = btn.dataset.action;
+                this.handleEquipUpgrade(type, action);
+            });
+        });
+    }
+    
+    handleEquipUpgrade(type, action) {
+        const config = this.equipmentConfig[type];
+        const equip = this.saveData.equipment[type];
+        
+        if (action === 'buy') {
+            if (this.saveData.gold >= config.basePrice) {
+                this.saveData.gold -= config.basePrice;
+                equip.owned = true;
+                equip.level = 0;
+                this.saveGameData();
+                this.updateMainMenuUI();
+                this.renderEquipUpgradeGrid();
+                this.showToast(`${config.name}购买成功！`);
+            } else {
+                this.showToast('金币不足！');
+            }
+        } else if (action === 'upgrade') {
+            const price = config.upgradePrice * (equip.level + 1);
+            if (this.saveData.gold >= price) {
+                this.saveData.gold -= price;
+                equip.level++;
+                this.saveGameData();
+                this.updateMainMenuUI();
+                this.renderEquipUpgradeGrid();
+                this.showToast(`${config.name}强化到 Lv.${equip.level}！`);
+            } else {
+                this.showToast('金币不足！');
+            }
+        }
+    }
+    
+    renderLevelGrid() {
+        const grid = document.getElementById('levelGrid');
+        grid.innerHTML = '';
+        
+        for (let i = 1; i <= 9; i++) {
+            const isUnlocked = i <= this.saveData.maxUnlockedLevel;
+            const isCompleted = i <= this.saveData.highestLevelPassed;
+            const isCurrent = i === this.saveData.maxUnlockedLevel && isUnlocked;
+            
+            const btn = document.createElement('div');
+            let className = 'level-btn';
+            if (!isUnlocked) className += ' locked';
+            if (isCompleted) className += ' completed';
+            if (isCurrent) className += ' current';
+            
+            btn.className = className;
+            btn.innerHTML = `
+                <div class="level-number">${isUnlocked ? i : '🔒'}</div>
+                <div class="level-name">${isCompleted ? '✓ 已通关' : (isUnlocked ? '关卡 ' + i : '未解锁')}</div>
+            `;
+            
+            if (isUnlocked) {
+                btn.addEventListener('click', () => this.startLevel(i));
+            }
+            
+            grid.appendChild(btn);
+        }
+    }
+    
+    renderLevelRewards() {
+        const container = document.getElementById('progressRewards');
+        container.innerHTML = '';
+        
+        const rewardLevels = Object.keys(this.levelRewards).map(Number).sort((a, b) => a - b);
+        
+        for (const level of rewardLevels) {
+            const reward = this.levelRewards[level];
+            const isPassed = this.saveData.highestLevelPassed >= level;
+            const isClaimed = this.saveData.claimedRewards[level];
+            
+            const card = document.createElement('div');
+            let className = 'reward-card';
+            if (isPassed && !isClaimed) {
+                className += ' claimable';
+            } else if (isClaimed) {
+                className += ' claimed';
+            }
+            
+            card.className = className;
+            
+            let actionHtml = '';
+            if (isClaimed) {
+                actionHtml = '<span class="reward-claimed-text">✓ 已领取</span>';
+            } else if (isPassed) {
+                actionHtml = `<button class="reward-claim-btn" data-level="${level}">领取</button>`;
+            } else {
+                actionHtml = `<button class="reward-claim-btn" disabled>通过第${level}关</button>`;
+            }
+            
+            card.innerHTML = `
+                <div class="reward-info">
+                    <div class="reward-icon">${reward.icon}</div>
+                    <div class="reward-details">
+                        <div class="reward-name">${reward.name}</div>
+                        <div class="reward-requirement">通关第 ${level} 关</div>
+                    </div>
+                </div>
+                ${actionHtml}
+            `;
+            
+            container.appendChild(card);
+        }
+        
+        container.querySelectorAll('.reward-claim-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const level = parseInt(btn.dataset.level);
+                this.claimLevelReward(level);
+            });
+        });
+    }
+    
+    claimLevelReward(level) {
+        const reward = this.levelRewards[level];
+        if (!reward) return;
+        
+        if (this.saveData.claimedRewards[level]) {
+            this.showToast('已领取过该奖励！');
+            return;
+        }
+        
+        if (this.saveData.highestLevelPassed < level) {
+            this.showToast('未通关该关卡！');
+            return;
+        }
+        
+        if (reward.type === 'gold') {
+            this.saveData.gold += reward.amount;
+        }
+        
+        this.saveData.claimedRewards[level] = true;
+        this.saveGameData();
+        this.updateMainMenuUI();
+        this.renderLevelRewards();
+        this.showToast(`领取成功：${reward.name}！`);
     }
     
     renderEquipmentUI() {
@@ -499,15 +1815,18 @@ class DragonShooterGame {
     renderMainMenu() {
         this.gameState = 'mainMenu';
         
+        // 显示主界面
         document.getElementById('mainScreen').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.remove('hidden');
+        document.getElementById('topBar').classList.remove('hidden');
         
-        try {
-            const backBtn = document.getElementById('backBtn');
-            if (backBtn) {
-                backBtn.classList.add('hidden');
-            }
-        } catch (e) {}
+        // 隐藏战斗界面
+        document.getElementById('battleInfo').classList.add('hidden');
+        document.getElementById('battleUI').classList.add('hidden');
+        document.getElementById('pauseBtn').classList.add('hidden');
+        document.getElementById('fenceBar').classList.add('hidden');
         
+        // 隐藏其他弹窗
         document.getElementById('levelUpScreen').classList.remove('show');
         document.getElementById('gameOverScreen').classList.remove('show');
         document.getElementById('skillSelection').classList.remove('show');
@@ -524,104 +1843,9 @@ class DragonShooterGame {
         
         const chapter = Math.ceil(this.saveData.maxUnlockedLevel / 9);
         document.getElementById('chapterTitle').textContent = `${chapter}. 屠龙第${chapter}章`;
-        document.getElementById('bossStatus').textContent = this.saveData.maxUnlockedLevel > 1 ? '已通关部分关卡' : '未通关';
-    }
-    
-    renderLevelGrid() {
-        const grid = document.getElementById('levelGrid');
-        grid.innerHTML = '';
         
-        for (let i = 1; i <= 9; i++) {
-            const isUnlocked = i <= this.saveData.maxUnlockedLevel;
-            const btn = document.createElement('div');
-            btn.className = `level-btn ${isUnlocked ? '' : 'locked'}`;
-            btn.innerHTML = `
-                <div class="level-number">${isUnlocked ? i : '🔒'}</div>
-                <div>关卡 ${i}</div>
-            `;
-            
-            if (isUnlocked) {
-                btn.addEventListener('click', () => this.startLevel(i));
-            }
-            
-            grid.appendChild(btn);
-        }
-    }
-    
-    renderEquipGrid() {
-        const grid = document.getElementById('equipGrid');
-        grid.innerHTML = '';
-        
-        for (const [key, config] of Object.entries(this.equipmentConfig)) {
-            const equip = this.saveData.equipment[key];
-            const card = document.createElement('div');
-            card.className = 'equip-card';
-            
-            let actionButtons = '';
-            
-            if (!equip.owned) {
-                actionButtons = `
-                    <button class="equip-btn buy" data-type="${key}" data-action="buy">
-                        购买 💰${config.basePrice}
-                    </button>
-                `;
-            } else {
-                const upgradePrice = config.upgradePrice * (equip.level + 1);
-                actionButtons = `
-                    <button class="equip-btn" data-type="${key}" data-action="upgrade">
-                        强化 💰${upgradePrice}
-                    </button>
-                `;
-            }
-            
-            card.innerHTML = `
-                <div class="equip-icon">${config.icon}</div>
-                <div class="equip-name">${config.name}</div>
-                <div class="equip-level">${equip.owned ? `Lv.${equip.level}` : '未拥有'}</div>
-                <div class="equip-stats">${equip.owned ? config.upgradeDescription : config.buyDescription}</div>
-                <div class="equip-action">
-                    ${actionButtons}
-                </div>
-            `;
-            
-            grid.appendChild(card);
-        }
-        
-        grid.querySelectorAll('.equip-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const type = btn.dataset.type;
-                const action = btn.dataset.action;
-                this.handleEquipAction(type, action);
-            });
-        });
-    }
-    
-    handleEquipAction(type, action) {
-        const config = this.equipmentConfig[type];
-        const equip = this.saveData.equipment[type];
-        
-        if (action === 'buy') {
-            if (this.saveData.gold >= config.basePrice) {
-                this.saveData.gold -= config.basePrice;
-                equip.owned = true;
-                equip.level = 0;
-                this.saveGameData();
-                this.updateMainMenuUI();
-                this.showToast(`${config.name}购买成功！`);
-            } else {
-                this.showToast('金币不足！');
-            }
-        } else if (action === 'upgrade') {
-            const price = config.upgradePrice * (equip.level + 1);
-            if (this.saveData.gold >= price) {
-                this.saveData.gold -= price;
-                equip.level++;
-                this.saveGameData();
-                this.updateMainMenuUI();
-                this.showToast(`${config.name}强化到 Lv.${equip.level}！`);
-            } else {
-                this.showToast('金币不足！');
-            }
+        if (this.currentTab === 'battle') {
+            this.renderBattleTab();
         }
     }
     
@@ -697,6 +1921,15 @@ class DragonShooterGame {
         this.currentLevel = levelNum;
         this.initGame();
         
+        this.path = this.generatePath();
+        
+        const cfg = window.GameConfig || {};
+        const levelCfg = cfg.level || {};
+        this.reviveCount = levelCfg.reviveCount || 3;
+        this.maxReviveCount = this.reviveCount;
+        
+        this.initCharacterPassive();
+        
         const baseStats = this.getBaseStats();
         this.playerStats.maxHealth = 100 + baseStats.maxHealth;
         this.playerStats.health = 100 + baseStats.maxHealth;
@@ -710,8 +1943,19 @@ class DragonShooterGame {
         this.totalEnemiesInLevel = config.enemyCount;
         this.enemiesInLevel = 0;
         
+        this.spawnDragon(config);
+        this.enemiesInLevel++;
+        
         document.getElementById('mainScreen').classList.add('hidden');
-        document.getElementById('backBtn').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.add('hidden');
+        document.getElementById('topBar').classList.add('hidden');
+        
+        document.getElementById('battleInfo').classList.remove('hidden');
+        document.getElementById('battleUI').classList.remove('hidden');
+        document.getElementById('pauseBtn').classList.remove('hidden');
+        document.getElementById('fenceBar').classList.remove('hidden');
+        
+        document.getElementById('battleLevelDisplay').textContent = `当前第${this.currentLevel}关`;
         
         this.gameState = 'playing';
         this.updateUI();
@@ -744,12 +1988,13 @@ class DragonShooterGame {
         const baseConfig = this.levelConfigs[baseLevel] || this.levelConfigs[9];
         
         return {
-            enemyCount: baseConfig.enemyCount + (multiplier - 1) * 5,
+            enemyCount: 1,
             enemyHealth: Math.floor(baseConfig.enemyHealth * (1 + (multiplier - 1) * 0.3)),
             enemySpeed: baseConfig.enemySpeed + (multiplier - 1) * 0.1,
             enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
             dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
-            segments: Math.min(baseConfig.segments + Math.floor((multiplier - 1) * 2), 12),
+            segments: 1000,
+            chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.9),
             unlockAbility: baseConfig.unlockAbility || false
         };
     }
@@ -867,6 +2112,7 @@ class DragonShooterGame {
     }
     
     update(dt) {
+        this.updateCharacterPassive(dt, this.currentTime);
         this.updatePlayer(dt);
         this.updateBullets(dt);
         this.updateEnemies(dt);
@@ -876,7 +2122,447 @@ class DragonShooterGame {
         this.updateDamageNumbers(dt);
         this.updateBuffs(dt);
         this.updateSpawning(dt);
+        this.updateSkills(dt);
         this.checkLevelComplete();
+    }
+    
+    updateSkills(dt) {
+        this.updateSkillCooldowns(dt);
+        this.autoUseSkills();
+        this.updateRainOfNeedles(dt);
+        this.updateThunderDragon(dt);
+        this.updateIceStorm(dt);
+        this.updateSlowEffects(dt);
+    }
+    
+    autoUseSkills() {
+        for (const skillId of this.activeSkills) {
+            if (this.skillCooldowns[skillId] <= 0) {
+                this.useSkill(skillId);
+            }
+        }
+    }
+    
+    updateSkillCooldowns(dt) {
+        const cooldownReduction = this.getCooldownReductionFromPassive();
+        const dtMultiplier = 1 + cooldownReduction;
+        
+        for (const skillId in this.skillCooldowns) {
+            if (this.skillCooldowns[skillId] > 0) {
+                this.skillCooldowns[skillId] -= dt * dtMultiplier;
+            }
+        }
+    }
+    
+    useSkill(skillId) {
+        if (this.skillCooldowns[skillId] > 0) return false;
+        
+        const stats = this.getSkillStats(skillId);
+        if (!stats) return false;
+        
+        this.skillCooldowns[skillId] = stats.cooldown;
+        
+        switch (skillId) {
+            case 'rain_of_needles':
+                this.launchRainOfNeedles(stats);
+                break;
+            case 'thunder_dragon':
+                this.launchThunderDragon(stats);
+                break;
+            case 'ice_storm':
+                this.launchIceStorm(stats);
+                break;
+        }
+        
+        return true;
+    }
+    
+    launchRainOfNeedles(stats) {
+        if (!this.player) return;
+        
+        const startX = this.player.x;
+        const startY = this.player.y;
+        
+        const skillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
+        const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
+        
+        for (let i = 0; i < stats.projectileCount; i++) {
+            const spreadRad = stats.spread * Math.PI / 180;
+            const startAngle = -Math.PI / 2 - spreadRad / 2;
+            const angleStep = stats.projectileCount > 1 ? spreadRad / (stats.projectileCount - 1) : 0;
+            const angle = startAngle + i * angleStep;
+            
+            let isCrit = Math.random() < this.playerStats.criticalChance;
+            isCrit = this.applyCharacterPassiveToCrit(isCrit);
+            
+            const critMultiplier = isCrit ? (this.playerStats.criticalDamage + critDamageBonusFromPassive) : 1;
+            
+            const finalDamage = Math.floor(stats.damage * critMultiplier * skillDamageBonus);
+            
+            this.needles.push({
+                x: startX,
+                y: startY,
+                vx: Math.cos(angle) * 400,
+                vy: Math.sin(angle) * 400,
+                damage: finalDamage,
+                isCrit: isCrit,
+                burstCount: stats.burstCount,
+                radius: 4,
+                color: isCrit ? '#FFD700' : '#00FF00'
+            });
+        }
+    }
+    
+    updateRainOfNeedles(dt) {
+        for (let i = this.needles.length - 1; i >= 0; i--) {
+            const needle = this.needles[i];
+            
+            needle.x += needle.vx * dt;
+            needle.y += needle.vy * dt;
+            
+            let hit = false;
+            for (const enemy of this.enemies) {
+                if (enemy.isWinding && enemy.segments) {
+                    for (const segment of enemy.segments) {
+                        const dx = needle.x - segment.x;
+                        const dy = needle.y - segment.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < needle.radius + 15) {
+                            hit = true;
+                            
+                            if (segment.health > 0) {
+                                segment.health -= needle.damage;
+                                enemy.health -= needle.damage;
+                                
+                                const segRadius = segment.index === 0 ? 22 : 18;
+                                this.damageNumbers.push({
+                                    x: segment.x,
+                                    y: segment.y - segRadius,
+                                    value: needle.damage,
+                                    isCrit: needle.isCrit,
+                                    lifetime: 1,
+                                    vy: -2
+                                });
+                                
+                                this.createHitParticles(needle.x, needle.y, needle.color);
+                            }
+                            
+                            this.burstNeedles(needle);
+                            break;
+                        }
+                    }
+                }
+                if (hit) break;
+            }
+            
+            if (hit) {
+                this.needles.splice(i, 1);
+                continue;
+            }
+            
+            if (needle.x < -50 || needle.x > this.width + 50 || 
+                needle.y < -50 || needle.y > this.height + 50) {
+                this.needles.splice(i, 1);
+            }
+        }
+    }
+    
+    burstNeedles(needle) {
+        const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
+        
+        for (let i = 0; i < needle.burstCount; i++) {
+            const angle = (Math.PI * 2 / needle.burstCount) * i;
+            
+            let isCrit = Math.random() < this.playerStats.criticalChance;
+            isCrit = this.applyCharacterPassiveToCrit(isCrit);
+            
+            const critMultiplier = isCrit ? (this.playerStats.criticalDamage + critDamageBonusFromPassive) : 1;
+            
+            this.needles.push({
+                x: needle.x,
+                y: needle.y,
+                vx: Math.cos(angle) * 200,
+                vy: Math.sin(angle) * 200,
+                damage: Math.floor(needle.damage * 0.5 * critMultiplier),
+                isCrit: isCrit,
+                burstCount: 0,
+                radius: 3,
+                color: isCrit ? '#FFD700' : '#90EE90'
+            });
+        }
+        
+        this.createHitParticles(needle.x, needle.y, '#00FF00');
+    }
+    
+    launchThunderDragon(stats) {
+        const startX = Math.random() * 0.6 + 0.2;
+        const startY = Math.random() * 0.6 + 0.2;
+        
+        const skillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
+        
+        this.thunderDragon = {
+            x: this.width * startX,
+            y: this.height * startY,
+            vx: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed,
+            vy: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed * 0.6,
+            damage: stats.damage,
+            skillDamageBonus: skillDamageBonus,
+            lightningTimer: 0,
+            lightningFrequency: stats.lightningFrequency,
+            duration: stats.duration,
+            elapsed: 0,
+            targetChangeTimer: 0
+        };
+        this.thunderDragonTimer = stats.duration;
+    }
+    
+    updateThunderDragon(dt) {
+        if (!this.thunderDragon || this.thunderDragonTimer <= 0) {
+            this.thunderDragon = null;
+            return;
+        }
+        
+        this.thunderDragon.elapsed += dt;
+        this.thunderDragonTimer -= dt;
+        
+        if (this.thunderDragon.elapsed >= this.thunderDragon.duration) {
+            this.thunderDragon = null;
+            return;
+        }
+        
+        this.thunderDragon.x += this.thunderDragon.vx * 60 * dt;
+        this.thunderDragon.y += this.thunderDragon.vy * 60 * dt;
+        
+        if (this.thunderDragon.x < 50 || this.thunderDragon.x > this.width - 50) {
+            this.thunderDragon.vx *= -1;
+            this.thunderDragon.x = Math.max(50, Math.min(this.width - 50, this.thunderDragon.x));
+        }
+        if (this.thunderDragon.y < 80 || this.thunderDragon.y > this.height - 80) {
+            this.thunderDragon.vy *= -1;
+            this.thunderDragon.y = Math.max(80, Math.min(this.height - 80, this.thunderDragon.y));
+        }
+        
+        this.thunderDragon.targetChangeTimer += dt;
+        if (this.thunderDragon.targetChangeTimer > 2 + Math.random() * 2) {
+            this.thunderDragon.targetChangeTimer = 0;
+            if (Math.random() < 0.4) {
+                this.thunderDragon.vx *= -1;
+            }
+            if (Math.random() < 0.4) {
+                this.thunderDragon.vy *= -1;
+            }
+        }
+        
+        this.thunderDragon.lightningTimer += dt;
+        if (this.thunderDragon.lightningTimer >= this.thunderDragon.lightningFrequency) {
+            this.thunderDragon.lightningTimer = 0;
+            this.strikeThunder();
+        }
+    }
+    
+    strikeThunder() {
+        if (!this.thunderDragon) return;
+        
+        let isCrit = Math.random() < this.playerStats.criticalChance;
+        isCrit = this.applyCharacterPassiveToCrit(isCrit);
+        
+        const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
+        const critMultiplier = isCrit ? (this.playerStats.criticalDamage + critDamageBonusFromPassive) : 1;
+        const skillDamageBonus = this.thunderDragon.skillDamageBonus || 1;
+        const damage = Math.floor(this.thunderDragon.damage * critMultiplier * skillDamageBonus);
+        
+        let hitSegments = [];
+        
+        for (const enemy of this.enemies) {
+            if (enemy.isWinding && enemy.segments) {
+                for (const segment of enemy.segments) {
+                    const dx = this.thunderDragon.x - segment.x;
+                    const dy = this.thunderDragon.y - segment.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 200) {
+                        hitSegments.push({ enemy, segment });
+                        
+                        if (segment.health > 0) {
+                            segment.health -= damage;
+                            enemy.health -= damage;
+                            
+                            const segRadius = segment.index === 0 ? 22 : 18;
+                            this.damageNumbers.push({
+                                x: segment.x,
+                                y: segment.y - segRadius,
+                                value: damage,
+                                isCrit: isCrit,
+                                lifetime: 1,
+                                vy: -2
+                            });
+                        }
+                        
+                        this.createThunderEffect(segment.x, segment.y);
+                    }
+                }
+            }
+        }
+        
+        if (hitSegments.length > 0) {
+            this.createThunderEffect(this.thunderDragon.x, this.thunderDragon.y);
+        }
+    }
+    
+    createThunderEffect(x, y) {
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 4;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 3 + Math.random() * 4,
+                color: '#FFFF00',
+                lifetime: 0.3,
+                maxLifetime: 0.3,
+                alpha: 1
+            });
+        }
+    }
+    
+    launchIceStorm(stats) {
+        this.iceStormActive = true;
+        this.iceStormTimer = stats.duration || 3.0;
+        this.iceStormStats = stats;
+        this.iceStormSkillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
+    }
+    
+    updateIceStorm(dt) {
+        if (!this.iceStormActive || this.iceStormTimer <= 0) {
+            this.iceStormActive = false;
+            return;
+        }
+        
+        this.iceStormTimer -= dt;
+        
+        const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
+        const skillDamageBonus = this.iceStormSkillDamageBonus || 1;
+        
+        if (Math.random() < this.iceStormStats.hailRate) {
+            let isCrit = Math.random() < this.playerStats.criticalChance;
+            isCrit = this.applyCharacterPassiveToCrit(isCrit);
+            
+            const critMultiplier = isCrit ? (this.playerStats.criticalDamage + critDamageBonusFromPassive) : 1;
+            
+            this.hailStones.push({
+                x: Math.random() * this.width,
+                y: -20,
+                vy: 200 + Math.random() * 100,
+                damage: Math.floor(this.iceStormStats.damage * critMultiplier * skillDamageBonus),
+                isCrit: isCrit,
+                slowDuration: this.iceStormStats.slowDuration,
+                slowAmount: this.iceStormStats.slowAmount,
+                radius: 6,
+                color: isCrit ? '#ADD8E6' : '#87CEEB'
+            });
+        }
+        
+        for (let i = this.hailStones.length - 1; i >= 0; i--) {
+            const hail = this.hailStones[i];
+            
+            hail.y += hail.vy * dt;
+            
+            let hit = false;
+            for (const enemy of this.enemies) {
+                if (enemy.isWinding && enemy.segments) {
+                    for (const segment of enemy.segments) {
+                        const dx = hail.x - segment.x;
+                        const dy = hail.y - segment.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < hail.radius + 15) {
+                            hit = true;
+                            
+                            if (segment.health > 0) {
+                                segment.health -= hail.damage;
+                                enemy.health -= hail.damage;
+                                
+                                const segRadius = segment.index === 0 ? 22 : 18;
+                                this.damageNumbers.push({
+                                    x: segment.x,
+                                    y: segment.y - segRadius,
+                                    value: hail.damage,
+                                    isCrit: hail.isCrit,
+                                    lifetime: 1,
+                                    vy: -2
+                                });
+                            }
+                            
+                            this.applySlowEffect(enemy, segment, hail.slowDuration, hail.slowAmount);
+                            
+                            this.createIceEffect(segment.x, segment.y);
+                            break;
+                        }
+                    }
+                }
+                if (hit) break;
+            }
+            
+            if (hit) {
+                this.hailStones.splice(i, 1);
+                continue;
+            }
+            
+            if (hail.y > this.height + 50) {
+                this.hailStones.splice(i, 1);
+            }
+        }
+    }
+    
+    applySlowEffect(enemy, segment, duration, amount) {
+        let existingEffect = this.slowEffects.find(e => e.segment === segment);
+        if (existingEffect) {
+            existingEffect.duration = Math.max(existingEffect.duration, duration);
+            existingEffect.amount = Math.max(existingEffect.amount, amount);
+        } else {
+            this.slowEffects.push({
+                segment: segment,
+                duration: duration,
+                amount: amount
+            });
+        }
+    }
+    
+    updateSlowEffects(dt) {
+        for (let i = this.slowEffects.length - 1; i >= 0; i--) {
+            const effect = this.slowEffects[i];
+            effect.duration -= dt;
+            
+            if (effect.duration <= 0) {
+                this.slowEffects.splice(i, 1);
+            }
+        }
+    }
+    
+    getSegmentSlowMultiplier(segment) {
+        const effect = this.slowEffects.find(e => e.segment === segment);
+        return effect ? (1 - effect.amount) : 1;
+    }
+    
+    createIceEffect(x, y) {
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 3;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 2 + Math.random() * 3,
+                color: '#87CEEB',
+                lifetime: 0.4,
+                maxLifetime: 0.4,
+                alpha: 1
+            });
+        }
     }
     
     updatePlayer(dt) {
@@ -885,51 +2571,49 @@ class DragonShooterGame {
         const keys = this.keys || {};
         let dx = 0, dy = 0;
         
-        if (keys['w'] || keys['arrowup']) dy -= 1;
-        if (keys['s'] || keys['arrowdown']) dy += 1;
         if (keys['a'] || keys['arrowleft']) dx -= 1;
         if (keys['d'] || keys['arrowright']) dx += 1;
         
         if (this.isMoving && this.targetPosition) {
             const targetX = this.targetPosition.x;
-            const targetY = this.targetPosition.y;
             
             dx = targetX - this.player.x;
-            dy = targetY - this.player.y;
             
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const dist = Math.abs(dx);
             if (dist > 5) {
-                dx /= dist;
-                dy /= dist;
+                dx = dx > 0 ? 1 : -1;
             } else {
                 dx = 0;
-                dy = 0;
             }
+            dy = 0;
         }
         
-        if (dx !== 0 || dy !== 0) {
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len > 0) {
-                dx /= len;
-                dy /= len;
-            }
-            
+        if (dx !== 0) {
             const speedMultiplier = this.getBuffMultiplier('speed_boost');
             const speed = this.playerStats.speed * speedMultiplier * 60 * dt;
             
             this.player.x += dx * speed;
-            this.player.y += dy * speed;
             
             this.player.x = Math.max(this.player.radius, Math.min(this.width - this.player.radius, this.player.x));
-            this.player.y = Math.max(this.player.radius, Math.min(this.height - this.player.radius, this.player.y));
         }
         
         if (this.player.invincible > 0) {
             this.player.invincible -= dt;
         }
         
+        const healthRegen = this.playerStats.healthRegen || 0;
+        if (healthRegen > 0 && this.playerStats.health < this.playerStats.maxHealth) {
+            this.playerStats.health = Math.min(
+                this.playerStats.maxHealth,
+                this.playerStats.health + healthRegen * dt
+            );
+        }
+        
+        const attackSpeedMultiplier = 1 + (this.playerStats.attackSpeedBonus || 0);
+        const effectiveFireRate = this.playerStats.fireRate / attackSpeedMultiplier;
+        
         this.shootTimer += dt;
-        if (this.shootTimer >= this.playerStats.fireRate) {
+        if (this.shootTimer >= effectiveFireRate) {
             this.shoot();
             this.shootTimer = 0;
         }
@@ -953,6 +2637,12 @@ class DragonShooterGame {
         
         const baseAngle = -Math.PI / 2;
         
+        const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
+        
+        const speedToDamage = this.playerStats.speedToDamage || 0;
+        const baseSpeedBonus = (this.playerStats.speed / 5 - 1) * speedToDamage;
+        const speedDamageMultiplier = 1 + baseSpeedBonus;
+        
         for (let i = 0; i < bulletCount; i++) {
             let angle = baseAngle;
             
@@ -962,9 +2652,16 @@ class DragonShooterGame {
                 angle = startAngle + i * angleStep;
             }
             
-            const isCrit = Math.random() < this.playerStats.criticalChance;
-            const critMultiplier = isCrit ? this.playerStats.criticalDamage : 1;
+            let isCrit = Math.random() < this.playerStats.criticalChance;
+            isCrit = this.applyCharacterPassiveToCrit(isCrit);
+            
+            const critMultiplier = (this.playerStats.criticalDamage + critDamageBonusFromPassive);
+            const finalCritMultiplier = isCrit ? critMultiplier : 1;
+            
             const damageBoost = this.getBuffMultiplier('damage_boost');
+            const damageMultiplier = this.playerStats.damageMultiplier || 1;
+            
+            const finalDamage = Math.floor(this.playerStats.bulletDamage * damageMultiplier * finalCritMultiplier * damageBoost * speedDamageMultiplier);
             
             this.bullets.push({
                 x: this.player.x,
@@ -972,7 +2669,7 @@ class DragonShooterGame {
                 vx: Math.cos(angle) * this.playerStats.bulletSpeed,
                 vy: Math.sin(angle) * this.playerStats.bulletSpeed,
                 radius: this.playerStats.bulletSize,
-                damage: Math.floor(this.playerStats.bulletDamage * critMultiplier * damageBoost),
+                damage: finalDamage,
                 isCrit: isCrit,
                 pierceCount: this.playerStats.bulletPierce,
                 color: isCrit ? '#FFD700' : '#00FFFF'
@@ -999,13 +2696,88 @@ class DragonShooterGame {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             
-            enemy.y += enemy.speed * 60 * dt;
-            enemy.angle += dt * 2;
-            
-            if (this.player) {
-                const dx = this.player.x - enemy.x;
-                if (Math.abs(dx) > 5) {
-                    enemy.x += Math.sign(dx) * enemy.speed * 0.3 * 60 * dt;
+            if (enemy.isWinding && enemy.segments && enemy.segments.length > 0 && this.path && this.path.length > 0) {
+                const head = enemy.segments[0];
+                
+                if (enemy.currentPathIndex === undefined) {
+                    enemy.currentPathIndex = 0;
+                }
+                
+                if (enemy.pathDistance === undefined) {
+                    enemy.pathDistance = 0;
+                }
+                
+                const cfg = window.GameConfig || {};
+                const dragonCfg = cfg.dragon || {};
+                const moveSpeed = dragonCfg.moveSpeed || 3;
+                const segmentSpacing = enemy.segmentSpacing || 35;
+                
+                enemy.pathDistance += moveSpeed * 60 * dt;
+                
+                const headPoint = this.getPointAtDistance(enemy.pathDistance);
+                if (headPoint) {
+                    if (headPoint.isEnd) {
+                        this.dragonReachedEnd(enemy);
+                        return;
+                    }
+                    head.x = headPoint.x;
+                    head.y = headPoint.y;
+                } else {
+                    const currentPoint = this.path[enemy.currentPathIndex];
+                    if (currentPoint) {
+                        const dx = currentPoint.x - head.x;
+                        const dy = currentPoint.y - head.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < moveSpeed * 60 * dt) {
+                            head.x = currentPoint.x;
+                            head.y = currentPoint.y;
+                            enemy.currentPathIndex++;
+                        } else {
+                            const angle = Math.atan2(dy, dx);
+                            head.x += Math.cos(angle) * moveSpeed * 60 * dt;
+                            head.y += Math.sin(angle) * moveSpeed * 60 * dt;
+                        }
+                    }
+                }
+                
+                enemy.x = head.x;
+                enemy.y = head.y;
+                
+                for (let j = 1; j < enemy.segments.length; j++) {
+                    const current = enemy.segments[j];
+                    const segmentDistance = enemy.pathDistance - j * segmentSpacing;
+                    
+                    const segmentPoint = this.getPointAtDistance(segmentDistance);
+                    if (segmentPoint) {
+                        current.x = segmentPoint.x;
+                        current.y = segmentPoint.y;
+                    } else {
+                        const prev = enemy.segments[j - 1];
+                        const spacing = enemy.segmentSpacing || 35;
+                        const followSpeed = 0.3;
+                        
+                        const dx = prev.x - current.x;
+                        const dy = prev.y - current.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > spacing) {
+                            const angle = Math.atan2(dy, dx);
+                            const targetDist = dist - spacing;
+                            current.x += Math.cos(angle) * targetDist * followSpeed;
+                            current.y += Math.sin(angle) * targetDist * followSpeed;
+                        }
+                    }
+                }
+            } else {
+                enemy.y += enemy.speed * 60 * dt;
+                enemy.angle += dt * 2;
+                
+                if (this.player) {
+                    const dx = this.player.x - enemy.x;
+                    if (Math.abs(dx) > 5) {
+                        enemy.x += Math.sign(dx) * enemy.speed * 0.3 * 60 * dt;
+                    }
                 }
             }
             
@@ -1017,18 +2789,16 @@ class DragonShooterGame {
             if (enemy.segments && enemy.segments.length > 0) {
                 let playerHit = false;
                 for (const segment of enemy.segments) {
-                    const segX = enemy.x + segment.offsetX;
-                    const segY = enemy.y + segment.offsetY;
                     const segRadius = segment.index === 0 ? 22 : 18;
                     
-                    const segObj = { x: segX, y: segY, radius: segRadius };
+                    const segObj = { x: segment.x, y: segment.y, radius: segRadius };
                     if (this.checkCollision(segObj, this.player)) {
                         playerHit = true;
                         break;
                     }
                 }
                 if (playerHit && this.player.invincible <= 0) {
-                    this.takeDamage(enemy.damage);
+                    this.takeDamageWithPassive(enemy.damage);
                     this.player.invincible = 0.5;
                 }
                 
@@ -1039,21 +2809,25 @@ class DragonShooterGame {
                     for (const segment of enemy.segments) {
                         if (segment.health <= 0) continue;
                         
-                        const segX = enemy.x + segment.offsetX;
-                        const segY = enemy.y + segment.offsetY;
                         const segRadius = segment.index === 0 ? 22 : 18;
                         
-                        const segObj = { x: segX, y: segY, radius: segRadius };
+                        const segObj = { x: segment.x, y: segment.y, radius: segRadius };
                         
                         if (this.checkCircleCollision(bullet, segObj)) {
-                            segment.health -= bullet.damage;
-                            enemy.health -= bullet.damage;
+                            let actualDamage = bullet.damage;
+                            if (enemy.special && enemy.special.damageReduction) {
+                                actualDamage = Math.max(1, Math.floor(bullet.damage * (1 - enemy.special.damageReduction)));
+                            }
+                            
+                            segment.health -= actualDamage;
+                            enemy.health -= actualDamage;
                             
                             this.damageNumbers.push({
-                                x: segX,
-                                y: segY - segRadius,
-                                value: bullet.damage,
+                                x: segment.x,
+                                y: segment.y - segRadius,
+                                value: actualDamage,
                                 isCrit: bullet.isCrit,
+                                isReduced: enemy.special && enemy.special.damageReduction > 0,
                                 lifetime: 1,
                                 vy: -2
                             });
@@ -1072,6 +2846,33 @@ class DragonShooterGame {
                             this.bullets.splice(j, 1);
                         }
                         
+                        const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+                        const destroyedCount = destroyedSegments.length;
+                        
+                        if (destroyedCount > 0) {
+                            this.segmentsDestroyed += destroyedCount;
+                            
+                            const segmentsPerSkill = this.getSegmentsPerSkill();
+                            
+                            const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
+                            const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
+                            
+                            if (currentSegmentGroup > lastSegmentGroup) {
+                                this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                                this.showSkillSelection();
+                            }
+                        }
+                        
+                        for (const segment of destroyedSegments) {
+                            if (Math.random() < levelConfig.chestDropChance) {
+                                this.spawnChest(segment.x, segment.y);
+                            }
+                            
+                            if (Math.random() < levelConfig.dropChance * 0.5) {
+                                this.spawnPowerup(segment.x, segment.y);
+                            }
+                        }
+                        
                         enemy.segments = enemy.segments.filter(s => s.health > 0);
                         
                         if (enemy.segments.length === 0 || enemy.health <= 0) {
@@ -1086,7 +2887,7 @@ class DragonShooterGame {
                             
                             this.enemies.splice(i, 1);
                             
-                            this.showSkillSelection();
+                            this.levelComplete();
                             break;
                         }
                     }
@@ -1094,7 +2895,7 @@ class DragonShooterGame {
             } else {
                 if (this.checkCollision(enemy, this.player)) {
                     if (this.player.invincible <= 0) {
-                        this.takeDamage(enemy.damage);
+                        this.takeDamageWithPassive(enemy.damage);
                         this.player.invincible = 0.5;
                     }
                 }
@@ -1142,12 +2943,82 @@ class DragonShooterGame {
             }
         }
         
+        this.processDestroyedSegments(levelConfig);
+        
         this.updateUI();
     }
     
+    processDestroyedSegments(levelConfig) {
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+            
+            if (!enemy.isWinding || !enemy.segments) continue;
+            
+            const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+            const destroyedCount = destroyedSegments.length;
+            
+            if (destroyedCount > 0) {
+                this.segmentsDestroyed += destroyedCount;
+                
+                const segmentsPerSkill = this.getSegmentsPerSkill();
+                
+                const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
+                const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
+                
+                if (currentSegmentGroup > lastSegmentGroup) {
+                    this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                    this.showSkillSelection();
+                }
+                
+                for (const segment of destroyedSegments) {
+                    if (Math.random() < levelConfig.chestDropChance) {
+                        this.spawnChest(segment.x, segment.y);
+                    }
+                    
+                    if (Math.random() < levelConfig.dropChance * 0.5) {
+                        this.spawnPowerup(segment.x, segment.y);
+                    }
+                    
+                    this.createDeathParticles(segment.x, segment.y, enemy.color);
+                }
+                
+                enemy.segments = enemy.segments.filter(s => s.health > 0);
+                
+                if (enemy.segments.length === 0 || enemy.health <= 0) {
+                    this.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                    this.enemiesKilled++;
+                    this.score += enemy.maxHealth;
+                    this.goldEarned += Math.floor(enemy.maxHealth / 5);
+                    
+                    if (Math.random() < levelConfig.dropChance) {
+                        this.spawnPowerup(enemy.x, enemy.y);
+                    }
+                    
+                    this.enemies.splice(i, 1);
+                    
+                    this.levelComplete();
+                }
+            }
+        }
+    }
+    
     updateChests(dt) {
+        const gravity = 5;
+        const maxFallSpeed = 10;
+        
         for (let i = this.chests.length - 1; i >= 0; i--) {
             const chest = this.chests[i];
+            
+            if (chest.falling) {
+                chest.vy = Math.min(chest.vy + gravity * dt, maxFallSpeed);
+                chest.y += chest.vy * 60 * dt;
+                
+                if (chest.y > this.height + chest.radius) {
+                    this.chests.splice(i, 1);
+                    continue;
+                }
+            }
+            
             chest.bobOffset = Math.sin(Date.now() / 500 + i) * 5;
             
             if (this.checkCollision(chest, this.player)) {
@@ -1178,8 +3049,22 @@ class DragonShooterGame {
     }
     
     updatePowerups(dt) {
+        const gravity = 4;
+        const maxFallSpeed = 8;
+        
         for (let i = this.powerups.length - 1; i >= 0; i--) {
             const powerup = this.powerups[i];
+            
+            if (powerup.falling) {
+                powerup.vy = Math.min(powerup.vy + gravity * dt, maxFallSpeed);
+                powerup.y += powerup.vy * 60 * dt;
+                
+                if (powerup.y > this.height + powerup.radius) {
+                    this.powerups.splice(i, 1);
+                    continue;
+                }
+            }
+            
             powerup.angle += dt * 2;
             powerup.bobOffset = Math.sin(Date.now() / 300 + i) * 3;
             
@@ -1295,56 +3180,134 @@ class DragonShooterGame {
         }
     }
     
+    getSegmentsPerSkill() {
+        const cfg = window.GameConfig || {};
+        const dragonCfg = cfg.dragon || {};
+        
+        const early = dragonCfg.segmentsPerSkillSelectionEarly || 2;
+        const mid = dragonCfg.segmentsPerSkillSelectionMid || 4;
+        const late = dragonCfg.segmentsPerSkillSelectionLate || 6;
+        
+        if (this.segmentsDestroyed < 10) return early;
+        if (this.segmentsDestroyed < 30) return mid;
+        return late;
+    }
+    
     spawnDragon(config) {
-        const segments = config.segments || 3;
-        const segmentSpacing = 35;
-        const startX = 50 + Math.random() * (this.width - 100);
-        const startY = -segments * segmentSpacing - 50;
+        const cfg = window.GameConfig || {};
+        const dragonCfg = cfg.dragon || {};
+        
+        const baseSegments = dragonCfg.baseSegments || 30;
+        const segmentsPerLevel = dragonCfg.segmentsPerLevel || 5;
+        const maxSegments = dragonCfg.maxSegments || 80;
+        const segments = Math.min(maxSegments, baseSegments + (this.currentLevel - 1) * segmentsPerLevel);
+        
+        const segmentSpacing = dragonCfg.segmentSpacing || 46;
+        
+        let startX = 50;
+        let startY = 100;
+        
+        if (this.path && this.path.length > 0) {
+            startX = this.path[0].x;
+            startY = this.path[0].y;
+        }
         
         const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
         const color = colors[Math.floor(Math.random() * colors.length)];
         
-        const healthPerSegment = Math.ceil(config.enemyHealth / segments);
+        let totalHealth = 0;
+        const baseHealthPerSegment = dragonCfg.baseHealthPerSegment || 15;
+        const healthPerLevel = dragonCfg.healthPerLevel || 5;
+        const frontMultiplier = dragonCfg.healthDistributionFrontMultiplier || 0.5;
+        const backMultiplier = dragonCfg.healthDistributionBackMultiplier || 2.0;
+        
+        const baseHealth = baseHealthPerSegment + (this.currentLevel - 1) * healthPerLevel;
+        
+        const segmentHealths = [];
+        for (let i = 0; i < segments; i++) {
+            const progress = i / Math.max(1, segments - 1);
+            const healthMultiplier = frontMultiplier + progress * (backMultiplier - frontMultiplier);
+            const health = Math.max(1, Math.ceil(baseHealth * healthMultiplier));
+            
+            segmentHealths.push(health);
+            totalHealth += health;
+        }
+        
+        const dragonTypes = ['normal', 'armored', 'fast'];
+        const dragonType = this.currentLevel >= 3 ? 
+            dragonTypes[Math.floor(Math.random() * dragonTypes.length)] : 'normal';
+        
+        let dragonSpecial = {};
+        let dragonDisplayColor = color;
+        
+        switch (dragonType) {
+            case 'armored':
+                dragonSpecial = { type: 'armored', damageReduction: 0.15 };
+                dragonDisplayColor = '#A0A0A0';
+                break;
+            case 'fast':
+                dragonSpecial = { type: 'fast', speedMultiplier: 1.4 };
+                dragonDisplayColor = '#90EE90';
+                break;
+            default:
+                dragonSpecial = { type: 'normal' };
+        }
+        
+        const baseSpeed = config.enemySpeed;
+        const finalSpeed = baseSpeed * (dragonSpecial.speedMultiplier || 1);
         
         const dragon = {
             x: startX,
             y: startY,
             radius: 22,
-            health: config.enemyHealth,
-            maxHealth: config.enemyHealth,
-            speed: config.enemySpeed,
+            health: totalHealth,
+            maxHealth: totalHealth,
+            speed: finalSpeed,
             damage: config.enemyDamage,
             angle: 0,
-            color: color,
+            color: dragonDisplayColor,
             segments: [],
-            isHead: true
+            isHead: true,
+            isWinding: true,
+            moveDirection: 1,
+            horizontalSpeed: finalSpeed * 2,
+            verticalSpeed: finalSpeed * 0.5,
+            leftBound: 50,
+            rightBound: 0,
+            segmentSpacing: segmentSpacing,
+            targetX: startX,
+            targetY: startY,
+            currentPathIndex: 0,
+            special: dragonSpecial,
+            type: dragonType
         };
         
         for (let i = 0; i < segments; i++) {
             dragon.segments.push({
-                offsetX: 0,
-                offsetY: -i * segmentSpacing,
-                health: healthPerSegment,
-                maxHealth: healthPerSegment,
-                index: i
+                x: startX,
+                y: startY - i * segmentSpacing,
+                health: segmentHealths[i],
+                maxHealth: segmentHealths[i],
+                index: i,
+                isHead: i === 0,
+                isTail: i === segments - 1
             });
         }
         
         this.enemies.push(dragon);
     }
     
-    spawnChest() {
-        const margin = 80;
-        const x = margin + Math.random() * (this.width - margin * 2);
-        const y = margin + Math.random() * (this.height - margin * 2);
+    spawnChest(x, y) {
         const goldAmount = 50 + Math.floor(Math.random() * 200);
         
         this.chests.push({
-            x: x,
-            y: y,
+            x: x || (80 + Math.random() * (this.width - 160)),
+            y: y || -50,
             radius: 30,
             bobOffset: 0,
-            goldAmount: goldAmount
+            goldAmount: goldAmount,
+            vy: 0,
+            falling: true
         });
     }
     
@@ -1358,6 +3321,8 @@ class DragonShooterGame {
             radius: 15,
             angle: 0,
             bobOffset: 0,
+            vy: 0,
+            falling: true,
             ...type
         });
     }
@@ -1390,6 +3355,38 @@ class DragonShooterGame {
         if (this.playerStats.health <= 0) {
             this.gameOver();
         }
+    }
+    
+    dragonReachedEnd(enemy) {
+        if (this.reviveCount > 0) {
+            this.gameState = 'reviving';
+            document.getElementById('reviveCountDisplay').textContent = this.reviveCount;
+            document.getElementById('reviveScreen').classList.add('show');
+        } else {
+            this.gameOver();
+        }
+    }
+    
+    revive() {
+        if (this.reviveCount <= 0) return;
+        
+        this.reviveCount--;
+        
+        for (const enemy of this.enemies) {
+            if (enemy.isWinding && enemy.pathDistance !== undefined) {
+                enemy.pathDistance = this.totalPathLength / 2;
+            }
+        }
+        
+        document.getElementById('reviveScreen').classList.remove('show');
+        this.gameState = 'playing';
+        this.lastTime = 0;
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+    
+    cancelRevive() {
+        document.getElementById('reviveScreen').classList.remove('show');
+        this.gameOver();
     }
     
     gameOver() {
@@ -1426,6 +3423,9 @@ class DragonShooterGame {
         if (this.currentLevel >= this.saveData.maxUnlockedLevel) {
             this.saveData.maxUnlockedLevel = Math.max(this.saveData.maxUnlockedLevel, this.currentLevel + 1);
         }
+        if (this.currentLevel > this.saveData.highestLevelPassed) {
+            this.saveData.highestLevelPassed = this.currentLevel;
+        }
         this.saveGameData();
         
         document.getElementById('levelupStats').innerHTML = `
@@ -1437,6 +3437,9 @@ class DragonShooterGame {
         let unlockText = '';
         if (config.unlockAbility) {
             unlockText = '🎉 解锁了新能力！';
+        }
+        if (this.levelRewards[this.currentLevel]) {
+            unlockText += ` 🎁 新奖励可领取：${this.levelRewards[this.currentLevel].name}`;
         }
         
         document.getElementById('unlockText').textContent = unlockText;
@@ -1460,14 +3463,46 @@ class DragonShooterGame {
             const rarityClass = skill.rarity === 'A' ? 'rarity-a' : 'rarity-b';
             card.className = `skill-card ${rarityClass}`;
             
+            let levelInfo = '';
+            let upgradeInfo = '';
+            
+            if (skill.type === 'active') {
+                const currentLevel = this.skillLevels[skill.id] || 0;
+                const nextLevel = currentLevel + 1;
+                const isMaxLevel = currentLevel >= 5;
+                
+                if (currentLevel > 0) {
+                    levelInfo = `<div class="skill-level">等级 ${currentLevel}/5</div>`;
+                }
+                
+                if (isMaxLevel) {
+                    upgradeInfo = `<div class="skill-upgrade" style="color: #FFD700;">已满级 - 属性已大幅提升！</div>`;
+                } else if (currentLevel > 0) {
+                    upgradeInfo = `<div class="skill-upgrade">升级到 ${nextLevel} 级</div>`;
+                }
+            }
+            
+            let desc = skill.description;
+            if (skill.type === 'active') {
+                const currentLevel = this.skillLevels[skill.id] || 0;
+                if (currentLevel > 0) {
+                    const stats = this.getSkillStats(skill.id);
+                    if (stats) {
+                        desc += `<br><small style="color: #888;">伤害: ${stats.damage} | 冷却: ${stats.cooldown.toFixed(1)}秒</small>`;
+                    }
+                }
+            }
+            
             card.innerHTML = `
                 <div class="skill-icon-box">
                     <span class="skill-rarity-badge">${skill.rarity}</span>
                     <span class="skill-icon">${skill.icon}</span>
+                    ${levelInfo}
                 </div>
                 <div class="skill-content">
                     <div class="skill-subtitle">${skill.name}</div>
-                    <div class="skill-desc">${skill.description}</div>
+                    <div class="skill-desc">${desc}</div>
+                    ${upgradeInfo}
                 </div>
                 <div class="skill-index">${index + 1}</div>
             `;
@@ -1490,51 +3525,113 @@ class DragonShooterGame {
     }
     
     applySkill(skill) {
-        switch (skill.id) {
-            case 'bullet_count':
-                this.playerStats.bulletCount++;
-                break;
-            case 'bullet_spread':
-                this.playerStats.bulletSpread += 15;
-                break;
-            case 'fire_rate':
-                this.playerStats.fireRate *= 0.8;
-                break;
-            case 'damage':
-                this.playerStats.bulletDamage = Math.floor(this.playerStats.bulletDamage * 1.5);
-                break;
-            case 'health':
-                this.playerStats.health = Math.min(
-                    this.playerStats.health + 30,
-                    this.playerStats.maxHealth
-                );
-                break;
-            case 'max_health':
-                this.playerStats.maxHealth += 25;
-                this.playerStats.health += 25;
-                break;
-            case 'bullet_size':
-                this.playerStats.bulletSize += 3;
-                break;
-            case 'speed':
-                this.playerStats.speed *= 1.15;
-                break;
-            case 'pierce':
-                this.playerStats.bulletPierce++;
-                break;
-            case 'crit_chance':
-                this.playerStats.criticalChance += 0.1;
-                break;
-            case 'crit_damage':
-                this.playerStats.criticalDamage += 0.5;
-                break;
-            case 'magnet':
-                this.playerStats.magnetRange += 50;
-                break;
+        if (skill.type === 'active') {
+            if (!this.skillLevels[skill.id]) {
+                this.skillLevels[skill.id] = 1;
+                this.activeSkills.push(skill.id);
+                this.skillCooldowns[skill.id] = 0;
+            } else {
+                this.skillLevels[skill.id]++;
+            }
+        } else {
+            switch (skill.id) {
+                case 'bullet_count':
+                    this.playerStats.bulletCount++;
+                    break;
+                case 'fire_rate':
+                    this.playerStats.fireRate *= 0.88;
+                    break;
+                case 'damage':
+                    this.playerStats.damageMultiplier = (this.playerStats.damageMultiplier || 1) * 1.2;
+                    break;
+                case 'health':
+                    const healthBonus = Math.max(15, Math.floor(this.playerStats.maxHealth * 0.15));
+                    this.playerStats.health = Math.min(
+                        this.playerStats.health + healthBonus,
+                        this.playerStats.maxHealth
+                    );
+                    break;
+                case 'max_health':
+                    const maxHealthBonus = Math.max(15, Math.floor(this.playerStats.maxHealth * 0.12));
+                    this.playerStats.maxHealth += maxHealthBonus;
+                    this.playerStats.health += maxHealthBonus;
+                    break;
+                case 'bullet_size':
+                    this.playerStats.bulletSize += 3;
+                    break;
+                case 'speed':
+                    this.playerStats.speed *= 1.12;
+                    if (this.playerStats.speed > 20) this.playerStats.speed = 20;
+                    break;
+                case 'pierce':
+                    this.playerStats.bulletPierce++;
+                    break;
+                case 'crit_chance':
+                    this.playerStats.criticalChance = Math.min(
+                        0.75,
+                        this.playerStats.criticalChance + 0.05
+                    );
+                    break;
+                case 'crit_damage':
+                    this.playerStats.criticalDamage += 0.3;
+                    break;
+                case 'magnet':
+                    this.playerStats.magnetRange += 40;
+                    break;
+            }
         }
         
         this.unlockedSkills.push(skill.id);
         this.updateUI();
+    }
+    
+    getSkillStats(skillId) {
+        const skill = this.skills.find(s => s.id === skillId);
+        if (!skill) return null;
+        
+        const level = this.skillLevels[skillId] || 1;
+        const isMaxLevel = level >= 5;
+        
+        let stats = { ...skill, level, isMaxLevel };
+        
+        const baseMultiplier = 1 + (level - 1) * 0.2;
+        const maxMultiplier = isMaxLevel ? 2 : 1;
+        
+        switch (skillId) {
+            case 'rain_of_needles':
+                stats.damage = Math.floor(skill.baseDamage * baseMultiplier * maxMultiplier);
+                stats.projectileCount = skill.projectileCount + (level - 1) * 2;
+                if (isMaxLevel) stats.projectileCount += 5;
+                stats.burstCount = skill.burstCount + (level - 1) * 2;
+                if (isMaxLevel) stats.burstCount += 3;
+                stats.cooldown = skill.cooldown * (1 - (level - 1) * 0.1);
+                if (isMaxLevel) stats.cooldown *= 0.5;
+                break;
+            case 'thunder_dragon':
+                stats.damage = Math.floor(skill.baseDamage * baseMultiplier * maxMultiplier);
+                stats.duration = skill.duration + (level - 1) * 0.5;
+                if (isMaxLevel) stats.duration += 2;
+                stats.moveSpeed = skill.moveSpeed * (1 + (level - 1) * 0.15);
+                if (isMaxLevel) stats.moveSpeed *= 1.5;
+                stats.lightningFrequency = skill.lightningFrequency * (1 - (level - 1) * 0.05);
+                if (isMaxLevel) stats.lightningFrequency *= 0.5;
+                stats.cooldown = skill.cooldown * (1 - (level - 1) * 0.1);
+                if (isMaxLevel) stats.cooldown *= 0.5;
+                break;
+            case 'ice_storm':
+                stats.damage = Math.floor(skill.baseDamage * baseMultiplier * maxMultiplier);
+                stats.slowDuration = skill.slowDuration + (level - 1) * 0.3;
+                if (isMaxLevel) stats.slowDuration += 1;
+                stats.slowAmount = skill.slowAmount + (level - 1) * 0.05;
+                if (isMaxLevel) stats.slowAmount = 0.8;
+                stats.hailRate = skill.hailRate + (level - 1) * 0.1;
+                if (isMaxLevel) stats.hailRate += 0.3;
+                stats.cooldown = skill.cooldown * (1 - (level - 1) * 0.1);
+                if (isMaxLevel) stats.cooldown *= 0.5;
+                break;
+        }
+        
+        return stats;
     }
     
     createHitParticles(x, y, color) {
@@ -1613,13 +3710,180 @@ class DragonShooterGame {
         this.ctx.clearRect(0, 0, this.width, this.height);
         
         this.drawBackground();
+        this.drawPath();
         this.drawParticles();
         this.drawPowerups();
         this.drawChests();
         this.drawBullets();
+        this.drawSkillEffects();
         this.drawEnemies();
         this.drawPlayer();
         this.drawDamageNumbers();
+    }
+    
+    drawSkillEffects() {
+        this.drawRainOfNeedles();
+        this.drawThunderDragon();
+        this.drawIceStorm();
+    }
+    
+    drawRainOfNeedles() {
+        for (const needle of this.needles) {
+            this.ctx.save();
+            
+            const angle = Math.atan2(needle.vy, needle.vx);
+            this.ctx.translate(needle.x, needle.y);
+            this.ctx.rotate(angle);
+            
+            this.ctx.fillStyle = needle.color;
+            this.ctx.beginPath();
+            this.ctx.moveTo(15, 0);
+            this.ctx.lineTo(-10, -needle.radius);
+            this.ctx.lineTo(-5, 0);
+            this.ctx.lineTo(-10, needle.radius);
+            this.ctx.closePath();
+            this.ctx.fill();
+            
+            if (needle.isCrit) {
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
+            
+            this.ctx.restore();
+        }
+    }
+    
+    drawThunderDragon() {
+        if (!this.thunderDragon) return;
+        
+        this.ctx.save();
+        this.ctx.translate(this.thunderDragon.x, this.thunderDragon.y);
+        
+        const angle = Math.atan2(this.thunderDragon.vy, this.thunderDragon.vx);
+        this.ctx.rotate(angle);
+        
+        this.ctx.fillStyle = '#FFFF00';
+        this.ctx.shadowColor = '#FFFF00';
+        this.ctx.shadowBlur = 20;
+        
+        this.ctx.beginPath();
+        this.ctx.ellipse(0, 0, 40, 20, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.beginPath();
+        this.ctx.ellipse(35, -8, 6, 8, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(35, 8, 6, 8, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.fillStyle = '#000000';
+        this.ctx.beginPath();
+        this.ctx.arc(37, -8, 3, 0, Math.PI * 2);
+        this.ctx.arc(37, 8, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.strokeStyle = '#FFFF00';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(40, 0);
+        this.ctx.lineTo(55, -15);
+        this.ctx.moveTo(40, 0);
+        this.ctx.lineTo(55, 15);
+        this.ctx.stroke();
+        
+        this.ctx.restore();
+    }
+    
+    drawIceStorm() {
+        for (const hail of this.hailStones) {
+            this.ctx.save();
+            
+            this.ctx.fillStyle = hail.color;
+            this.ctx.shadowColor = '#FFFFFF';
+            this.ctx.shadowBlur = 5;
+            
+            this.ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 2;
+                const x = hail.x + Math.cos(angle) * hail.radius;
+                const y = hail.y + Math.sin(angle) * hail.radius;
+                if (i === 0) {
+                    this.ctx.moveTo(x, y);
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
+            }
+            this.ctx.closePath();
+            this.ctx.fill();
+            
+            if (hail.isCrit) {
+                this.ctx.strokeStyle = '#FFFFFF';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
+            
+            this.ctx.restore();
+        }
+    }
+    
+    drawPath() {
+        if (!this.path || this.path.length < 2) return;
+        
+        this.ctx.save();
+        
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.path[0].x, this.path[0].y);
+        
+        for (let i = 1; i < this.path.length; i++) {
+            this.ctx.lineTo(this.path[i].x, this.path[i].y);
+        }
+        this.ctx.stroke();
+        
+        if (this.pathBoundaries && this.pathBoundaries.channels) {
+            const cfg = window.GameConfig || {};
+            const levelCfg = cfg.level || {};
+            const channelHeight = levelCfg.channelHeight || 120;
+            const turnRadius = levelCfg.turnRadius || 40;
+            
+            this.ctx.strokeStyle = '#FF0000';
+            this.ctx.lineWidth = 2;
+            
+            for (let i = 0; i < this.pathBoundaries.channels.length; i++) {
+                const channel = this.pathBoundaries.channels[i];
+                const rowY = channel.rowY;
+                const isEvenRow = channel.isEvenRow;
+                
+                const nextRowY = rowY + channelHeight;
+                const turnStartY = nextRowY - turnRadius;
+                
+                if (isEvenRow) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.pathBoundaries.rightBound, rowY);
+                    this.ctx.lineTo(this.pathBoundaries.rightBound, turnStartY);
+                    this.ctx.stroke();
+                } else {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.pathBoundaries.leftBound, rowY);
+                    this.ctx.lineTo(this.pathBoundaries.leftBound, turnStartY);
+                    this.ctx.stroke();
+                }
+            }
+            
+            this.ctx.strokeStyle = '#FF0000';
+            this.ctx.lineWidth = 1;
+            
+            for (const y of this.pathBoundaries.channelLines) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.pathBoundaries.leftBound, y);
+                this.ctx.lineTo(this.pathBoundaries.rightBound, y);
+                this.ctx.stroke();
+            }
+        }
+        
+        this.ctx.restore();
     }
     
     drawBackground() {
@@ -1708,69 +3972,91 @@ class DragonShooterGame {
             if (enemy.segments && enemy.segments.length > 0) {
                 for (let i = enemy.segments.length - 1; i >= 0; i--) {
                     const segment = enemy.segments[i];
-                    const segX = enemy.x + segment.offsetX;
-                    const segY = enemy.y + segment.offsetY;
                     
                     this.ctx.save();
-                    this.ctx.translate(segX, segY);
+                    this.ctx.translate(segment.x, segment.y);
                     
-                    const segRadius = i === 0 ? 22 : 18;
+                    const healthPercent = segment.health / segment.maxHealth;
+                    const baseHeight = i === 0 ? 28 : 22;
+                    const baseWidth = i === 0 ? 60 : 50;
+                    
+                    const segHeight = baseHeight;
+                    const segWidth = baseWidth * (0.5 + healthPercent * 0.5);
+                    
+                    const halfWidth = segWidth / 2;
+                    const halfHeight = segHeight / 2;
                     
                     this.ctx.shadowColor = enemy.color;
                     this.ctx.shadowBlur = 15;
                     
                     this.ctx.beginPath();
-                    this.ctx.arc(0, 0, segRadius, 0, Math.PI * 2);
+                    this.ctx.moveTo(-halfWidth + halfHeight, -halfHeight);
+                    this.ctx.lineTo(halfWidth - halfHeight, -halfHeight);
+                    this.ctx.arcTo(halfWidth, -halfHeight, halfWidth, halfHeight, halfHeight);
+                    this.ctx.lineTo(halfWidth, halfHeight - halfHeight);
+                    this.ctx.arcTo(halfWidth, halfHeight, -halfWidth, halfHeight, halfHeight);
+                    this.ctx.lineTo(-halfWidth + halfHeight, halfHeight);
+                    this.ctx.arcTo(-halfWidth, halfHeight, -halfWidth, -halfHeight, halfHeight);
+                    this.ctx.lineTo(-halfWidth, -halfHeight + halfHeight);
+                    this.ctx.arcTo(-halfWidth, -halfHeight, halfWidth, -halfHeight, halfHeight);
+                    this.ctx.closePath();
                     
-                    const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, segRadius);
-                    gradient.addColorStop(0, enemy.color);
-                    gradient.addColorStop(1, this.darkenColor(enemy.color, 0.5));
+                    const gradient = this.ctx.createLinearGradient(-halfWidth, 0, halfWidth, 0);
+                    gradient.addColorStop(0, this.darkenColor(enemy.color, 0.3));
+                    gradient.addColorStop(0.5, enemy.color);
+                    gradient.addColorStop(1, this.darkenColor(enemy.color, 0.3));
                     this.ctx.fillStyle = gradient;
                     this.ctx.fill();
                     
                     this.ctx.shadowBlur = 0;
                     
+                    const innerPadding = 4;
+                    const innerHalfWidth = halfWidth - innerPadding;
+                    const innerHalfHeight = halfHeight - innerPadding;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(-innerHalfWidth + innerHalfHeight, -innerHalfHeight);
+                    this.ctx.lineTo(innerHalfWidth - innerHalfHeight, -innerHalfHeight);
+                    this.ctx.arcTo(innerHalfWidth, -innerHalfHeight, innerHalfWidth, innerHalfHeight, innerHalfHeight);
+                    this.ctx.lineTo(innerHalfWidth, innerHalfHeight - innerHalfHeight);
+                    this.ctx.arcTo(innerHalfWidth, innerHalfHeight, -innerHalfWidth, innerHalfHeight, innerHalfHeight);
+                    this.ctx.lineTo(-innerHalfWidth + innerHalfHeight, innerHalfHeight);
+                    this.ctx.arcTo(-innerHalfWidth, innerHalfHeight, -innerHalfWidth, -innerHalfHeight, innerHalfHeight);
+                    this.ctx.lineTo(-innerHalfWidth, -innerHalfHeight + innerHalfHeight);
+                    this.ctx.arcTo(-innerHalfWidth, -innerHalfHeight, innerHalfWidth, -innerHalfHeight, innerHalfHeight);
+                    this.ctx.closePath();
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                    this.ctx.fill();
+                    
+                    const barWidth = (innerHalfWidth * 2) * healthPercent;
+                    const barHeight = innerHalfHeight * 2 - 4;
+                    
+                    if (barWidth > 0) {
+                        this.ctx.beginPath();
+                        this.ctx.rect(-innerHalfWidth, -barHeight / 2, barWidth, barHeight);
+                        
+                        const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
+                        const healthGradient = this.ctx.createLinearGradient(0, -barHeight / 2, 0, barHeight / 2);
+                        healthGradient.addColorStop(0, healthColor);
+                        healthGradient.addColorStop(0.5, this.lightenColor(healthColor, 0.3));
+                        healthGradient.addColorStop(1, healthColor);
+                        this.ctx.fillStyle = healthGradient;
+                        this.ctx.fill();
+                    }
+                    
                     if (i === 0) {
-                        this.ctx.font = `${segRadius * 1.2}px Arial`;
+                        this.ctx.font = `${segHeight * 0.8}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
                         this.ctx.fillText('🐲', 0, 0);
                     } else {
-                        this.ctx.font = `${segRadius * 0.8}px Arial`;
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.font = `bold ${Math.min(segHeight * 0.5, 14)}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
-                        this.ctx.fillText('●', 0, 0);
+                        const healthText = Math.ceil(segment.health)+ '\r\n' + Math.ceil(segment.maxHealth);
+                        this.ctx.fillText(healthText, 0, 0);
                     }
-                    
-                    const healthPercent = segment.health / segment.maxHealth;
-                    const healthBarWidth = segRadius * 1.5;
-                    const healthBarHeight = 5;
-                    
-                    this.ctx.fillStyle = '#333333';
-                    this.ctx.fillRect(
-                        -healthBarWidth / 2,
-                        -segRadius - 10,
-                        healthBarWidth,
-                        healthBarHeight
-                    );
-                    
-                    const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
-                    this.ctx.fillStyle = healthColor;
-                    this.ctx.fillRect(
-                        -healthBarWidth / 2,
-                        -segRadius - 10,
-                        healthBarWidth * healthPercent,
-                        healthBarHeight
-                    );
-                    
-                    this.ctx.fillStyle = '#FFFFFF';
-                    this.ctx.font = 'bold 11px Arial';
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(
-                        Math.ceil(segment.health),
-                        0,
-                        -segRadius - 12
-                    );
                     
                     this.ctx.restore();
                 }
@@ -1934,13 +4220,21 @@ class DragonShooterGame {
         return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
     }
     
+    lightenColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.min(255, parseInt(hex.substr(0, 2), 16) * (1 + amount));
+        const g = Math.min(255, parseInt(hex.substr(2, 2), 16) * (1 + amount));
+        const b = Math.min(255, parseInt(hex.substr(4, 2), 16) * (1 + amount));
+        return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+    }
+    
     updateUI() {
-        const healthPercent = (this.playerStats.health / this.playerStats.maxHealth) * 100;
-        document.getElementById('healthBar').style.width = `${healthPercent}%`;
-        document.getElementById('healthText').textContent = 
-            `${Math.max(0, Math.ceil(this.playerStats.health))} / ${this.playerStats.maxHealth}`;
+        const healthText = `❤️ ${Math.max(0, Math.ceil(this.playerStats.health))}/${this.playerStats.maxHealth}`;
+        const battleHealthDisplay = document.getElementById('battleHealthDisplay');
+        if (battleHealthDisplay) {
+            battleHealthDisplay.textContent = healthText;
+        }
         
-        document.getElementById('levelDisplay').textContent = this.currentLevel;
         document.getElementById('goldDisplay').textContent = this.goldEarned;
         document.getElementById('scoreDisplay').textContent = this.score;
     }
