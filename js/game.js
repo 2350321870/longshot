@@ -1737,7 +1737,7 @@ class DragonShooterGame {
         
         dailyTasks.forEach(task => {
             const isCompleted = task.progress >= task.target;
-            const isClaimed = this.saveData.claimedRewards?.[task.id] === true;
+            const isClaimed = task.claimed === true;
             const progress = Math.min(task.progress, task.target);
             const progressPercent = (progress / task.target) * 100;
             
