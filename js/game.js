@@ -1727,8 +1727,10 @@ class DragonShooterGame {
         const list = document.getElementById('tasksList');
         list.innerHTML = '';
         
-        const dailyTasks = this.saveData.dailyTasks;
-        if (!dailyTasks || dailyTasks.length === 0) {
+        this.checkDailyTasksRefresh();
+        
+        const dailyTasks = this.saveData.dailyTasks?.tasks || [];
+        if (dailyTasks.length === 0) {
             list.innerHTML = '<div style="color: #aaa; text-align: center; padding: 40px;">暂无每日任务</div>';
             return;
         }
