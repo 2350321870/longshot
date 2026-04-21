@@ -4326,7 +4326,6 @@ class DragonShooterGame {
                             
                             this.enemies.splice(i, 1);
                             
-                            this.levelComplete();
                             break;
                         }
                     }
@@ -4435,8 +4434,6 @@ class DragonShooterGame {
                     }
                     
                     this.enemies.splice(i, 1);
-                    
-                    this.levelComplete();
                 }
             }
         }
