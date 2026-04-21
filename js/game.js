@@ -3612,14 +3612,12 @@ class DragonShooterGame {
                                 enemy.health -= needle.damage;
                                 
                                 const segRadius = segment.index === 0 ? 22 : 18;
-                                this.damageNumbers.push({
-                                    x: segment.x,
-                                    y: segment.y - segRadius,
-                                    value: needle.damage,
-                                    isCrit: needle.isCrit,
-                                    lifetime: 1,
-                                    vy: -2
-                                });
+                                this.createDamageNumber(
+                                    segment.x,
+                                    segment.y - segRadius,
+                                    needle.damage,
+                                    needle.isCrit
+                                );
                                 
                                 this.createHitParticles(needle.x, needle.y, needle.color);
                             }
@@ -4023,14 +4021,12 @@ class DragonShooterGame {
                 target.enemy.health -= target.damage;
                 
                 const segRadius = target.segment.index === 0 ? 22 : 18;
-                this.damageNumbers.push({
-                    x: target.segment.x,
-                    y: target.segment.y - segRadius,
-                    value: target.damage,
-                    isCrit: isCrit,
-                    lifetime: 1,
-                    vy: -2
-                });
+                this.createDamageNumber(
+                    target.segment.x,
+                    target.segment.y - segRadius,
+                    target.damage,
+                    isCrit
+                );
                 
                 this.createThunderEffect(target.segment.x, target.segment.y);
             }
@@ -4197,14 +4193,12 @@ class DragonShooterGame {
                                 enemy.health -= hail.damage;
                                 
                                 const segRadius = segment.index === 0 ? 22 : 18;
-                                this.damageNumbers.push({
-                                    x: segment.x,
-                                    y: segment.y - segRadius,
-                                    value: hail.damage,
-                                    isCrit: hail.isCrit,
-                                    lifetime: 1,
-                                    vy: -2
-                                });
+                                this.createDamageNumber(
+                                    segment.x,
+                                    segment.y - segRadius,
+                                    hail.damage,
+                                    hail.isCrit
+                                );
                             }
                             
                             this.applySlowEffect(enemy, segment, hail.slowDuration, hail.slowAmount);
@@ -4536,15 +4530,13 @@ class DragonShooterGame {
                             segment.health -= actualDamage;
                             enemy.health -= actualDamage;
                             
-                            this.damageNumbers.push({
-                                x: segment.x,
-                                y: segment.y - segRadius,
-                                value: actualDamage,
-                                isCrit: bullet.isCrit,
-                                isReduced: enemy.special && enemy.special.damageReduction > 0,
-                                lifetime: 1,
-                                vy: -2
-                            });
+                            this.createDamageNumber(
+                                segment.x,
+                                segment.y - segRadius,
+                                actualDamage,
+                                bullet.isCrit,
+                                enemy.special && enemy.special.damageReduction > 0
+                            );
                             
                             this.createHitParticles(bullet.x, bullet.y, bullet.color);
                             
@@ -4619,14 +4611,12 @@ class DragonShooterGame {
                     if (this.checkCircleCollision(bullet, enemy)) {
                         enemy.health -= bullet.damage;
                         
-                        this.damageNumbers.push({
-                            x: enemy.x,
-                            y: enemy.y - enemy.radius,
-                            value: bullet.damage,
-                            isCrit: bullet.isCrit,
-                            lifetime: 1,
-                            vy: -2
-                        });
+                        this.createDamageNumber(
+                            enemy.x,
+                            enemy.y - enemy.radius,
+                            bullet.damage,
+                            bullet.isCrit
+                        );
                         
                         this.createHitParticles(bullet.x, bullet.y, bullet.color);
                         
@@ -4860,24 +4850,66 @@ class DragonShooterGame {
         }
     }
     
+    createDamageNumber(x, y, value, isCrit = false, isReduced = false) {
+        const MAX_DAMAGE_NUMBERS = 40;
+        
+        if (this.damageNumbers.length >= MAX_DAMAGE_NUMBERS) {
+            for (const dn of this.damageNumbers) {
+                const dist = Math.sqrt((dn.x - x) * (dn.x - x) + (dn.y - y) * (dn.y - y));
+                if (dist < 50 && dn.lifetime > 0.2) {
+                    dn.value += value;
+                    dn.isCrit = dn.isCrit || isCrit;
+                    dn.isReduced = dn.isReduced || isReduced;
+                    dn.lifetime = Math.min(dn.lifetime + 0.1, 0.6);
+                    return;
+                }
+            }
+            return;
+        }
+        
+        for (const dn of this.damageNumbers) {
+            const dist = Math.sqrt((dn.x - x) * (dn.x - x) + (dn.y - y) * (dn.y - y));
+            if (dist < 40) {
+                dn.value += value;
+                dn.isCrit = dn.isCrit || isCrit;
+                dn.isReduced = dn.isReduced || isReduced;
+                dn.lifetime = Math.min(dn.lifetime + 0.1, 0.6);
+                return;
+            }
+        }
+        
+        this.damageNumbers.push({
+            x: x,
+            y: y,
+            value: value,
+            isCrit: isCrit,
+            isReduced: isReduced,
+            lifetime: 0.6,
+            vy: -2.5,
+            critEffectTriggered: false
+        });
+    }
+    
     updateDamageNumbers(dt) {
         for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
             const dn = this.damageNumbers[i];
             
             if (dn.isCrit && !dn.critEffectTriggered) {
-                this.createCritEffect(dn.x, dn.y);
+                if (Math.random() < 0.5) {
+                    this.createCritEffect(dn.x, dn.y);
+                }
                 dn.critEffectTriggered = true;
             }
             
             dn.y += dn.vy * 60 * dt;
             dn.lifetime -= dt;
-            dn.alpha = Math.max(0, dn.lifetime);
+            dn.alpha = Math.max(0, dn.lifetime / 0.6);
             
             if (!dn.scale) dn.scale = 1;
             if (dn.isCrit) {
-                const scaleProgress = 1 - (dn.lifetime / 1);
+                const scaleProgress = 1 - (dn.lifetime / 0.6);
                 if (scaleProgress < 0.2) {
-                    dn.scale = 1 + Math.sin(scaleProgress * Math.PI / 0.2) * 0.3;
+                    dn.scale = 1 + Math.sin(scaleProgress * Math.PI / 0.2) * 0.2;
                 }
             }
             
