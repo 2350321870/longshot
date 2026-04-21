@@ -1674,6 +1674,77 @@
             font-size: 14px;
         }
 
+        .skill-notification {
+            position: absolute;
+            top: -100px;
+            right: 20px;
+            z-index: 500;
+            transition: top 0.4s ease, opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .skill-notification.show {
+            top: 80px;
+            opacity: 1;
+        }
+
+        .skill-notification-content {
+            background: linear-gradient(135deg, rgba(30, 30, 60, 0.98), rgba(20, 20, 40, 0.98));
+            border: 2px solid #66ccff;
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 25px rgba(102, 204, 255, 0.4);
+            animation: skillGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes skillGlow {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(102, 204, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 35px rgba(102, 204, 255, 0.6);
+            }
+        }
+
+        .skill-notification-icon {
+            font-size: 32px;
+            animation: skillBounce 0.6s ease infinite;
+        }
+
+        @keyframes skillBounce {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-5px) rotate(5deg);
+            }
+        }
+
+        .skill-notification-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .skill-notification-title {
+            color: #66ccff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .skill-notification-name {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .skill-notification-desc {
+            color: #aaa;
+            font-size: 11px;
+        }
+
         .stats-header {
             background: linear-gradient(135deg, rgba(50, 50, 70, 0.9), rgba(30, 30, 50, 0.9));
             border: 2px solid rgba(255, 215, 0, 0.2);
@@ -2075,6 +2146,17 @@
                     <div class="achievement-notification-title">成就解锁！</div>
                     <div class="achievement-notification-name" id="achievementNotifName">成就名称</div>
                     <div class="achievement-notification-points" id="achievementNotifPoints">+10 成就点</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="skill-notification" id="skillNotification">
+            <div class="skill-notification-content">
+                <div class="skill-notification-icon" id="skillNotifIcon">⚡</div>
+                <div class="skill-notification-text">
+                    <div class="skill-notification-title">获得技能！</div>
+                    <div class="skill-notification-name" id="skillNotifName">技能名称</div>
+                    <div class="skill-notification-desc" id="skillNotifDesc">技能描述</div>
                 </div>
             </div>
         </div>

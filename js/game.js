@@ -3120,7 +3120,7 @@ class DragonShooterGame {
     refreshSkills() {
         if (this.freeRefreshCount > 0) {
             this.freeRefreshCount--;
-            this.showSkillSelection();
+            this.autoSelectSkill();
         } else {
             this.showToast('免费刷新次数已用完！');
         }
@@ -4185,7 +4185,7 @@ class DragonShooterGame {
                             
                             if (currentSegmentGroup > lastSegmentGroup) {
                                 this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
-                                this.showSkillSelection();
+                                this.autoSelectSkill();
                             }
                         }
                         
@@ -4265,7 +4265,7 @@ class DragonShooterGame {
                             
                             this.enemies.splice(i, 1);
                             
-                            this.showSkillSelection();
+                            this.autoSelectSkill();
                             break;
                         }
                     }
@@ -4297,7 +4297,7 @@ class DragonShooterGame {
                 
                 if (currentSegmentGroup > lastSegmentGroup) {
                     this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
-                    this.showSkillSelection();
+                    this.autoSelectSkill();
                 }
                 
                 for (const segment of destroyedSegments) {
@@ -4518,9 +4518,9 @@ class DragonShooterGame {
         const cfg = window.GameConfig || {};
         const dragonCfg = cfg.dragon || {};
         
-        const early = dragonCfg.segmentsPerSkillSelectionEarly || 2;
-        const mid = dragonCfg.segmentsPerSkillSelectionMid || 4;
-        const late = dragonCfg.segmentsPerSkillSelectionLate || 6;
+        const early = (dragonCfg.segmentsPerSkillSelectionEarly || 2) * 2;
+        const mid = (dragonCfg.segmentsPerSkillSelectionMid || 4) * 2;
+        const late = (dragonCfg.segmentsPerSkillSelectionLate || 6) * 2;
         
         if (this.segmentsDestroyed < 10) return early;
         if (this.segmentsDestroyed < 30) return mid;
@@ -4973,6 +4973,53 @@ class DragonShooterGame {
         }
         
         return stats;
+    }
+    
+    autoSelectSkill() {
+        const availableSkills = this.getRandomSkills(3);
+        
+        if (availableSkills.length === 0) {
+            return;
+        }
+        
+        const randomIndex = Math.floor(Math.random() * availableSkills.length);
+        const selectedSkill = availableSkills[randomIndex];
+        
+        this.applySkill(selectedSkill);
+        this.showSkillNotification(selectedSkill);
+    }
+    
+    showSkillNotification(skill) {
+        const notification = document.getElementById('skillNotification');
+        if (!notification) return;
+        
+        const iconEl = document.getElementById('skillNotifIcon');
+        const nameEl = document.getElementById('skillNotifName');
+        const descEl = document.getElementById('skillNotifDesc');
+        
+        if (iconEl) iconEl.textContent = skill.icon || '⚡';
+        if (nameEl) nameEl.textContent = skill.name;
+        
+        let displayDesc = skill.description;
+        if (skill.type === 'active') {
+            const currentLevel = this.skillLevels[skill.id] || 1;
+            if (currentLevel > 1) {
+                displayDesc = `升级到 ${currentLevel} 级`;
+            } else if (currentLevel === 1) {
+                const stats = this.getSkillStats(skill.id);
+                if (stats) {
+                    displayDesc += ` (伤害: ${stats.damage})`;
+                }
+            }
+        }
+        
+        if (descEl) descEl.textContent = displayDesc;
+        
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
     }
     
     createHitParticles(x, y, color) {
