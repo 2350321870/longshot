@@ -3118,12 +3118,7 @@ class DragonShooterGame {
     }
     
     refreshSkills() {
-        if (this.freeRefreshCount > 0) {
-            this.freeRefreshCount--;
-            this.autoSelectSkill();
-        } else {
-            this.showToast('免费刷新次数已用完！');
-        }
+        this.showToast('技能仅可通过击毁宝箱血条获取！');
     }
     
     renderMainMenu() {
