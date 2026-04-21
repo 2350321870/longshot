@@ -1339,6 +1339,341 @@
             margin-bottom: 20px;
         }
 
+        .tasks-screen, .achievements-screen {
+            padding: 80px 20px 100px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .tasks-header, .achievements-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tasks-refresh-info {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .achievements-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .achievement-points {
+            color: #ffd700;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .achievement-progress {
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .tasks-list, .achievements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
+            background: linear-gradient(135deg, rgba(50, 50, 60, 0.9), rgba(40, 40, 50, 0.9));
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .task-item.completed {
+            border-color: rgba(100, 255, 100, 0.3);
+            background: linear-gradient(135deg, rgba(30, 60, 40, 0.9), rgba(20, 50, 30, 0.9));
+        }
+
+        .task-item.claimed {
+            border-color: rgba(100, 150, 255, 0.3);
+            opacity: 0.7;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .task-name {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .task-rewards {
+            color: #ffd700;
+            font-size: 14px;
+        }
+
+        .task-description {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .task-progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .task-progress-bar {
+            flex: 1;
+            min-width: 150px;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .task-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .task-progress-text {
+            color: #aaa;
+            font-size: 13px;
+        }
+
+        .task-progress-text.completed {
+            color: #66ff66;
+        }
+
+        .task-claim-btn {
+            background: linear-gradient(180deg, #66ff66, #44cc44);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .task-claim-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .task-claimed-text {
+            color: #66ccff;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .achievements-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .achievement-tab {
+            background: rgba(50, 50, 60, 0.8);
+            border: 2px solid rgba(255, 215, 0, 0.2);
+            border-radius: 20px;
+            padding: 8px 20px;
+            color: #aaa;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-tab.active {
+            background: linear-gradient(180deg, #667eea, #764ba2);
+            border-color: #667eea;
+            color: #fff;
+        }
+
+        .achievement-item {
+            background: linear-gradient(135deg, rgba(50, 50, 60, 0.9), rgba(40, 40, 50, 0.9));
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px solid rgba(255, 215, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-item.unlocked {
+            border-color: rgba(100, 255, 100, 0.4);
+            background: linear-gradient(135deg, rgba(30, 60, 40, 0.9), rgba(20, 50, 30, 0.9));
+        }
+
+        .achievement-item.locked {
+            opacity: 0.6;
+        }
+
+        .achievement-icon {
+            font-size: 40px;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            flex-shrink: 0;
+        }
+
+        .achievement-item.unlocked .achievement-icon {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 150, 0, 0.1));
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .achievement-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .achievement-name {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .achievement-description {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .achievement-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .achievement-points-text {
+            color: #ffd700;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .achievement-rewards {
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        .achievement-claim-btn {
+            background: linear-gradient(180deg, #66ff66, #44cc44);
+            border: none;
+            border-radius: 8px;
+            padding: 6px 14px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .achievement-claim-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .achievement-claimed-text {
+            color: #66ccff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .achievement-progress-text {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .achievement-notification {
+            position: absolute;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 500;
+            transition: top 0.5s ease;
+            pointer-events: none;
+        }
+
+        .achievement-notification.show {
+            top: 80px;
+        }
+
+        .achievement-notification-content {
+            background: linear-gradient(135deg, rgba(50, 50, 70, 0.98), rgba(30, 30, 50, 0.98));
+            border: 2px solid #ffd700;
+            border-radius: 15px;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            animation: achievementGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes achievementGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        .achievement-notification-icon {
+            font-size: 40px;
+            animation: achievementBounce 0.6s ease infinite;
+        }
+
+        @keyframes achievementBounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .achievement-notification-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .achievement-notification-title {
+            color: #ffd700;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .achievement-notification-name {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .achievement-notification-points {
+            color: #ffd700;
+            font-size: 14px;
+        }
+
         .battle-ui {
             position: absolute;
             bottom: 45px;
@@ -1462,9 +1797,13 @@
                     <div class="nav-icon">🎒</div>
                     <div class="nav-label">装备</div>
                 </div>
-                <div class="nav-item" data-tab="challenge">
-                    <div class="nav-icon">💀</div>
-                    <div class="nav-label">挑战</div>
+                <div class="nav-item" data-tab="tasks">
+                    <div class="nav-icon">📋</div>
+                    <div class="nav-label">任务</div>
+                </div>
+                <div class="nav-item" data-tab="achievements">
+                    <div class="nav-icon">🏆</div>
+                    <div class="nav-label">成就</div>
                 </div>
             </div>
         </div>
@@ -1538,9 +1877,33 @@
                 </div>
             </div>
 
-            <div class="challenge-screen hidden" id="challengeTab">
-                <div class="coming-soon-icon">💀</div>
-                <div class="coming-soon">挑战功能开发中...</div>
+            <div class="tasks-screen hidden" id="tasksTab">
+                <div class="tasks-header">
+                    <div class="section-title">每日任务</div>
+                    <div class="tasks-refresh-info">
+                        <span id="tasksRefreshTime">今日剩余: 00:00:00</span>
+                    </div>
+                </div>
+                <div class="tasks-list" id="tasksList">
+                </div>
+            </div>
+
+            <div class="achievements-screen hidden" id="achievementsTab">
+                <div class="achievements-header">
+                    <div class="section-title">成就系统</div>
+                    <div class="achievements-stats">
+                        <span class="achievement-points">🏆 成就点: <span id="totalAchievementPoints">0</span></span>
+                        <span class="achievement-progress">解锁: <span id="unlockedAchievements">0</span>/<span id="totalAchievements">0</span></span>
+                    </div>
+                </div>
+                <div class="achievements-tabs">
+                    <button class="achievement-tab active" data-filter="all">全部</button>
+                    <button class="achievement-tab" data-filter="unlocked">已解锁</button>
+                    <button class="achievement-tab" data-filter="locked">未解锁</button>
+                    <button class="achievement-tab" data-filter="stats">统计</button>
+                </div>
+                <div class="achievements-list" id="achievementsList">
+                </div>
             </div>
         </div>
 
@@ -1594,6 +1957,17 @@
             <div class="gameover-buttons">
                 <button class="gameover-btn" id="retryBtn">重新挑战</button>
                 <button class="gameover-btn return" id="returnMainBtn2">返回主界面</button>
+            </div>
+        </div>
+
+        <div class="achievement-notification" id="achievementNotification">
+            <div class="achievement-notification-content">
+                <div class="achievement-notification-icon" id="achievementNotifIcon">🏆</div>
+                <div class="achievement-notification-text">
+                    <div class="achievement-notification-title">成就解锁！</div>
+                    <div class="achievement-notification-name" id="achievementNotifName">成就名称</div>
+                    <div class="achievement-notification-points" id="achievementNotifPoints">+10 成就点</div>
+                </div>
             </div>
         </div>
 

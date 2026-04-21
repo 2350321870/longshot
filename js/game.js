@@ -59,7 +59,19 @@ class DragonShooterGame {
                 totalKills: 0,
                 totalCleared: 0,
                 totalGoldEarned: 0,
-                firstClearDate: null
+                firstClearDate: null,
+                totalSkillsUsed: 0,
+                totalChestsOpened: 0,
+                totalDamageDealt: 0,
+                totalDamageTaken: 0,
+                totalPowerupsCollected: 0,
+                totalRevivesUsed: 0,
+                totalGameTime: 0,
+                highestSingleDamage: 0,
+                totalBossKills: 0,
+                perfectLevels: 0,
+                totalPlayCount: 0,
+                totalDeaths: 0
             }
         };
         
@@ -439,6 +451,14 @@ class DragonShooterGame {
                 rewards: { gold: 80, diamonds: 1 }
             },
             {
+                id: 'kill_50',
+                type: 'kill_enemies',
+                name: '百人斩序曲',
+                description: '击败 50 个敌人',
+                target: 50,
+                rewards: { gold: 120, diamonds: 2 }
+            },
+            {
                 id: 'collect_100g',
                 type: 'collect_gold',
                 name: '淘金者',
@@ -453,6 +473,14 @@ class DragonShooterGame {
                 description: '收集 200 金币',
                 target: 200,
                 rewards: { gold: 50, diamonds: 1 }
+            },
+            {
+                id: 'collect_500g',
+                type: 'collect_gold',
+                name: '小财主',
+                description: '收集 500 金币',
+                target: 500,
+                rewards: { gold: 100, diamonds: 2 }
             },
             {
                 id: 'complete_1',
@@ -471,6 +499,14 @@ class DragonShooterGame {
                 rewards: { gold: 100, diamonds: 2 }
             },
             {
+                id: 'complete_5',
+                type: 'complete_levels',
+                name: '连战连捷',
+                description: '完成 5 个关卡',
+                target: 5,
+                rewards: { gold: 200, diamonds: 3 }
+            },
+            {
                 id: 'use_skill_5',
                 type: 'use_skills',
                 name: '技能大师',
@@ -487,6 +523,14 @@ class DragonShooterGame {
                 rewards: { gold: 60, diamonds: 1 }
             },
             {
+                id: 'use_skill_20',
+                type: 'use_skills',
+                name: '技能狂人',
+                description: '使用技能 20 次',
+                target: 20,
+                rewards: { gold: 100, diamonds: 2 }
+            },
+            {
                 id: 'open_chest_3',
                 type: 'open_chests',
                 name: '寻宝者',
@@ -501,6 +545,46 @@ class DragonShooterGame {
                 description: '打开 5 个宝箱',
                 target: 5,
                 rewards: { gold: 70, diamonds: 1 }
+            },
+            {
+                id: 'open_chest_10',
+                type: 'open_chests',
+                name: '宝藏猎人',
+                description: '打开 10 个宝箱',
+                target: 10,
+                rewards: { gold: 150, diamonds: 3 }
+            },
+            {
+                id: 'collect_300g_single',
+                type: 'collect_gold_single',
+                name: '一掷千金',
+                description: '单局收集 300 金币',
+                target: 300,
+                rewards: { gold: 80, diamonds: 2 }
+            },
+            {
+                id: 'kill_15_single',
+                type: 'kill_enemies_single',
+                name: '单局屠杀',
+                description: '单局击败 15 个敌人',
+                target: 15,
+                rewards: { gold: 60, diamonds: 1 }
+            },
+            {
+                id: 'complete_level_5',
+                type: 'complete_specific_level',
+                name: '挑战第5关',
+                description: '完成第 5 关',
+                target: 5,
+                rewards: { gold: 150, diamonds: 3 }
+            },
+            {
+                id: 'complete_level_10',
+                type: 'complete_specific_level',
+                name: '挑战第10关',
+                description: '完成第 10 关',
+                target: 10,
+                rewards: { gold: 300, diamonds: 5 }
             }
         ];
         
@@ -634,6 +718,206 @@ class DragonShooterGame {
                 target: 1,
                 achievementPoints: 45,
                 rewards: { gold: 450, diamonds: 25 }
+            },
+            {
+                id: 'kill_1000',
+                name: '万人斩',
+                description: '累计击败 1000 个敌人',
+                icon: '⚔️',
+                type: 'total_kills',
+                target: 1000,
+                achievementPoints: 80,
+                rewards: { gold: 800, diamonds: 40 }
+            },
+            {
+                id: 'kill_5000',
+                name: '战神',
+                description: '累计击败 5000 个敌人',
+                icon: '🗡️',
+                type: 'total_kills',
+                target: 5000,
+                achievementPoints: 150,
+                rewards: { gold: 2000, diamonds: 100 }
+            },
+            {
+                id: 'gold_50000',
+                name: '富可敌国',
+                description: '累计获得 50000 金币',
+                icon: '🏦',
+                type: 'total_gold',
+                target: 50000,
+                achievementPoints: 100,
+                rewards: { gold: 5000, diamonds: 100 }
+            },
+            {
+                id: 'skills_100',
+                name: '法术学徒',
+                description: '累计使用技能 100 次',
+                icon: '✨',
+                type: 'total_skills',
+                target: 100,
+                achievementPoints: 20,
+                rewards: { gold: 200, diamonds: 10 }
+            },
+            {
+                id: 'skills_500',
+                name: '法术大师',
+                description: '累计使用技能 500 次',
+                icon: '🌟',
+                type: 'total_skills',
+                target: 500,
+                achievementPoints: 60,
+                rewards: { gold: 600, diamonds: 30 }
+            },
+            {
+                id: 'chests_50',
+                name: '寻宝达人',
+                description: '累计打开 50 个宝箱',
+                icon: '📦',
+                type: 'total_chests',
+                target: 50,
+                achievementPoints: 25,
+                rewards: { gold: 250, diamonds: 12 }
+            },
+            {
+                id: 'chests_200',
+                name: '宝藏猎人',
+                description: '累计打开 200 个宝箱',
+                icon: '💎',
+                type: 'total_chests',
+                target: 200,
+                achievementPoints: 70,
+                rewards: { gold: 700, diamonds: 35 }
+            },
+            {
+                id: 'damage_dealt_50000',
+                name: '伤害输出',
+                description: '累计造成 50000 点伤害',
+                icon: '💥',
+                type: 'total_damage_dealt',
+                target: 50000,
+                achievementPoints: 30,
+                rewards: { gold: 300, diamonds: 15 }
+            },
+            {
+                id: 'damage_dealt_500000',
+                name: '毁灭者',
+                description: '累计造成 500000 点伤害',
+                icon: '🔥',
+                type: 'total_damage_dealt',
+                target: 500000,
+                achievementPoints: 100,
+                rewards: { gold: 1000, diamonds: 50 }
+            },
+            {
+                id: 'highest_damage_100',
+                name: '暴击入门',
+                description: '单次造成 100 点伤害',
+                icon: '⚡',
+                type: 'highest_damage',
+                target: 100,
+                achievementPoints: 15,
+                rewards: { gold: 150, diamonds: 8 }
+            },
+            {
+                id: 'highest_damage_500',
+                name: '暴击大师',
+                description: '单次造成 500 点伤害',
+                icon: '💫',
+                type: 'highest_damage',
+                target: 500,
+                achievementPoints: 50,
+                rewards: { gold: 500, diamonds: 25 }
+            },
+            {
+                id: 'powerups_100',
+                name: '道具收集者',
+                description: '累计收集 100 个道具',
+                icon: '🎁',
+                type: 'total_powerups',
+                target: 100,
+                achievementPoints: 20,
+                rewards: { gold: 200, diamonds: 10 }
+            },
+            {
+                id: 'play_50',
+                name: '游戏爱好者',
+                description: '累计进行 50 局游戏',
+                icon: '🎮',
+                type: 'total_plays',
+                target: 50,
+                achievementPoints: 25,
+                rewards: { gold: 250, diamonds: 12 }
+            },
+            {
+                id: 'play_200',
+                name: '游戏狂人',
+                description: '累计进行 200 局游戏',
+                icon: '🕹️',
+                type: 'total_plays',
+                target: 200,
+                achievementPoints: 60,
+                rewards: { gold: 600, diamonds: 30 }
+            },
+            {
+                id: 'deaths_50',
+                name: '不屈战士',
+                description: '累计阵亡 50 次',
+                icon: '💀',
+                type: 'total_deaths',
+                target: 50,
+                achievementPoints: 10,
+                rewards: { gold: 100, diamonds: 5 }
+            },
+            {
+                id: 'revives_20',
+                name: '复活达人',
+                description: '累计使用复活 20 次',
+                icon: '🔄',
+                type: 'total_revives',
+                target: 20,
+                achievementPoints: 15,
+                rewards: { gold: 150, diamonds: 8 }
+            },
+            {
+                id: 'clear_50',
+                name: '屠龙宗师',
+                description: '通关 50 个关卡',
+                icon: '👑',
+                type: 'total_cleared',
+                target: 50,
+                achievementPoints: 80,
+                rewards: { gold: 800, diamonds: 40 }
+            },
+            {
+                id: 'clear_100',
+                name: '传说屠龙者',
+                description: '通关 100 个关卡',
+                icon: '🏆',
+                type: 'total_cleared',
+                target: 100,
+                achievementPoints: 150,
+                rewards: { gold: 2000, diamonds: 100 }
+            },
+            {
+                id: 'reach_level_50',
+                name: '深渊行者',
+                description: '达到第 50 关',
+                icon: '🌌',
+                type: 'max_reached_level',
+                target: 50,
+                achievementPoints: 120,
+                rewards: { gold: 1200, diamonds: 60 }
+            },
+            {
+                id: 'reach_level_100',
+                name: '深渊主宰',
+                description: '达到第 100 关',
+                icon: '🌟',
+                type: 'max_reached_level',
+                target: 100,
+                achievementPoints: 200,
+                rewards: { gold: 3000, diamonds: 150 }
             }
         ];
         
@@ -767,6 +1051,7 @@ class DragonShooterGame {
         }
         
         const stats = this.saveData.statistics;
+        const newlyUnlocked = [];
         
         for (const achievement of this.achievements) {
             if (this.saveData.unlockedAchievements.includes(achievement.id)) continue;
@@ -798,10 +1083,47 @@ class DragonShooterGame {
                 case 'full_equipment':
                     isUnlocked = this.hasFullEquipment();
                     break;
+                case 'total_skills':
+                    isUnlocked = (stats.totalSkillsUsed || 0) >= achievement.target;
+                    break;
+                case 'total_chests':
+                    isUnlocked = (stats.totalChestsOpened || 0) >= achievement.target;
+                    break;
+                case 'total_damage_dealt':
+                    isUnlocked = (stats.totalDamageDealt || 0) >= achievement.target;
+                    break;
+                case 'total_damage_taken':
+                    isUnlocked = (stats.totalDamageTaken || 0) >= achievement.target;
+                    break;
+                case 'total_powerups':
+                    isUnlocked = (stats.totalPowerupsCollected || 0) >= achievement.target;
+                    break;
+                case 'total_revives':
+                    isUnlocked = (stats.totalRevivesUsed || 0) >= achievement.target;
+                    break;
+                case 'total_playtime':
+                    isUnlocked = Math.floor((stats.totalGameTime || 0) / 60) >= achievement.target;
+                    break;
+                case 'highest_damage':
+                    isUnlocked = (stats.highestSingleDamage || 0) >= achievement.target;
+                    break;
+                case 'total_bosses':
+                    isUnlocked = (stats.totalBossKills || 0) >= achievement.target;
+                    break;
+                case 'perfect_levels':
+                    isUnlocked = (stats.perfectLevels || 0) >= achievement.target;
+                    break;
+                case 'total_plays':
+                    isUnlocked = (stats.totalPlayCount || 0) >= achievement.target;
+                    break;
+                case 'total_deaths':
+                    isUnlocked = (stats.totalDeaths || 0) >= achievement.target;
+                    break;
             }
             
             if (isUnlocked) {
                 this.saveData.unlockedAchievements.push(achievement.id);
+                newlyUnlocked.push(achievement);
                 
                 if (!this.saveData.achievementPoints) {
                     this.saveData.achievementPoints = 0;
@@ -811,6 +1133,14 @@ class DragonShooterGame {
         }
         
         this.saveGameData();
+        
+        if (newlyUnlocked.length > 0) {
+            newlyUnlocked.forEach((achievement, index) => {
+                setTimeout(() => {
+                    this.showAchievementNotification(achievement);
+                }, index * 4500);
+            });
+        }
     }
     
     hasEquippedQuality(quality) {
@@ -867,10 +1197,42 @@ class DragonShooterGame {
                 this.updateTaskProgress('collect_gold', amount);
                 break;
             case 'skill_use':
+                stats.totalSkillsUsed += amount;
                 this.updateTaskProgress('use_skills', amount);
                 break;
             case 'chest_open':
+                stats.totalChestsOpened += amount;
                 this.updateTaskProgress('open_chests', amount);
+                break;
+            case 'damage_dealt':
+                stats.totalDamageDealt += amount;
+                if (amount > stats.highestSingleDamage) {
+                    stats.highestSingleDamage = amount;
+                }
+                break;
+            case 'damage_taken':
+                stats.totalDamageTaken += amount;
+                break;
+            case 'powerup_collect':
+                stats.totalPowerupsCollected += amount;
+                break;
+            case 'revive_use':
+                stats.totalRevivesUsed += amount;
+                break;
+            case 'game_time':
+                stats.totalGameTime += amount;
+                break;
+            case 'boss_kill':
+                stats.totalBossKills += amount;
+                break;
+            case 'perfect_level':
+                stats.perfectLevels += amount;
+                break;
+            case 'play_game':
+                stats.totalPlayCount += amount;
+                break;
+            case 'death':
+                stats.totalDeaths += amount;
                 break;
         }
         
@@ -939,6 +1301,30 @@ class DragonShooterGame {
                 return this.hasEquippedQuality(achievement.target) ? 1 : 0;
             case 'full_equipment':
                 return this.hasFullEquipment() ? 1 : 0;
+            case 'total_skills':
+                return stats.totalSkillsUsed || 0;
+            case 'total_chests':
+                return stats.totalChestsOpened || 0;
+            case 'total_damage_dealt':
+                return stats.totalDamageDealt || 0;
+            case 'total_damage_taken':
+                return stats.totalDamageTaken || 0;
+            case 'total_powerups':
+                return stats.totalPowerupsCollected || 0;
+            case 'total_revives':
+                return stats.totalRevivesUsed || 0;
+            case 'total_playtime':
+                return Math.floor((stats.totalGameTime || 0) / 60);
+            case 'highest_damage':
+                return stats.highestSingleDamage || 0;
+            case 'total_bosses':
+                return stats.totalBossKills || 0;
+            case 'perfect_levels':
+                return stats.perfectLevels || 0;
+            case 'total_plays':
+                return stats.totalPlayCount || 0;
+            case 'total_deaths':
+                return stats.totalDeaths || 0;
             default:
                 return 0;
         }
@@ -1265,6 +1651,13 @@ class DragonShooterGame {
             });
         });
         
+        document.querySelectorAll('.achievement-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const filter = tab.dataset.filter;
+                this.renderAchievementsTab(filter);
+            });
+        });
+        
         try {
             document.getElementById('gachaSingleBtn').addEventListener('click', () => this.doGacha(1));
             document.getElementById('gachaTenBtn').addEventListener('click', () => this.doGacha(10));
@@ -1293,7 +1686,8 @@ class DragonShooterGame {
         document.getElementById('shopTab').classList.toggle('hidden', tab !== 'shop');
         document.getElementById('characterTab').classList.toggle('hidden', tab !== 'character');
         document.getElementById('equipmentTab').classList.toggle('hidden', tab !== 'equipment');
-        document.getElementById('challengeTab').classList.toggle('hidden', tab !== 'challenge');
+        document.getElementById('tasksTab').classList.toggle('hidden', tab !== 'tasks');
+        document.getElementById('achievementsTab').classList.toggle('hidden', tab !== 'achievements');
         
         if (tab === 'battle') {
             this.renderBattleTab();
@@ -1303,12 +1697,224 @@ class DragonShooterGame {
             this.renderShopTab();
         } else if (tab === 'equipment') {
             this.renderEquipmentTab();
+        } else if (tab === 'tasks') {
+            this.renderTasksTab();
+        } else if (tab === 'achievements') {
+            this.renderAchievementsTab();
         }
     }
     
     renderBattleTab() {
         this.renderLevelGrid();
         this.renderLevelRewards();
+    }
+    
+    renderTasksTab() {
+        const list = document.getElementById('tasksList');
+        list.innerHTML = '';
+        
+        const dailyTasks = this.saveData.dailyTasks;
+        if (!dailyTasks || dailyTasks.length === 0) {
+            list.innerHTML = '<div style="color: #aaa; text-align: center; padding: 40px;">暂无每日任务</div>';
+            return;
+        }
+        
+        dailyTasks.forEach(task => {
+            const isCompleted = task.progress >= task.target;
+            const isClaimed = this.saveData.claimedRewards?.[task.id] === true;
+            const progress = Math.min(task.progress, task.target);
+            const progressPercent = (progress / task.target) * 100;
+            
+            const taskItem = document.createElement('div');
+            taskItem.className = `task-item ${isCompleted ? 'completed' : ''} ${isClaimed ? 'claimed' : ''}`;
+            
+            let rewardsHtml = '';
+            if (task.rewards.gold > 0) {
+                rewardsHtml += `💰${task.rewards.gold}`;
+            }
+            if (task.rewards.diamonds > 0) {
+                if (rewardsHtml) rewardsHtml += ' ';
+                rewardsHtml += `💎${task.rewards.diamonds}`;
+            }
+            
+            let actionHtml = '';
+            if (isClaimed) {
+                actionHtml = '<div class="task-claimed-text">✓ 已领取</div>';
+            } else if (isCompleted) {
+                actionHtml = `<button class="task-claim-btn" data-task-id="${task.id}">领取奖励</button>`;
+            } else {
+                actionHtml = `<div class="task-progress-text ${isCompleted ? 'completed' : ''}">${progress}/${task.target}</div>`;
+            }
+            
+            taskItem.innerHTML = `
+                <div class="task-header">
+                    <div class="task-name">${task.name}</div>
+                    <div class="task-rewards">${rewardsHtml}</div>
+                </div>
+                <div class="task-description">${task.description}</div>
+                <div class="task-progress-container">
+                    <div class="task-progress-bar">
+                        <div class="task-progress-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    ${actionHtml}
+                </div>
+            `;
+            
+            list.appendChild(taskItem);
+        });
+        
+        list.querySelectorAll('.task-claim-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const taskId = btn.dataset.taskId;
+                this.claimTaskReward(taskId);
+            });
+        });
+        
+        this.updateTasksRefreshTime();
+    }
+    
+    updateTasksRefreshTime() {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const diff = tomorrow - now;
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        const timeEl = document.getElementById('tasksRefreshTime');
+        if (timeEl) {
+            timeEl.textContent = `刷新时间: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+    
+    claimTaskReward(taskId) {
+        if (!this.saveData.claimedRewards) {
+            this.saveData.claimedRewards = {};
+        }
+        
+        if (this.saveData.claimedRewards[taskId]) {
+            this.showToast('奖励已领取！');
+            return;
+        }
+        
+        const task = this.saveData.dailyTasks?.find(t => t.id === taskId);
+        if (!task || task.progress < task.target) {
+            this.showToast('任务未完成！');
+            return;
+        }
+        
+        this.saveData.claimedRewards[taskId] = true;
+        
+        if (task.rewards.gold) {
+            this.saveData.gold += task.rewards.gold;
+        }
+        if (task.rewards.diamonds) {
+            this.saveData.diamonds += task.rewards.diamonds;
+        }
+        
+        this.saveGameData();
+        this.renderTasksTab();
+        this.showToast(`领取成功！${task.rewards.gold ? `💰${task.rewards.gold}` : ''} ${task.rewards.diamonds ? `💎${task.rewards.diamonds}` : ''}`);
+    }
+    
+    renderAchievementsTab(filter = 'all') {
+        const list = document.getElementById('achievementsList');
+        list.innerHTML = '';
+        
+        const achievements = this.getAchievementsWithProgress();
+        
+        let filteredAchievements = achievements;
+        if (filter === 'unlocked') {
+            filteredAchievements = achievements.filter(a => a.unlocked);
+        } else if (filter === 'locked') {
+            filteredAchievements = achievements.filter(a => !a.unlocked);
+        }
+        
+        const totalPoints = this.saveData.achievementPoints || 0;
+        const unlockedCount = achievements.filter(a => a.unlocked).length;
+        
+        document.getElementById('totalAchievementPoints').textContent = totalPoints;
+        document.getElementById('unlockedAchievements').textContent = unlockedCount;
+        document.getElementById('totalAchievements').textContent = achievements.length;
+        
+        if (filteredAchievements.length === 0) {
+            list.innerHTML = '<div style="color: #aaa; text-align: center; padding: 40px;">暂无成就</div>';
+            return;
+        }
+        
+        filteredAchievements.forEach(achievement => {
+            const isClaimed = achievement.claimed;
+            const progress = achievement.progress;
+            const target = achievement.target;
+            const progressPercent = Math.min(100, (progress / target) * 100);
+            
+            const achievementItem = document.createElement('div');
+            achievementItem.className = `achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+            
+            let rewardsHtml = '';
+            if (achievement.rewards.gold) {
+                rewardsHtml += `💰${achievement.rewards.gold}`;
+            }
+            if (achievement.rewards.diamonds) {
+                if (rewardsHtml) rewardsHtml += ' ';
+                rewardsHtml += `💎${achievement.rewards.diamonds}`;
+            }
+            
+            let actionHtml = '';
+            if (achievement.unlocked && isClaimed) {
+                actionHtml = '<div class="achievement-claimed-text">✓ 已领取</div>';
+            } else if (achievement.unlocked) {
+                actionHtml = `<button class="achievement-claim-btn" data-achievement-id="${achievement.id}">领取奖励</button>`;
+            } else {
+                actionHtml = `<div class="achievement-progress-text">进度: ${progress}/${target}</div>`;
+            }
+            
+            achievementItem.innerHTML = `
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-content">
+                    <div class="achievement-name">${achievement.name}</div>
+                    <div class="achievement-description">${achievement.description}</div>
+                    <div class="achievement-footer">
+                        <div>
+                            <span class="achievement-points-text">🏆 ${achievement.achievementPoints} 成就点</span>
+                            ${rewardsHtml ? `<span class="achievement-rewards"> | ${rewardsHtml}</span>` : ''}
+                        </div>
+                        ${actionHtml}
+                    </div>
+                </div>
+            `;
+            
+            list.appendChild(achievementItem);
+        });
+        
+        list.querySelectorAll('.achievement-claim-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const achievementId = btn.dataset.achievementId;
+                this.claimAchievementReward(achievementId);
+            });
+        });
+        
+        document.querySelectorAll('.achievement-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.filter === filter);
+        });
+    }
+    
+    showAchievementNotification(achievement) {
+        const notification = document.getElementById('achievementNotification');
+        if (!notification) return;
+        
+        document.getElementById('achievementNotifIcon').textContent = achievement.icon;
+        document.getElementById('achievementNotifName').textContent = achievement.name;
+        document.getElementById('achievementNotifPoints').textContent = `+${achievement.achievementPoints} 成就点`;
+        
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 4000);
     }
     
     renderCharacterTab() {
@@ -2300,6 +2906,7 @@ class DragonShooterGame {
         
         this.consumeEnergy(3);
         this.freeRefreshCount = 1;
+        this.updateStatistics('play_game', 1);
         this.startLevel(1);
     }
     
@@ -2628,6 +3235,16 @@ class DragonShooterGame {
     }
     
     update(dt) {
+        if (!this._gameTimeAccumulator) {
+            this._gameTimeAccumulator = 0;
+        }
+        this._gameTimeAccumulator += dt;
+        if (this._gameTimeAccumulator >= 1) {
+            const seconds = Math.floor(this._gameTimeAccumulator);
+            this.updateStatistics('game_time', seconds);
+            this._gameTimeAccumulator -= seconds;
+        }
+        
         this.updateCharacterPassive(dt, this.currentTime);
         this.updatePlayer(dt);
         this.updateBullets(dt);
@@ -3897,6 +4514,7 @@ class DragonShooterGame {
         if (this.reviveCount <= 0) return;
         
         this.reviveCount--;
+        this.updateStatistics('revive', 1);
         
         for (const enemy of this.enemies) {
             if (enemy.isWinding && enemy.pathDistance !== undefined) {
@@ -3925,6 +4543,7 @@ class DragonShooterGame {
         if (this.currentLevel > this.saveData.maxUnlockedLevel) {
             this.saveData.maxUnlockedLevel = this.currentLevel;
         }
+        this.updateStatistics('death', 1);
         this.saveGameData();
         
         document.getElementById('finalLevel').textContent = this.currentLevel;
