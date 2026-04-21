@@ -3680,24 +3680,44 @@ class DragonShooterGame {
         const dragonX = this.width * startX;
         const dragonY = this.height * startY;
         
+        const bodySegments = [];
+        const segmentCount = 12;
+        for (let i = 0; i < segmentCount; i++) {
+            bodySegments.push({
+                x: dragonX,
+                y: dragonY,
+                targetX: dragonX,
+                targetY: dragonY,
+                angle: 0,
+                scale: 1 - (i / segmentCount) * 0.8
+            });
+        }
+        
         this.thunderDragon = {
             x: dragonX,
             y: dragonY,
             vx: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed,
             vy: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed * 0.6,
+            angle: Math.atan2((Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed * 0.6, (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed),
+            targetAngle: 0,
             damage: stats.damage,
             skillDamageBonus: skillDamageBonus,
             lightningTimer: 0,
             lightningFrequency: stats.lightningFrequency,
             duration: stats.duration,
             elapsed: 0,
-            targetChangeTimer: 0
+            targetChangeTimer: 0,
+            bodySegments: bodySegments,
+            bodySegmentCount: segmentCount,
+            lightningEffects: [],
+            pulsePhase: 0,
+            roarPhase: 0
         };
         this.thunderDragonTimer = stats.duration;
         
-        this.addScreenShake(3, 0.25);
+        this.addScreenShake(5, 0.3);
         
-        this.createKillExplosion(dragonX, dragonY, '#FFFF00', 2);
+        this.createKillExplosion(dragonX, dragonY, '#FFFF00', 3);
     }
     
     updateThunderDragon(dt) {
@@ -3708,32 +3728,111 @@ class DragonShooterGame {
         
         this.thunderDragon.elapsed += dt;
         this.thunderDragonTimer -= dt;
+        this.thunderDragon.pulsePhase += dt * 8;
+        this.thunderDragon.roarPhase += dt * 4;
         
         if (this.thunderDragon.elapsed >= this.thunderDragon.duration) {
             this.thunderDragon = null;
             return;
         }
         
-        this.thunderDragon.x += this.thunderDragon.vx * 60 * dt;
-        this.thunderDragon.y += this.thunderDragon.vy * 60 * dt;
-        
-        if (this.thunderDragon.x < 50 || this.thunderDragon.x > this.width - 50) {
-            this.thunderDragon.vx *= -1;
-            this.thunderDragon.x = Math.max(50, Math.min(this.width - 50, this.thunderDragon.x));
-        }
-        if (this.thunderDragon.y < 80 || this.thunderDragon.y > this.height - 80) {
-            this.thunderDragon.vy *= -1;
-            this.thunderDragon.y = Math.max(80, Math.min(this.height - 80, this.thunderDragon.y));
-        }
-        
         this.thunderDragon.targetChangeTimer += dt;
-        if (this.thunderDragon.targetChangeTimer > 2 + Math.random() * 2) {
+        if (this.thunderDragon.targetChangeTimer > 1.5 + Math.random() * 2) {
             this.thunderDragon.targetChangeTimer = 0;
-            if (Math.random() < 0.4) {
-                this.thunderDragon.vx *= -1;
+            
+            let nearestEnemy = null;
+            let nearestDist = Infinity;
+            
+            for (const enemy of this.enemies) {
+                if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
+                    const dx = enemy.segments[0].x - this.thunderDragon.x;
+                    const dy = enemy.segments[0].y - this.thunderDragon.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestEnemy = enemy.segments[0];
+                    }
+                }
             }
-            if (Math.random() < 0.4) {
-                this.thunderDragon.vy *= -1;
+            
+            if (nearestEnemy && Math.random() < 0.7) {
+                const targetAngle = Math.atan2(
+                    nearestEnemy.y - this.thunderDragon.y,
+                    nearestEnemy.x - this.thunderDragon.x
+                );
+                this.thunderDragon.targetAngle = targetAngle;
+            } else {
+                this.thunderDragon.targetAngle += (Math.random() - 0.5) * Math.PI * 1.5;
+            }
+        }
+        
+        const currentAngle = this.thunderDragon.angle;
+        let angleDiff = this.thunderDragon.targetAngle - currentAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+        
+        this.thunderDragon.angle += angleDiff * dt * 3;
+        
+        const speed = 180;
+        this.thunderDragon.vx = Math.cos(this.thunderDragon.angle) * speed;
+        this.thunderDragon.vy = Math.sin(this.thunderDragon.angle) * speed;
+        
+        this.thunderDragon.x += this.thunderDragon.vx * dt;
+        this.thunderDragon.y += this.thunderDragon.vy * dt;
+        
+        const margin = 80;
+        if (this.thunderDragon.x < margin) {
+            this.thunderDragon.x = margin;
+            this.thunderDragon.targetAngle = Math.PI - this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
+        }
+        if (this.thunderDragon.x > this.width - margin) {
+            this.thunderDragon.x = this.width - margin;
+            this.thunderDragon.targetAngle = Math.PI - this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
+        }
+        if (this.thunderDragon.y < margin + 30) {
+            this.thunderDragon.y = margin + 30;
+            this.thunderDragon.targetAngle = -this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
+        }
+        if (this.thunderDragon.y > this.height - margin) {
+            this.thunderDragon.y = this.height - margin;
+            this.thunderDragon.targetAngle = -this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
+        }
+        
+        const segments = this.thunderDragon.bodySegments;
+        const followDelay = 0.08;
+        
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
+            
+            let targetX, targetY;
+            if (i === 0) {
+                targetX = this.thunderDragon.x;
+                targetY = this.thunderDragon.y;
+            } else {
+                const prevSeg = segments[i - 1];
+                targetX = prevSeg.x;
+                targetY = prevSeg.y;
+            }
+            
+            const dx = targetX - seg.x;
+            const dy = targetY - seg.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            const idealDist = 12;
+            if (dist > idealDist) {
+                const ratio = (dist - idealDist) / dist * 0.8;
+                seg.x += dx * ratio;
+                seg.y += dy * ratio;
+            }
+            
+            if (i === 0) {
+                seg.angle = this.thunderDragon.angle;
+            } else {
+                const angleToPrev = Math.atan2(segments[i - 1].y - seg.y, segments[i - 1].x - seg.x);
+                let angleDiff2 = angleToPrev - seg.angle;
+                while (angleDiff2 > Math.PI) angleDiff2 -= Math.PI * 2;
+                while (angleDiff2 < -Math.PI) angleDiff2 += Math.PI * 2;
+                seg.angle += angleDiff2 * 0.3;
             }
         }
         
@@ -3741,7 +3840,64 @@ class DragonShooterGame {
         if (this.thunderDragon.lightningTimer >= this.thunderDragon.lightningFrequency) {
             this.thunderDragon.lightningTimer = 0;
             this.strikeThunder();
+            this.addScreenShake(2, 0.1);
         }
+        
+        if (Math.random() < 0.15) {
+            this.addDragonLightning();
+        }
+    }
+    
+    addDragonLightning() {
+        if (!this.thunderDragon) return;
+        
+        const segments = this.thunderDragon.bodySegments;
+        const headSeg = segments[0];
+        
+        const startSegmentIdx = Math.floor(Math.random() * segments.length);
+        const startSeg = segments[startSegmentIdx];
+        
+        const angle = Math.random() * Math.PI * 2;
+        const length = 30 + Math.random() * 60;
+        
+        this.thunderDragon.lightningEffects.push({
+            startX: startSeg.x,
+            startY: startSeg.y,
+            endX: startSeg.x + Math.cos(angle) * length,
+            endY: startSeg.y + Math.sin(angle) * length,
+            life: 0.15,
+            maxLife: 0.15,
+            segments: this.generateLightningPath(
+                startSeg.x, startSeg.y,
+                startSeg.x + Math.cos(angle) * length,
+                startSeg.y + Math.sin(angle) * length,
+                4
+            ),
+            color: Math.random() < 0.5 ? '#FFFFFF' : '#87CEEB'
+        });
+    }
+    
+    generateLightningPath(x1, y1, x2, y2, segments) {
+        const path = [{ x: x1, y: y1 }];
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        for (let i = 1; i < segments; i++) {
+            const ratio = i / segments;
+            const baseX = x1 + dx * ratio;
+            const baseY = y1 + dy * ratio;
+            const offset = (Math.random() - 0.5) * dist * 0.15;
+            const perpAngle = Math.atan2(dy, dx) + Math.PI / 2;
+            
+            path.push({
+                x: baseX + Math.cos(perpAngle) * offset,
+                y: baseY + Math.sin(perpAngle) * offset
+            });
+        }
+        
+        path.push({ x: x2, y: y2 });
+        return path;
     }
     
     strikeThunder() {
@@ -5621,77 +5777,285 @@ class DragonShooterGame {
     drawThunderDragon() {
         if (!this.thunderDragon) return;
         
-        this.ctx.save();
-        this.ctx.translate(this.thunderDragon.x, this.thunderDragon.y);
-        
-        const angle = Math.atan2(this.thunderDragon.vy, this.thunderDragon.vx);
-        this.ctx.rotate(angle);
-        
         const time = this.currentTime;
-        const pulseIntensity = 0.3 + 0.2 * Math.sin(time * 10);
+        const segments = this.thunderDragon.bodySegments;
+        const pulsePhase = this.thunderDragon.pulsePhase || 0;
         
-        this.ctx.shadowColor = '#FFFF00';
-        this.ctx.shadowBlur = 30 + pulseIntensity * 20;
+        if (!segments || segments.length === 0) return;
         
-        const bodyGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, 50);
-        bodyGradient.addColorStop(0, '#FFFFFF');
-        bodyGradient.addColorStop(0.3, '#FFFF00');
-        bodyGradient.addColorStop(1, '#FFA500');
+        this.ctx.save();
         
-        this.ctx.fillStyle = bodyGradient;
-        this.ctx.beginPath();
-        this.ctx.ellipse(0, 0, 45, 25, 0, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.shadowBlur = 15;
-        this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.beginPath();
-        this.ctx.ellipse(0, 0, 30, 15, 0, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.shadowColor = '#FFFFFF';
-        this.ctx.shadowBlur = 10;
-        this.ctx.beginPath();
-        this.ctx.ellipse(38, -10, 8, 10, 0, 0, Math.PI * 2);
-        this.ctx.ellipse(38, 10, 8, 10, 0, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = '#FF0000';
-        this.ctx.beginPath();
-        this.ctx.arc(40, -10, 4, 0, Math.PI * 2);
-        this.ctx.arc(40, 10, 4, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.shadowColor = '#FFFF00';
-        this.ctx.shadowBlur = 20;
-        this.ctx.strokeStyle = '#FFFF00';
-        this.ctx.lineWidth = 3;
-        this.ctx.beginPath();
-        this.ctx.moveTo(42, 0);
-        this.ctx.lineTo(60, -20);
-        this.ctx.moveTo(42, 0);
-        this.ctx.lineTo(60, 20);
-        this.ctx.stroke();
-        
-        this.ctx.shadowBlur = 10;
-        this.ctx.strokeStyle = '#FFFFFF';
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
-        
-        this.ctx.shadowBlur = 0;
-        for (let i = 0; i < 3; i++) {
-            const offsetX = -20 - i * 15;
-            const offsetY = Math.sin(time * 8 + i) * 5;
+        for (let i = segments.length - 1; i >= 0; i--) {
+            const seg = segments[i];
+            const nextSeg = i < segments.length - 1 ? segments[i + 1] : null;
+            const prevSeg = i > 0 ? segments[i - 1] : null;
             
-            this.ctx.fillStyle = `rgba(255, 255, 0, ${0.5 - i * 0.15})`;
-            this.ctx.shadowColor = '#FFFF00';
-            this.ctx.shadowBlur = 15 - i * 3;
+            const segScale = seg.scale || (1 - (i / segments.length) * 0.8);
+            const isHead = i === 0;
+            const isTail = i === segments.length - 1;
+            
+            this.ctx.save();
+            this.ctx.translate(seg.x, seg.y);
+            this.ctx.rotate(seg.angle);
+            
+            const pulse = 0.3 + 0.2 * Math.sin(pulsePhase + i * 0.3);
+            const glowSize = 30 + pulse * 20;
+            
+            if (isHead) {
+                const auraGrad = this.ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize * 2);
+                auraGrad.addColorStop(0, `rgba(255, 255, 100, ${0.3 + pulse * 0.2})`);
+                auraGrad.addColorStop(0.5, `rgba(255, 200, 0, ${0.15 + pulse * 0.1})`);
+                auraGrad.addColorStop(1, 'rgba(255, 150, 0, 0)');
+                this.ctx.fillStyle = auraGrad;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, glowSize * 2, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            
+            if (!isTail) {
+                this.ctx.shadowColor = isHead ? '#FFFF00' : '#FFD700';
+                this.ctx.shadowBlur = isHead ? 25 + pulse * 15 : 15 + pulse * 10;
+                
+                const bodyWidth = 22 * segScale;
+                const bodyHeight = 14 * segScale;
+                
+                const bodyGrad = this.ctx.createRadialGradient(0, 0, 0, 0, 0, bodyWidth);
+                if (isHead) {
+                    bodyGrad.addColorStop(0, '#FFFFFF');
+                    bodyGrad.addColorStop(0.2, '#FFFFAA');
+                    bodyGrad.addColorStop(0.5, '#FFD700');
+                    bodyGrad.addColorStop(0.8, '#FFA500');
+                    bodyGrad.addColorStop(1, '#CD853F');
+                } else {
+                    bodyGrad.addColorStop(0, `rgba(255, 255, 200, ${0.9 + pulse * 0.1})`);
+                    bodyGrad.addColorStop(0.3, `rgba(255, 215, 0, ${0.85 + pulse * 0.1})`);
+                    bodyGrad.addColorStop(0.7, `rgba(255, 140, 0, ${0.8 + pulse * 0.1})`);
+                    bodyGrad.addColorStop(1, 'rgba(205, 133, 63, 0.7)');
+                }
+                
+                this.ctx.fillStyle = bodyGrad;
+                this.ctx.beginPath();
+                
+                if (isHead) {
+                    const headWidth = 28;
+                    const headHeight = 20;
+                    
+                    this.ctx.moveTo(headWidth * 1.1, 0);
+                    this.ctx.quadraticCurveTo(headWidth * 0.8, -headHeight * 1.2, 0, -headHeight);
+                    this.ctx.quadraticCurveTo(-headWidth * 0.8, -headHeight * 0.8, -headWidth * 0.9, 0);
+                    this.ctx.quadraticCurveTo(-headWidth * 0.8, headHeight * 0.8, 0, headHeight);
+                    this.ctx.quadraticCurveTo(headWidth * 0.8, headHeight * 1.2, headWidth * 1.1, 0);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowBlur = 0;
+                    
+                    const nostrilGrad = this.ctx.createRadialGradient(headWidth * 0.8, -4, 0, headWidth * 0.8, -4, 5);
+                    nostrilGrad.addColorStop(0, '#FFFFFF');
+                    nostrilGrad.addColorStop(0.5, '#87CEEB');
+                    nostrilGrad.addColorStop(1, '#4169E1');
+                    this.ctx.fillStyle = nostrilGrad;
+                    this.ctx.shadowColor = '#00FFFF';
+                    this.ctx.shadowBlur = 10 + pulse * 10;
+                    this.ctx.beginPath();
+                    this.ctx.arc(headWidth * 0.8, -4, 4, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.arc(headWidth * 0.8, 4, 4, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowColor = '#FFFF00';
+                    this.ctx.shadowBlur = 15;
+                    const eyeGrad = this.ctx.createRadialGradient(headWidth * 0.2, -11, 0, headWidth * 0.2, -11, 8);
+                    eyeGrad.addColorStop(0, '#FFFFFF');
+                    eyeGrad.addColorStop(0.3, '#FFFF00');
+                    eyeGrad.addColorStop(0.7, '#FF4500');
+                    eyeGrad.addColorStop(1, '#8B0000');
+                    this.ctx.fillStyle = eyeGrad;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(headWidth * 0.2, -11, 7, 9, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(headWidth * 0.2, 11, 7, 9, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.shadowBlur = 0;
+                    this.ctx.beginPath();
+                    this.ctx.arc(headWidth * 0.25, -11, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.arc(headWidth * 0.25, 11, 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowColor = '#FFD700';
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.fillStyle = '#FFD700';
+                    this.ctx.lineWidth = 4;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(headWidth * 0.0, -18);
+                    this.ctx.quadraticCurveTo(headWidth * -0.3, -30, headWidth * -0.2, -38);
+                    this.ctx.quadraticCurveTo(headWidth * -0.1, -45, headWidth * 0.05, -42);
+                    this.ctx.quadraticCurveTo(headWidth * 0.0, -35, headWidth * 0.1, -22);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(headWidth * 0.0, 18);
+                    this.ctx.quadraticCurveTo(headWidth * -0.3, 30, headWidth * -0.2, 38);
+                    this.ctx.quadraticCurveTo(headWidth * -0.1, 45, headWidth * 0.05, 42);
+                    this.ctx.quadraticCurveTo(headWidth * 0.0, 35, headWidth * 0.1, 22);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowColor = '#FFFFFF';
+                    this.ctx.shadowBlur = 20;
+                    this.ctx.strokeStyle = '#FFFFFF';
+                    this.ctx.lineWidth = 2;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(headWidth * -0.3, -25);
+                    this.ctx.lineTo(headWidth * -0.4, -35);
+                    this.ctx.lineTo(headWidth * -0.3, -40);
+                    this.ctx.stroke();
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(headWidth * -0.3, 25);
+                    this.ctx.lineTo(headWidth * -0.4, 35);
+                    this.ctx.lineTo(headWidth * -0.3, 40);
+                    this.ctx.stroke();
+                    
+                } else if (isTail) {
+                    const tailWidth = 10 * segScale;
+                    const tailHeight = 6 * segScale;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(tailWidth * 0.8, 0);
+                    this.ctx.quadraticCurveTo(tailWidth * 0.3, -tailHeight, -tailWidth * 2, 0);
+                    this.ctx.quadraticCurveTo(tailWidth * 0.3, tailHeight, tailWidth * 0.8, 0);
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowColor = '#FFFF00';
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.fillStyle = `rgba(255, 255, 100, ${0.5 + pulse * 0.3})`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(-tailWidth * 2, 0, 3 + pulse * 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                } else {
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(0, 0, bodyWidth, bodyHeight, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.shadowBlur = 5;
+                    this.ctx.fillStyle = `rgba(205, 133, 63, ${0.6 + pulse * 0.2})`;
+                    
+                    for (let s = -1; s <= 1; s++) {
+                        const sx = s * 10 * segScale;
+                        const sy = (s % 2 === 0 ? 0 : 6 * segScale);
+                        const scale = (s === 0 ? 1 : 0.7) * segScale;
+                        
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(sx, -bodyHeight * 0.8 * scale + sy);
+                        this.ctx.lineTo(sx + 3 * scale, -bodyHeight * 1.5 * scale + sy);
+                        this.ctx.lineTo(sx + 6 * scale, -bodyHeight * 0.8 * scale + sy);
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                        
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(sx, bodyHeight * 0.8 * scale - sy);
+                        this.ctx.lineTo(sx + 3 * scale, bodyHeight * 1.5 * scale - sy);
+                        this.ctx.lineTo(sx + 6 * scale, bodyHeight * 0.8 * scale - sy);
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                    }
+                    
+                    this.ctx.shadowColor = '#FFFFFF';
+                    this.ctx.shadowBlur = 8;
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 + pulse * 0.2})`;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(-5, -bodyHeight * 0.3, 6, 3, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(-5, bodyHeight * 0.3, 6, 3, 0, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+            } else {
+                this.ctx.shadowColor = '#FFFF00';
+                this.ctx.shadowBlur = 10;
+                this.ctx.fillStyle = `rgba(255, 215, 0, ${0.5 + pulse * 0.3})`;
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 0, 8 * segScale, 5 * segScale, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            
+            this.ctx.restore();
+        }
+        
+        if (this.thunderDragon.lightningEffects) {
+            const toRemove = [];
+            for (let i = 0; i < this.thunderDragon.lightningEffects.length; i++) {
+                const effect = this.thunderDragon.lightningEffects[i];
+                effect.life -= 1/60;
+                
+                if (effect.life <= 0) {
+                    toRemove.push(i);
+                    continue;
+                }
+                
+                const alpha = effect.life / effect.maxLife;
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = alpha;
+                this.ctx.shadowColor = effect.color || '#FFFFFF';
+                this.ctx.shadowBlur = 15;
+                this.ctx.strokeStyle = effect.color || '#FFFFFF';
+                this.ctx.lineWidth = 2 + alpha * 2;
+                
+                this.ctx.beginPath();
+                if (effect.segments && effect.segments.length > 0) {
+                    this.ctx.moveTo(effect.segments[0].x, effect.segments[0].y);
+                    for (let j = 1; j < effect.segments.length; j++) {
+                        this.ctx.lineTo(effect.segments[j].x, effect.segments[j].y);
+                    }
+                } else {
+                    this.ctx.moveTo(effect.startX, effect.startY);
+                    this.ctx.lineTo(effect.endX, effect.endY);
+                }
+                this.ctx.stroke();
+                
+                this.ctx.globalAlpha = alpha * 0.5;
+                this.ctx.lineWidth = 5;
+                this.ctx.stroke();
+                
+                this.ctx.restore();
+            }
+            
+            for (let i = toRemove.length - 1; i >= 0; i--) {
+                this.thunderDragon.lightningEffects.splice(toRemove[i], 1);
+            }
+        }
+        
+        const headSeg = segments[0];
+        for (let p = 0; p < 2; p++) {
+            const sparkAngle = Math.random() * Math.PI * 2;
+            const sparkDist = 20 + Math.random() * 40;
+            const sparkX = headSeg.x + Math.cos(sparkAngle) * sparkDist;
+            const sparkY = headSeg.y + Math.sin(sparkAngle) * sparkDist;
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+            this.ctx.fillStyle = Math.random() < 0.5 ? '#FFFFFF' : '#87CEEB';
+            this.ctx.shadowColor = this.ctx.fillStyle;
+            this.ctx.shadowBlur = 10;
             this.ctx.beginPath();
-            this.ctx.ellipse(offsetX, offsetY, 15 - i * 3, 10 - i * 2, 0, 0, Math.PI * 2);
+            this.ctx.arc(sparkX, sparkY, 2 + Math.random() * 3, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.restore();
         }
         
         this.ctx.restore();
