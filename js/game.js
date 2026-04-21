@@ -6820,7 +6820,6 @@ class DragonShooterGame {
             
             if (dn.isCrit) {
                 textColor = '#FFD700';
-                text = `暴击! ${dn.value}`;
             } else if (dn.isReduced) {
                 textColor = '#888888';
             }
