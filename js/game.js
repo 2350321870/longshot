@@ -64,8 +64,6 @@ class DragonShooterGame {
         };
         
         this.updateEnergy();
-        this.checkDailyTasksRefresh();
-        this.checkAchievements();
         
         this.characterConfig = {
             default: {
@@ -638,6 +636,9 @@ class DragonShooterGame {
                 rewards: { gold: 450, diamonds: 25 }
             }
         ];
+        
+        this.checkDailyTasksRefresh();
+        this.checkAchievements();
     }
     
     updateEnergy() {
@@ -670,6 +671,8 @@ class DragonShooterGame {
     }
     
     checkDailyTasksRefresh() {
+        if (!this.dailyTaskPool) return;
+        
         const today = this.getTodayString();
         const savedDate = this.saveData.dailyTasks?.date;
         
@@ -679,6 +682,8 @@ class DragonShooterGame {
     }
     
     generateDailyTasks() {
+        if (!this.dailyTaskPool) return;
+        
         const today = this.getTodayString();
         const shuffled = [...this.dailyTaskPool].sort(() => Math.random() - 0.5);
         
@@ -747,6 +752,8 @@ class DragonShooterGame {
     }
     
     checkAchievements() {
+        if (!this.achievements) return;
+        
         if (!this.saveData.achievementProgress) {
             this.saveData.achievementProgress = {};
             this.saveData.unlockedAchievements = [];
