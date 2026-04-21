@@ -4265,7 +4265,6 @@ class DragonShooterGame {
                             
                             this.enemies.splice(i, 1);
                             
-                            this.autoSelectSkill();
                             break;
                         }
                     }
@@ -4518,9 +4517,9 @@ class DragonShooterGame {
         const cfg = window.GameConfig || {};
         const dragonCfg = cfg.dragon || {};
         
-        const early = (dragonCfg.segmentsPerSkillSelectionEarly || 2) * 2;
-        const mid = (dragonCfg.segmentsPerSkillSelectionMid || 4) * 2;
-        const late = (dragonCfg.segmentsPerSkillSelectionLate || 6) * 2;
+        const early = (dragonCfg.segmentsPerSkillSelectionEarly || 2) * 4;
+        const mid = (dragonCfg.segmentsPerSkillSelectionMid || 4) * 4;
+        const late = (dragonCfg.segmentsPerSkillSelectionLate || 6) * 4;
         
         if (this.segmentsDestroyed < 10) return early;
         if (this.segmentsDestroyed < 30) return mid;
