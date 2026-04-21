@@ -97,7 +97,7 @@
                 desc: '召唤雷龙进行直线攻击',
                 rarity: 's',
                 damage: 300,
-                duration: 3,
+                duration: 13,
                 radius: 80
             });
             
@@ -141,7 +141,7 @@
                     alpha: 1
                 });
 
-                if (dragon.segments.length > 20) {
+                if (dragon.segments.length > 10) {
                     dragon.segments.shift();
                 }
 
@@ -188,21 +188,19 @@
         }
 
         createParticles(x, y) {
-            if (Math.random() < 0.3) return;
+            if (Math.random() < 0.6) return;
             
-            for (let i = 0; i < 3; i++) {
-                this.particles.push({
-                    x: x + (Math.random() - 0.5) * 60,
-                    y: y + (Math.random() - 0.5) * 40,
-                    vx: (Math.random() - 0.5) * 100,
-                    vy: (Math.random() - 0.5) * 100,
-                    size: Math.random() * 8 + 4,
-                    life: Math.random() * 0.5 + 0.2,
-                    maxLife: 0.7,
-                    alpha: 1,
-                    color: Math.random() > 0.5 ? '#fff' : '#ff0'
-                });
-            }
+            this.particles.push({
+                x: x + (Math.random() - 0.5) * 60,
+                y: y + (Math.random() - 0.5) * 40,
+                vx: (Math.random() - 0.5) * 80,
+                vy: (Math.random() - 0.5) * 80,
+                size: Math.random() * 5 + 2,
+                life: Math.random() * 0.3 + 0.15,
+                maxLife: 0.45,
+                alpha: 1,
+                color: Math.random() > 0.5 ? '#fff' : '#ff0'
+            });
         }
 
         onRender(ctx) {

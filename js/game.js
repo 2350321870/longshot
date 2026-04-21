@@ -4043,7 +4043,11 @@ class DragonShooterGame {
     }
     
     createThunderEffect(x, y) {
-        for (let i = 0; i < 12; i++) {
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        if (maxParticles <= 0) return;
+        
+        const particleCount = Math.min(8, maxParticles);
+        for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 3 + Math.random() * 5;
             this.particles.push({
@@ -4051,28 +4055,31 @@ class DragonShooterGame {
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: 3 + Math.random() * 5,
+                radius: 3 + Math.random() * 4,
                 color: '#FFFF00',
-                lifetime: 0.4,
-                maxLifetime: 0.4,
+                lifetime: 0.35,
+                maxLifetime: 0.35,
                 alpha: 1
             });
         }
         
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 5 + Math.random() * 8;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                radius: 2 + Math.random() * 3,
-                color: '#FFFFFF',
-                lifetime: 0.3,
-                maxLifetime: 0.3,
-                alpha: 1
-            });
+        if (maxParticles > particleCount) {
+            const whiteParticleCount = Math.min(4, maxParticles - particleCount);
+            for (let i = 0; i < whiteParticleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 5 + Math.random() * 6;
+                this.particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 2 + Math.random() * 2,
+                    color: '#FFFFFF',
+                    lifetime: 0.25,
+                    maxLifetime: 0.25,
+                    alpha: 1
+                });
+            }
         }
         
         this.glowEffects.push({
@@ -5469,43 +5476,11 @@ class DragonShooterGame {
     }
     
     createHitParticles(x, y, color) {
-        for (let i = 0; i < 5; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 1 + Math.random() * 3;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                radius: 2 + Math.random() * 3,
-                color: color,
-                lifetime: 0.5,
-                maxLifetime: 0.5,
-                alpha: 1
-            });
-        }
-    }
-    
-    createDeathParticles(x, y, color) {
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 2 + Math.random() * 5;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                radius: 3 + Math.random() * 5,
-                color: color,
-                lifetime: 1,
-                maxLifetime: 1,
-                alpha: 1
-            });
-        }
-    }
-    
-    createCollectParticles(x, y, color) {
-        for (let i = 0; i < 8; i++) {
+        if (this.particles.length >= 80) return;
+        
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        const particleCount = Math.min(3, maxParticles);
+        for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1 + Math.random() * 2;
             this.particles.push({
@@ -5513,17 +5488,21 @@ class DragonShooterGame {
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: 2 + Math.random() * 3,
+                radius: 2 + Math.random() * 2,
                 color: color,
-                lifetime: 0.8,
-                maxLifetime: 0.8,
+                lifetime: 0.4,
+                maxLifetime: 0.4,
                 alpha: 1
             });
         }
     }
     
-    createGoldParticles(x, y) {
-        for (let i = 0; i < 12; i++) {
+    createDeathParticles(x, y, color) {
+        if (this.particles.length >= 80) return;
+        
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        const particleCount = Math.min(6, maxParticles);
+        for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 4;
             this.particles.push({
@@ -5531,29 +5510,88 @@ class DragonShooterGame {
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: 3 + Math.random() * 4,
+                radius: 2 + Math.random() * 3,
+                color: color,
+                lifetime: 0.7,
+                maxLifetime: 0.7,
+                alpha: 1
+            });
+        }
+    }
+    
+    createCollectParticles(x, y, color) {
+        if (this.particles.length >= 80) return;
+        
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        const particleCount = Math.min(4, maxParticles);
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 2;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 1 + Math.random() * 2,
+                color: color,
+                lifetime: 0.6,
+                maxLifetime: 0.6,
+                alpha: 1
+            });
+        }
+    }
+    
+    createGoldParticles(x, y) {
+        if (this.particles.length >= 80) return;
+        
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        const particleCount = Math.min(6, maxParticles);
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 2 + Math.random() * 3;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 2 + Math.random() * 2,
                 color: '#FFD700',
-                lifetime: 1.2,
-                maxLifetime: 1.2,
+                lifetime: 0.8,
+                maxLifetime: 0.8,
                 alpha: 1
             });
         }
     }
     
     createKillExplosion(x, y, color, size = 1) {
-        const particleCount = Math.floor(20 * size);
+        if (this.particles.length >= 80) {
+            this.deathExplosions.push({
+                x: x,
+                y: y,
+                radius: 5,
+                maxRadius: 50 * size,
+                color: color,
+                lifetime: 0.3,
+                maxLifetime: 0.3
+            });
+            this.addScreenShake(2 * size, 0.15);
+            return;
+        }
+        
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        const particleCount = Math.min(Math.floor(8 * size), maxParticles);
         for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = (3 + Math.random() * 5) * size;
+            const speed = (3 + Math.random() * 4) * size;
             this.particles.push({
                 x: x,
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: (3 + Math.random() * 4) * size,
+                radius: (2 + Math.random() * 3) * size,
                 color: color,
-                lifetime: 0.8 + Math.random() * 0.4,
-                maxLifetime: 0.8 + Math.random() * 0.4,
+                lifetime: 0.6 + Math.random() * 0.3,
+                maxLifetime: 0.6 + Math.random() * 0.3,
                 alpha: 1
             });
         }
@@ -5568,22 +5606,37 @@ class DragonShooterGame {
             maxLifetime: 0.3
         });
         
-        this.addScreenShake(3 * size, 0.2);
+        this.addScreenShake(2 * size, 0.15);
     }
     
     createCritEffect(x, y) {
-        for (let i = 0; i < 15; i++) {
-            const angle = (Math.PI * 2 / 15) * i;
-            const speed = 4 + Math.random() * 3;
+        if (this.particles.length >= 80) {
+            this.glowEffects.push({
+                x: x,
+                y: y,
+                radius: 20,
+                maxRadius: 40,
+                color: '#FFD700',
+                lifetime: 0.2,
+                maxLifetime: 0.2
+            });
+            return;
+        }
+        
+        const maxParticles = Math.max(0, 80 - this.particles.length);
+        const particleCount = Math.min(6, maxParticles);
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 / 6) * i;
+            const speed = 4 + Math.random() * 2;
             this.particles.push({
                 x: x,
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: 2 + Math.random() * 2,
+                radius: 2 + Math.random(),
                 color: '#FFD700',
-                lifetime: 0.5 + Math.random() * 0.3,
-                maxLifetime: 0.5 + Math.random() * 0.3,
+                lifetime: 0.4 + Math.random() * 0.2,
+                maxLifetime: 0.4 + Math.random() * 0.2,
                 alpha: 1
             });
         }
