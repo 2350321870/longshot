@@ -4178,19 +4178,14 @@ class DragonShooterGame {
                         if (destroyedCount > 0) {
                             this.segmentsDestroyed += destroyedCount;
                             
-                            const segmentsPerSkill = this.getSegmentsPerSkill();
-                            
-                            const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
-                            const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
-                            
-                            if (currentSegmentGroup > lastSegmentGroup) {
-                                this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                            const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
+                            for (const chestSegment of chestSegmentsDestroyed) {
                                 this.autoSelectSkill();
                             }
                         }
                         
                         for (const segment of destroyedSegments) {
-                            if (Math.random() < levelConfig.chestDropChance) {
+                            if (segment.hasChest) {
                                 this.spawnChest(segment.x, segment.y);
                             }
                             
@@ -4201,7 +4196,7 @@ class DragonShooterGame {
                         
                         enemy.segments = enemy.segments.filter(s => s.health > 0);
                         
-                        if (enemy.segments.length === 0 || enemy.health <= 0) {
+                        if (enemy.segments.length === 0) {
                             this.createDeathParticles(enemy.x, enemy.y, enemy.color);
                             this.enemiesKilled++;
                             this.score += enemy.maxHealth;
@@ -4289,18 +4284,13 @@ class DragonShooterGame {
             if (destroyedCount > 0) {
                 this.segmentsDestroyed += destroyedCount;
                 
-                const segmentsPerSkill = this.getSegmentsPerSkill();
-                
-                const currentSegmentGroup = Math.floor(this.segmentsDestroyed / segmentsPerSkill);
-                const lastSegmentGroup = Math.floor(this.lastSkillSelectionAtSegment / segmentsPerSkill);
-                
-                if (currentSegmentGroup > lastSegmentGroup) {
-                    this.lastSkillSelectionAtSegment = this.segmentsDestroyed;
+                const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
+                for (const chestSegment of chestSegmentsDestroyed) {
                     this.autoSelectSkill();
                 }
                 
                 for (const segment of destroyedSegments) {
-                    if (Math.random() < levelConfig.chestDropChance) {
+                    if (segment.hasChest) {
                         this.spawnChest(segment.x, segment.y);
                     }
                     
@@ -4313,7 +4303,7 @@ class DragonShooterGame {
                 
                 enemy.segments = enemy.segments.filter(s => s.health > 0);
                 
-                if (enemy.segments.length === 0 || enemy.health <= 0) {
+                if (enemy.segments.length === 0) {
                     this.createDeathParticles(enemy.x, enemy.y, enemy.color);
                     this.enemiesKilled++;
                     this.score += enemy.maxHealth;
@@ -4616,6 +4606,7 @@ class DragonShooterGame {
         };
         
         for (let i = 0; i < segments; i++) {
+            const isChestSegment = (i + 1) % 4 === 0;
             dragon.segments.push({
                 x: startX,
                 y: startY - i * segmentSpacing,
@@ -4623,7 +4614,8 @@ class DragonShooterGame {
                 maxHealth: segmentHealths[i],
                 index: i,
                 isHead: i === 0,
-                isTail: i === segments - 1
+                isTail: i === segments - 1,
+                hasChest: isChestSegment
             });
         }
         
@@ -5431,17 +5423,44 @@ class DragonShooterGame {
                         this.ctx.fill();
                     }
                     
+                    if (segment.hasChest) {
+                        this.ctx.shadowColor = '#FFD700';
+                        this.ctx.shadowBlur = 20;
+                        this.ctx.strokeStyle = '#FFD700';
+                        this.ctx.lineWidth = 3;
+                        
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(-halfWidth + halfHeight, -halfHeight);
+                        this.ctx.lineTo(halfWidth - halfHeight, -halfHeight);
+                        this.ctx.arcTo(halfWidth, -halfHeight, halfWidth, halfHeight, halfHeight);
+                        this.ctx.lineTo(halfWidth, halfHeight - halfHeight);
+                        this.ctx.arcTo(halfWidth, halfHeight, -halfWidth, halfHeight, halfHeight);
+                        this.ctx.lineTo(-halfWidth + halfHeight, halfHeight);
+                        this.ctx.arcTo(-halfWidth, halfHeight, -halfWidth, -halfHeight, halfHeight);
+                        this.ctx.lineTo(-halfWidth, -halfHeight + halfHeight);
+                        this.ctx.arcTo(-halfWidth, -halfHeight, halfWidth, -halfHeight, halfHeight);
+                        this.ctx.closePath();
+                        this.ctx.stroke();
+                        
+                        this.ctx.shadowBlur = 0;
+                    }
+                    
                     if (i === 0) {
                         this.ctx.font = `${segHeight * 0.8}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
                         this.ctx.fillText('🐲', 0, 0);
+                    } else if (segment.hasChest) {
+                        this.ctx.font = `${segHeight * 0.7}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.textBaseline = 'middle';
+                        this.ctx.fillText('📦', 0, 0);
                     } else {
                         this.ctx.fillStyle = '#FFFFFF';
                         this.ctx.font = `bold ${Math.min(segHeight * 0.5, 14)}px Arial`;
                         this.ctx.textAlign = 'center';
                         this.ctx.textBaseline = 'middle';
-                        const healthText = Math.ceil(segment.health)+ '\r\n' + Math.ceil(segment.maxHealth);
+                        const healthText = Math.ceil(segment.health) + '/' + Math.ceil(segment.maxHealth);
                         this.ctx.fillText(healthText, 0, 0);
                     }
                     
