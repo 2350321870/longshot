@@ -1807,28 +1807,36 @@ class DragonShooterGame {
     }
     
     claimTaskReward(taskId) {
-        if (!this.saveData.claimedRewards) {
-            this.saveData.claimedRewards = {};
-        }
-        
-        if (this.saveData.claimedRewards[taskId]) {
-            this.showToast('奖励已领取！');
+        if (!this.saveData.dailyTasks || !this.saveData.dailyTasks.tasks) {
+            this.showToast('任务数据错误！');
             return;
         }
         
-        const task = this.saveData.dailyTasks?.find(t => t.id === taskId);
-        if (!task || task.progress < task.target) {
+        const task = this.saveData.dailyTasks.tasks.find(t => t.id === taskId);
+        if (!task) {
+            this.showToast('任务不存在！');
+            return;
+        }
+        
+        if (task.progress < task.target) {
             this.showToast('任务未完成！');
             return;
         }
         
-        this.saveData.claimedRewards[taskId] = true;
-        
-        if (task.rewards.gold) {
-            this.saveData.gold += task.rewards.gold;
+        if (task.claimed) {
+            this.showToast('奖励已领取！');
+            return;
         }
-        if (task.rewards.diamonds) {
-            this.saveData.diamonds += task.rewards.diamonds;
+        
+        task.claimed = true;
+        
+        if (task.rewards) {
+            if (task.rewards.gold) {
+                this.saveData.gold += task.rewards.gold;
+            }
+            if (task.rewards.diamonds) {
+                this.saveData.diamonds += task.rewards.diamonds;
+            }
         }
         
         this.saveGameData();
