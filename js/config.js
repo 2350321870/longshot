@@ -1,10 +1,16 @@
 const GameConfig = {
     dragon: {
-        segments: 1000,
+        baseSegments: 30,
+        segmentsPerLevel: 5,
+        maxSegments: 80,
         segmentSpacing: 46,
-        baseHealthPerLevel: 10,
-        healthMultiplier: 1.1,
-        segmentsPerSkillSelection: 5,
+        baseHealthPerSegment: 15,
+        healthPerLevel: 5,
+        healthDistributionFrontMultiplier: 0.5,
+        healthDistributionBackMultiplier: 2.0,
+        segmentsPerSkillSelectionEarly: 2,
+        segmentsPerSkillSelectionMid: 4,
+        segmentsPerSkillSelectionLate: 6,
         moveSpeed: 1
     },
     
