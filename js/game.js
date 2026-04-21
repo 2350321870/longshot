@@ -1387,6 +1387,20 @@ class DragonShooterGame {
         this.iceStormTimer = 0;
         this.slowEffects = [];
         
+        this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
+        this.comboSystem = {
+            currentCombo: 0,
+            maxCombo: 0,
+            comboTimer: 0,
+            comboTimeout: 2.0,
+            comboMultiplier: 1.0,
+            killsInCombo: 0
+        };
+        this.bulletTrails = [];
+        this.glowEffects = [];
+        this.floatingTexts = [];
+        this.deathExplosions = [];
+        
         const baseStats = this.getBaseStats();
         
         this.playerStats = {
@@ -3292,18 +3306,22 @@ class DragonShooterGame {
     
     getLevelConfig(levelNum) {
         const baseLevel = Math.min(levelNum, 9);
-        const multiplier = Math.max(1, Math.floor((levelNum - 1) / 9) + 1);
+        const cycle = Math.max(1, Math.floor((levelNum - 1) / 9) + 1);
         
         const baseConfig = this.levelConfigs[baseLevel] || this.levelConfigs[9];
         
+        const healthMultiplier = 1 + (cycle - 1) * 0.25;
+        const speedMultiplier = 1 + (cycle - 1) * 0.05;
+        const damageMultiplier = 1 + (cycle - 1) * 0.15;
+        
         return {
-            enemyCount: 1,
-            enemyHealth: Math.floor(baseConfig.enemyHealth * (1 + (multiplier - 1) * 0.3)),
-            enemySpeed: baseConfig.enemySpeed + (multiplier - 1) * 0.1,
-            enemyDamage: Math.floor(baseConfig.enemyDamage * (1 + (multiplier - 1) * 0.2)),
-            dropChance: Math.min(baseConfig.dropChance + (multiplier - 1) * 0.05, 0.7),
-            segments: 1000,
-            chestDropChance: Math.min(baseConfig.chestDropChance + (multiplier - 1) * 0.02, 0.9),
+            enemyCount: baseConfig.enemyCount,
+            enemyHealth: Math.floor(baseConfig.enemyHealth * healthMultiplier),
+            enemySpeed: baseConfig.enemySpeed * speedMultiplier,
+            enemyDamage: Math.floor(baseConfig.enemyDamage * damageMultiplier),
+            dropChance: Math.min(baseConfig.dropChance + (cycle - 1) * 0.03, 0.7),
+            segments: baseConfig.segments + (cycle - 1) * 10,
+            chestDropChance: Math.min(baseConfig.chestDropChance + (cycle - 1) * 0.01, 0.9),
             unlockAbility: baseConfig.unlockAbility || false
         };
     }
@@ -3442,6 +3460,12 @@ class DragonShooterGame {
         this.updateBuffs(dt);
         this.updateSpawning(dt);
         this.updateSkills(dt);
+        this.updateScreenShake(dt);
+        this.updateComboSystem(dt);
+        this.updateBulletTrails(dt);
+        this.updateDeathExplosions(dt);
+        this.updateFloatingTexts(dt);
+        this.updateGlowEffects(dt);
         this.checkLevelComplete();
     }
     
@@ -3532,6 +3556,18 @@ class DragonShooterGame {
                 color: isCrit ? '#FFD700' : '#00FF00'
             });
         }
+        
+        this.addScreenShake(1.5, 0.1);
+        
+        this.glowEffects.push({
+            x: startX,
+            y: startY,
+            radius: 20,
+            maxRadius: 60,
+            color: '#00FF00',
+            lifetime: 0.2,
+            maxLifetime: 0.2
+        });
     }
     
     updateRainOfNeedles(dt) {
@@ -3622,9 +3658,12 @@ class DragonShooterGame {
         
         const skillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
         
+        const dragonX = this.width * startX;
+        const dragonY = this.height * startY;
+        
         this.thunderDragon = {
-            x: this.width * startX,
-            y: this.height * startY,
+            x: dragonX,
+            y: dragonY,
             vx: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed,
             vy: (Math.random() > 0.5 ? 1 : -1) * stats.moveSpeed * 0.6,
             damage: stats.damage,
@@ -3636,6 +3675,10 @@ class DragonShooterGame {
             targetChangeTimer: 0
         };
         this.thunderDragonTimer = stats.duration;
+        
+        this.addScreenShake(3, 0.25);
+        
+        this.createKillExplosion(dragonX, dragonY, '#FFFF00', 2);
     }
     
     updateThunderDragon(dt) {
@@ -3732,7 +3775,51 @@ class DragonShooterGame {
     }
     
     createThunderEffect(x, y) {
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 12; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 3 + Math.random() * 5;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 3 + Math.random() * 5,
+                color: '#FFFF00',
+                lifetime: 0.4,
+                maxLifetime: 0.4,
+                alpha: 1
+            });
+        }
+        
+        for (let i = 0; i < 6; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 5 + Math.random() * 8;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 2 + Math.random() * 3,
+                color: '#FFFFFF',
+                lifetime: 0.3,
+                maxLifetime: 0.3,
+                alpha: 1
+            });
+        }
+        
+        this.glowEffects.push({
+            x: x,
+            y: y,
+            radius: 30,
+            maxRadius: 80,
+            color: '#FFFF00',
+            lifetime: 0.25,
+            maxLifetime: 0.25
+        });
+    }
+    
+    createIceEffect(x, y) {
+        for (let i = 0; i < 10; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 2 + Math.random() * 4;
             this.particles.push({
@@ -3740,13 +3827,39 @@ class DragonShooterGame {
                 y: y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                radius: 3 + Math.random() * 4,
-                color: '#FFFF00',
-                lifetime: 0.3,
-                maxLifetime: 0.3,
+                radius: 2 + Math.random() * 4,
+                color: '#87CEEB',
+                lifetime: 0.5,
+                maxLifetime: 0.5,
                 alpha: 1
             });
         }
+        
+        for (let i = 0; i < 5; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 1 + Math.random() * 2;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: -Math.abs(Math.sin(angle) * speed) - 1,
+                radius: 1 + Math.random() * 2,
+                color: '#FFFFFF',
+                lifetime: 0.6,
+                maxLifetime: 0.6,
+                alpha: 1
+            });
+        }
+        
+        this.glowEffects.push({
+            x: x,
+            y: y,
+            radius: 20,
+            maxRadius: 60,
+            color: '#87CEEB',
+            lifetime: 0.3,
+            maxLifetime: 0.3
+        });
     }
     
     launchIceStorm(stats) {
@@ -3754,6 +3867,8 @@ class DragonShooterGame {
         this.iceStormTimer = stats.duration || 3.0;
         this.iceStormStats = stats;
         this.iceStormSkillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
+        
+        this.addScreenShake(2, 0.15);
     }
     
     updateIceStorm(dt) {
@@ -4001,6 +4116,9 @@ class DragonShooterGame {
     updateBullets(dt) {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
+            
+            this.createBulletTrail(bullet);
+            
             bullet.x += bullet.vx * 60 * dt;
             bullet.y += bullet.vy * 60 * dt;
             
@@ -4192,10 +4310,13 @@ class DragonShooterGame {
                         enemy.segments = enemy.segments.filter(s => s.health > 0);
                         
                         if (enemy.segments.length === 0) {
-                            this.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                            this.createKillExplosion(enemy.x, enemy.y, enemy.color, 1.5);
+                            this.addComboKill();
                             this.enemiesKilled++;
-                            this.score += enemy.maxHealth;
-                            this.goldEarned += Math.floor(enemy.maxHealth / 5);
+                            
+                            const comboBonus = this.comboSystem.comboMultiplier;
+                            this.score += Math.floor(enemy.maxHealth * comboBonus);
+                            this.goldEarned += Math.floor(enemy.maxHealth / 5 * comboBonus);
                             
                             this.updateStatistics('kill', 1);
                             
@@ -4242,10 +4363,13 @@ class DragonShooterGame {
                         }
                         
                         if (enemy.health <= 0) {
-                            this.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                            this.createKillExplosion(enemy.x, enemy.y, enemy.color, 1);
+                            this.addComboKill();
                             this.enemiesKilled++;
-                            this.score += enemy.maxHealth;
-                            this.goldEarned += Math.floor(enemy.maxHealth / 5);
+                            
+                            const comboBonus = this.comboSystem.comboMultiplier;
+                            this.score += Math.floor(enemy.maxHealth * comboBonus);
+                            this.goldEarned += Math.floor(enemy.maxHealth / 5 * comboBonus);
                             
                             this.updateStatistics('kill', 1);
                             
@@ -4467,9 +4591,23 @@ class DragonShooterGame {
     updateDamageNumbers(dt) {
         for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
             const dn = this.damageNumbers[i];
+            
+            if (dn.isCrit && !dn.critEffectTriggered) {
+                this.createCritEffect(dn.x, dn.y);
+                dn.critEffectTriggered = true;
+            }
+            
             dn.y += dn.vy * 60 * dt;
             dn.lifetime -= dt;
             dn.alpha = Math.max(0, dn.lifetime);
+            
+            if (!dn.scale) dn.scale = 1;
+            if (dn.isCrit) {
+                const scaleProgress = 1 - (dn.lifetime / 1);
+                if (scaleProgress < 0.2) {
+                    dn.scale = 1 + Math.sin(scaleProgress * Math.PI / 0.2) * 0.3;
+                }
+            }
             
             if (dn.lifetime <= 0) {
                 this.damageNumbers.splice(i, 1);
@@ -4671,6 +4809,9 @@ class DragonShooterGame {
         this.updateUI();
         
         this.createHitParticles(this.player.x, this.player.y, '#FF4444');
+        
+        const shakeIntensity = Math.min(10, amount);
+        this.addScreenShake(shakeIntensity, 0.2);
         
         if (this.playerStats.health <= 0) {
             this.gameOver();
@@ -5080,19 +5221,285 @@ class DragonShooterGame {
         }
     }
     
+    createKillExplosion(x, y, color, size = 1) {
+        const particleCount = Math.floor(20 * size);
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = (3 + Math.random() * 5) * size;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: (3 + Math.random() * 4) * size,
+                color: color,
+                lifetime: 0.8 + Math.random() * 0.4,
+                maxLifetime: 0.8 + Math.random() * 0.4,
+                alpha: 1
+            });
+        }
+        
+        this.deathExplosions.push({
+            x: x,
+            y: y,
+            radius: 5,
+            maxRadius: 50 * size,
+            color: color,
+            lifetime: 0.3,
+            maxLifetime: 0.3
+        });
+        
+        this.addScreenShake(3 * size, 0.2);
+    }
+    
+    createCritEffect(x, y) {
+        for (let i = 0; i < 15; i++) {
+            const angle = (Math.PI * 2 / 15) * i;
+            const speed = 4 + Math.random() * 3;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 2 + Math.random() * 2,
+                color: '#FFD700',
+                lifetime: 0.5 + Math.random() * 0.3,
+                maxLifetime: 0.5 + Math.random() * 0.3,
+                alpha: 1
+            });
+        }
+        
+        this.glowEffects.push({
+            x: x,
+            y: y,
+            radius: 20,
+            maxRadius: 40,
+            color: '#FFD700',
+            lifetime: 0.2,
+            maxLifetime: 0.2
+        });
+    }
+    
+    createBulletTrail(bullet) {
+        if (!bullet.trailTimer) bullet.trailTimer = 0;
+        bullet.trailTimer += 0.016;
+        
+        if (bullet.trailTimer >= 0.02) {
+            this.bulletTrails.push({
+                x: bullet.x,
+                y: bullet.y,
+                radius: bullet.radius * 0.8,
+                color: bullet.color,
+                lifetime: 0.15,
+                maxLifetime: 0.15,
+                alpha: 0.8
+            });
+            bullet.trailTimer = 0;
+        }
+    }
+    
+    addScreenShake(intensity, duration) {
+        this.screenShake.intensity = Math.max(this.screenShake.intensity, intensity);
+        this.screenShake.duration = Math.max(this.screenShake.duration, duration);
+    }
+    
+    updateScreenShake(dt) {
+        if (this.screenShake.duration > 0) {
+            this.screenShake.duration -= dt;
+            const shake = this.screenShake.intensity * (this.screenShake.duration / 0.3);
+            this.screenShake.x = (Math.random() - 0.5) * shake * 2;
+            this.screenShake.y = (Math.random() - 0.5) * shake * 2;
+        } else {
+            this.screenShake.x = 0;
+            this.screenShake.y = 0;
+        }
+    }
+    
+    addComboKill() {
+        this.comboSystem.killsInCombo++;
+        this.comboSystem.comboTimer = this.comboSystem.comboTimeout;
+        
+        if (this.comboSystem.killsInCombo >= 3) {
+            this.comboSystem.currentCombo++;
+            this.comboSystem.maxCombo = Math.max(this.comboSystem.maxCombo, this.comboSystem.currentCombo);
+            
+            const bonusMultiplier = 1 + (this.comboSystem.currentCombo * 0.1);
+            this.comboSystem.comboMultiplier = bonusMultiplier;
+            
+            this.floatingTexts.push({
+                x: this.width / 2,
+                y: this.height / 3,
+                text: `${this.comboSystem.currentCombo}x 连击!`,
+                color: '#FFD700',
+                fontSize: 32,
+                lifetime: 1.5,
+                maxLifetime: 1.5,
+                vy: -30,
+                alpha: 1
+            });
+            
+            this.addScreenShake(2, 0.15);
+        }
+    }
+    
+    updateComboSystem(dt) {
+        if (this.comboSystem.comboTimer > 0) {
+            this.comboSystem.comboTimer -= dt;
+            if (this.comboSystem.comboTimer <= 0) {
+                this.comboSystem.currentCombo = 0;
+                this.comboSystem.killsInCombo = 0;
+                this.comboSystem.comboMultiplier = 1.0;
+            }
+        }
+    }
+    
+    updateBulletTrails(dt) {
+        for (let i = this.bulletTrails.length - 1; i >= 0; i--) {
+            const trail = this.bulletTrails[i];
+            trail.lifetime -= dt;
+            trail.alpha = trail.lifetime / trail.maxLifetime;
+            trail.radius *= 0.98;
+            
+            if (trail.lifetime <= 0) {
+                this.bulletTrails.splice(i, 1);
+            }
+        }
+    }
+    
+    updateDeathExplosions(dt) {
+        for (let i = this.deathExplosions.length - 1; i >= 0; i--) {
+            const exp = this.deathExplosions[i];
+            exp.lifetime -= dt;
+            const progress = 1 - (exp.lifetime / exp.maxLifetime);
+            exp.radius = exp.maxRadius * progress;
+            exp.alpha = 1 - progress;
+            
+            if (exp.lifetime <= 0) {
+                this.deathExplosions.splice(i, 1);
+            }
+        }
+    }
+    
+    updateFloatingTexts(dt) {
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
+            ft.lifetime -= dt;
+            ft.alpha = ft.lifetime / ft.maxLifetime;
+            ft.y += ft.vy * dt;
+            
+            if (ft.lifetime <= 0) {
+                this.floatingTexts.splice(i, 1);
+            }
+        }
+    }
+    
+    updateGlowEffects(dt) {
+        for (let i = this.glowEffects.length - 1; i >= 0; i--) {
+            const glow = this.glowEffects[i];
+            glow.lifetime -= dt;
+            const progress = 1 - (glow.lifetime / glow.maxLifetime);
+            glow.radius = glow.maxRadius * progress;
+            glow.alpha = 1 - progress;
+            
+            if (glow.lifetime <= 0) {
+                this.glowEffects.splice(i, 1);
+            }
+        }
+    }
+    
     render() {
+        this.ctx.save();
+        this.ctx.translate(this.screenShake.x, this.screenShake.y);
+        
         this.ctx.clearRect(0, 0, this.width, this.height);
         
         this.drawBackground();
         this.drawPath();
         this.drawParticles();
+        this.drawBulletTrails();
         this.drawPowerups();
         this.drawChests();
         this.drawBullets();
         this.drawSkillEffects();
         this.drawEnemies();
+        this.drawDeathExplosions();
         this.drawPlayer();
+        this.drawGlowEffects();
         this.drawDamageNumbers();
+        this.drawFloatingTexts();
+        
+        this.ctx.restore();
+    }
+    
+    drawBulletTrails() {
+        this.bulletTrails.forEach(trail => {
+            this.ctx.save();
+            this.ctx.globalAlpha = trail.alpha;
+            this.ctx.beginPath();
+            this.ctx.arc(trail.x, trail.y, trail.radius, 0, Math.PI * 2);
+            
+            const gradient = this.ctx.createRadialGradient(
+                trail.x, trail.y, 0,
+                trail.x, trail.y, trail.radius
+            );
+            gradient.addColorStop(0, trail.color);
+            gradient.addColorStop(1, 'transparent');
+            this.ctx.fillStyle = gradient;
+            this.ctx.fill();
+            this.ctx.restore();
+        });
+    }
+    
+    drawDeathExplosions() {
+        this.deathExplosions.forEach(exp => {
+            this.ctx.save();
+            this.ctx.globalAlpha = exp.alpha || 1;
+            
+            const gradient = this.ctx.createRadialGradient(
+                exp.x, exp.y, 0,
+                exp.x, exp.y, exp.radius
+            );
+            gradient.addColorStop(0, '#FFFFFF');
+            gradient.addColorStop(0.3, exp.color);
+            gradient.addColorStop(1, 'transparent');
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(exp.x, exp.y, exp.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        });
+    }
+    
+    drawGlowEffects() {
+        this.glowEffects.forEach(glow => {
+            this.ctx.save();
+            this.ctx.globalAlpha = glow.alpha || 1;
+            this.ctx.shadowColor = glow.color;
+            this.ctx.shadowBlur = glow.radius;
+            
+            this.ctx.fillStyle = glow.color;
+            this.ctx.beginPath();
+            this.ctx.arc(glow.x, glow.y, glow.radius * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        });
+    }
+    
+    drawFloatingTexts() {
+        this.floatingTexts.forEach(ft => {
+            this.ctx.save();
+            this.ctx.globalAlpha = ft.alpha;
+            this.ctx.font = `bold ${ft.fontSize}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = ft.color;
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 3;
+            
+            this.ctx.strokeText(ft.text, ft.x, ft.y);
+            this.ctx.fillText(ft.text, ft.x, ft.y);
+            this.ctx.restore();
+        });
     }
     
     drawSkillEffects() {
@@ -5109,18 +5516,31 @@ class DragonShooterGame {
             this.ctx.translate(needle.x, needle.y);
             this.ctx.rotate(angle);
             
+            if (needle.isCrit) {
+                this.ctx.shadowColor = '#FFD700';
+                this.ctx.shadowBlur = 15;
+            } else {
+                this.ctx.shadowColor = needle.color;
+                this.ctx.shadowBlur = 8;
+            }
+            
             this.ctx.fillStyle = needle.color;
             this.ctx.beginPath();
-            this.ctx.moveTo(15, 0);
-            this.ctx.lineTo(-10, -needle.radius);
-            this.ctx.lineTo(-5, 0);
-            this.ctx.lineTo(-10, needle.radius);
+            this.ctx.moveTo(20, 0);
+            this.ctx.lineTo(-12, -needle.radius - 2);
+            this.ctx.lineTo(-8, 0);
+            this.ctx.lineTo(-12, needle.radius + 2);
             this.ctx.closePath();
             this.ctx.fill();
             
             if (needle.isCrit) {
-                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.shadowBlur = 0;
+                this.ctx.strokeStyle = '#FFFF00';
                 this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                this.ctx.strokeStyle = '#FFFFFF';
+                this.ctx.lineWidth = 1;
                 this.ctx.stroke();
             }
             
@@ -5137,49 +5557,117 @@ class DragonShooterGame {
         const angle = Math.atan2(this.thunderDragon.vy, this.thunderDragon.vx);
         this.ctx.rotate(angle);
         
-        this.ctx.fillStyle = '#FFFF00';
-        this.ctx.shadowColor = '#FFFF00';
-        this.ctx.shadowBlur = 20;
+        const time = this.currentTime;
+        const pulseIntensity = 0.3 + 0.2 * Math.sin(time * 10);
         
+        this.ctx.shadowColor = '#FFFF00';
+        this.ctx.shadowBlur = 30 + pulseIntensity * 20;
+        
+        const bodyGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, 50);
+        bodyGradient.addColorStop(0, '#FFFFFF');
+        bodyGradient.addColorStop(0.3, '#FFFF00');
+        bodyGradient.addColorStop(1, '#FFA500');
+        
+        this.ctx.fillStyle = bodyGradient;
         this.ctx.beginPath();
-        this.ctx.ellipse(0, 0, 40, 20, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(0, 0, 45, 25, 0, 0, Math.PI * 2);
         this.ctx.fill();
         
+        this.ctx.shadowBlur = 15;
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.beginPath();
-        this.ctx.ellipse(35, -8, 6, 8, 0, 0, Math.PI * 2);
-        this.ctx.ellipse(35, 8, 6, 8, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(0, 0, 30, 15, 0, 0, Math.PI * 2);
         this.ctx.fill();
         
-        this.ctx.fillStyle = '#000000';
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.shadowColor = '#FFFFFF';
+        this.ctx.shadowBlur = 10;
         this.ctx.beginPath();
-        this.ctx.arc(37, -8, 3, 0, Math.PI * 2);
-        this.ctx.arc(37, 8, 3, 0, Math.PI * 2);
+        this.ctx.ellipse(38, -10, 8, 10, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(38, 10, 8, 10, 0, 0, Math.PI * 2);
         this.ctx.fill();
         
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = '#FF0000';
+        this.ctx.beginPath();
+        this.ctx.arc(40, -10, 4, 0, Math.PI * 2);
+        this.ctx.arc(40, 10, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.shadowColor = '#FFFF00';
+        this.ctx.shadowBlur = 20;
         this.ctx.strokeStyle = '#FFFF00';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 3;
         this.ctx.beginPath();
-        this.ctx.moveTo(40, 0);
-        this.ctx.lineTo(55, -15);
-        this.ctx.moveTo(40, 0);
-        this.ctx.lineTo(55, 15);
+        this.ctx.moveTo(42, 0);
+        this.ctx.lineTo(60, -20);
+        this.ctx.moveTo(42, 0);
+        this.ctx.lineTo(60, 20);
         this.ctx.stroke();
+        
+        this.ctx.shadowBlur = 10;
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 1;
+        this.ctx.stroke();
+        
+        this.ctx.shadowBlur = 0;
+        for (let i = 0; i < 3; i++) {
+            const offsetX = -20 - i * 15;
+            const offsetY = Math.sin(time * 8 + i) * 5;
+            
+            this.ctx.fillStyle = `rgba(255, 255, 0, ${0.5 - i * 0.15})`;
+            this.ctx.shadowColor = '#FFFF00';
+            this.ctx.shadowBlur = 15 - i * 3;
+            this.ctx.beginPath();
+            this.ctx.ellipse(offsetX, offsetY, 15 - i * 3, 10 - i * 2, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
         
         this.ctx.restore();
     }
     
     drawIceStorm() {
+        const time = this.currentTime;
+        
+        if (this.iceStormActive) {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.1;
+            for (let i = 0; i < 20; i++) {
+                const x = ((time * 50 + i * 100) % (this.width + 200)) - 100;
+                const y = (time * 100 + i * 50) % this.height;
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 2, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            this.ctx.restore();
+        }
+        
         for (const hail of this.hailStones) {
             this.ctx.save();
             
-            this.ctx.fillStyle = hail.color;
-            this.ctx.shadowColor = '#FFFFFF';
-            this.ctx.shadowBlur = 5;
+            if (hail.isCrit) {
+                this.ctx.shadowColor = '#FFFFFF';
+                this.ctx.shadowBlur = 20;
+            } else {
+                this.ctx.shadowColor = '#87CEEB';
+                this.ctx.shadowBlur = 10;
+            }
+            
+            const gradient = this.ctx.createRadialGradient(
+                hail.x, hail.y, 0,
+                hail.x, hail.y, hail.radius
+            );
+            gradient.addColorStop(0, '#FFFFFF');
+            gradient.addColorStop(0.5, hail.color);
+            gradient.addColorStop(1, '#4169E1');
+            
+            this.ctx.fillStyle = gradient;
             
             this.ctx.beginPath();
             for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i - Math.PI / 2;
+                const angle = (Math.PI / 3) * i - Math.PI / 2 + time * 3;
                 const x = hail.x + Math.cos(angle) * hail.radius;
                 const y = hail.y + Math.sin(angle) * hail.radius;
                 if (i === 0) {
@@ -5192,10 +5680,21 @@ class DragonShooterGame {
             this.ctx.fill();
             
             if (hail.isCrit) {
+                this.ctx.shadowBlur = 0;
                 this.ctx.strokeStyle = '#FFFFFF';
                 this.ctx.lineWidth = 2;
                 this.ctx.stroke();
+                
+                this.ctx.strokeStyle = '#ADD8E6';
+                this.ctx.lineWidth = 1;
+                this.ctx.stroke();
             }
+            
+            this.ctx.globalAlpha = 0.5;
+            this.ctx.fillStyle = '#87CEEB';
+            this.ctx.beginPath();
+            this.ctx.arc(hail.x, hail.y - 5, hail.radius * 0.5, 0, Math.PI * 2);
+            this.ctx.fill();
             
             this.ctx.restore();
         }
@@ -5599,16 +6098,39 @@ class DragonShooterGame {
         this.damageNumbers.forEach(dn => {
             this.ctx.save();
             this.ctx.globalAlpha = dn.alpha;
-            this.ctx.font = dn.isCrit ? 'bold 24px Arial' : 'bold 18px Arial';
+            
+            const scale = dn.scale || 1;
+            this.ctx.translate(dn.x, dn.y);
+            this.ctx.scale(scale, scale);
+            
+            const fontSize = dn.isCrit ? 28 : 20;
+            this.ctx.font = dn.isCrit ? `bold ${fontSize}px Arial` : `bold ${fontSize}px Arial`;
             this.ctx.textAlign = 'center';
-            this.ctx.fillStyle = dn.isCrit ? '#FFD700' : '#FF4444';
+            this.ctx.textBaseline = 'middle';
+            
+            if (dn.isCrit) {
+                this.ctx.shadowColor = '#FFD700';
+                this.ctx.shadowBlur = 10;
+            }
+            
+            let textColor = '#FF4444';
+            let text = `${dn.value}`;
+            
+            if (dn.isCrit) {
+                textColor = '#FFD700';
+                text = `暴击! ${dn.value}`;
+            } else if (dn.isReduced) {
+                textColor = '#888888';
+            }
+            
+            this.ctx.fillStyle = textColor;
             this.ctx.strokeStyle = '#000000';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 3;
             
-            const text = dn.isCrit ? `暴击! ${dn.value}` : `${dn.value}`;
-            this.ctx.strokeText(text, dn.x, dn.y);
-            this.ctx.fillText(text, dn.x, dn.y);
+            this.ctx.strokeText(text, 0, 0);
+            this.ctx.fillText(text, 0, 0);
             
+            this.ctx.shadowBlur = 0;
             this.ctx.restore();
         });
     }
