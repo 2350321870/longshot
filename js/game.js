@@ -3282,7 +3282,7 @@ class DragonShooterGame {
         this.initPlayer();
         
         const config = this.getLevelConfig(levelNum);
-        this.totalEnemiesInLevel = config.enemyCount;
+        this.totalEnemiesInLevel = 1;
         this.enemiesInLevel = 0;
         
         this.spawnDragon(config);
