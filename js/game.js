@@ -414,7 +414,7 @@ class DragonShooterGame {
             { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫", rarity: "A" },
             { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲", rarity: "B" },
             { id: "rain_of_needles", name: "暴雨梨花针", description: "发射针雨攻击龙，击中后爆开", icon: "🗡️", rarity: "A", type: "active", cooldown: 1.0, baseDamage: 20, burstCount: 5, projectileCount: 8, spread: 45 },
-            { id: "thunder_dragon", name: "雷龙", description: "召唤雷龙全屏攻击", icon: "⚡", rarity: "A", type: "active", cooldown: 2.0, baseDamage: 30, duration: 3.0, moveSpeed: 200, lightningFrequency: 0.3 },
+            { id: "thunder_dragon", name: "雷龙", description: "召唤雷龙释放闪电链攻击敌人", icon: "⚡", rarity: "A", type: "active", cooldown: 4.0, baseDamage: 30, duration: 6.0, moveSpeed: 180, lightningFrequency: 0.25, chainCount: 5, chainDamageReduction: 0.75 },
             { id: "ice_storm", name: "冰雪", description: "全屏下冰雹雪，减速并伤害龙", icon: "❄️", rarity: "A", type: "active", cooldown: 1.5, baseDamage: 15, slowDuration: 2.0, slowAmount: 0.5, hailRate: 0.3 }
         ];
 
@@ -3710,8 +3710,12 @@ class DragonShooterGame {
             bodySegments: bodySegments,
             bodySegmentCount: segmentCount,
             lightningEffects: [],
+            chainLightningEffects: [],
             pulsePhase: 0,
-            roarPhase: 0
+            roarPhase: 0,
+            chainCount: stats.chainCount || 5,
+            chainDamageReduction: stats.chainDamageReduction || 0.75,
+            chainRange: 250
         };
         this.thunderDragonTimer = stats.duration;
         
@@ -3903,49 +3907,138 @@ class DragonShooterGame {
     strikeThunder() {
         if (!this.thunderDragon) return;
         
+        const headSeg = this.thunderDragon.bodySegments && this.thunderDragon.bodySegments[0];
+        const startX = headSeg ? headSeg.x : this.thunderDragon.x;
+        const startY = headSeg ? headSeg.y : this.thunderDragon.y;
+        
+        const chainCount = this.thunderDragon.chainCount || 5;
+        const chainRange = this.thunderDragon.chainRange || 250;
+        const chainDamageReduction = this.thunderDragon.chainDamageReduction || 0.75;
+        
         let isCrit = Math.random() < this.playerStats.criticalChance;
         isCrit = this.applyCharacterPassiveToCrit(isCrit);
         
         const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
         const critMultiplier = isCrit ? (this.playerStats.criticalDamage + critDamageBonusFromPassive) : 1;
         const skillDamageBonus = this.thunderDragon.skillDamageBonus || 1;
-        const damage = Math.floor(this.thunderDragon.damage * critMultiplier * skillDamageBonus);
+        const baseDamage = Math.floor(this.thunderDragon.damage * critMultiplier * skillDamageBonus);
         
-        let hitSegments = [];
+        const chainTargets = [];
+        const hitSegmentPairs = [];
         
+        let currentX = startX;
+        let currentY = startY;
+        let currentDamage = baseDamage;
+        let currentChainIndex = 0;
+        
+        const allSegments = [];
         for (const enemy of this.enemies) {
-            if (enemy.isWinding && enemy.segments) {
+            if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
                 for (const segment of enemy.segments) {
-                    const dx = this.thunderDragon.x - segment.x;
-                    const dy = this.thunderDragon.y - segment.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist < 200) {
-                        hitSegments.push({ enemy, segment });
-                        
-                        if (segment.health > 0) {
-                            segment.health -= damage;
-                            enemy.health -= damage;
-                            
-                            const segRadius = segment.index === 0 ? 22 : 18;
-                            this.damageNumbers.push({
-                                x: segment.x,
-                                y: segment.y - segRadius,
-                                value: damage,
-                                isCrit: isCrit,
-                                lifetime: 1,
-                                vy: -2
-                            });
-                        }
-                        
-                        this.createThunderEffect(segment.x, segment.y);
-                    }
+                    allSegments.push({ enemy, segment });
                 }
             }
         }
         
-        if (hitSegments.length > 0) {
-            this.createThunderEffect(this.thunderDragon.x, this.thunderDragon.y);
+        while (currentChainIndex < chainCount) {
+            let nearestPair = null;
+            let nearestDist = Infinity;
+            
+            for (const segPair of allSegments) {
+                const { segment } = segPair;
+                
+                const alreadyHit = hitSegmentPairs.some(hp => 
+                    hp.segment === segment
+                );
+                if (alreadyHit) continue;
+                
+                if (segment.health <= 0) continue;
+                
+                const dx = currentX - segment.x;
+                const dy = currentY - segment.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist < chainRange && dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestPair = segPair;
+                }
+            }
+            
+            if (!nearestPair) break;
+            
+            chainTargets.push({
+                x: nearestPair.segment.x,
+                y: nearestPair.segment.y,
+                segment: nearestPair.segment,
+                enemy: nearestPair.enemy,
+                damage: currentDamage,
+                chainIndex: currentChainIndex
+            });
+            
+            hitSegmentPairs.push(nearestPair);
+            
+            currentX = nearestPair.segment.x;
+            currentY = nearestPair.segment.y;
+            currentDamage = Math.floor(currentDamage * chainDamageReduction);
+            currentChainIndex++;
+        }
+        
+        if (chainTargets.length > 0) {
+            const lightningPath = [
+                { x: startX, y: startY }
+            ];
+            
+            for (const target of chainTargets) {
+                lightningPath.push({ x: target.x, y: target.y });
+            }
+            
+            this.thunderDragon.chainLightningEffects.push({
+                path: lightningPath,
+                life: 0.4,
+                maxLife: 0.4,
+                segments: []
+            });
+            
+            for (let i = 0; i < lightningPath.length - 1; i++) {
+                const startPt = lightningPath[i];
+                const endPt = lightningPath[i + 1];
+                
+                const segPath = this.generateLightningPath(
+                    startPt.x, startPt.y,
+                    endPt.x, endPt.y,
+                    6
+                );
+                
+                if (this.thunderDragon.chainLightningEffects.length > 0) {
+                    this.thunderDragon.chainLightningEffects[
+                        this.thunderDragon.chainLightningEffects.length - 1
+                    ].segments.push(segPath);
+                }
+            }
+        }
+        
+        for (const target of chainTargets) {
+            if (target.segment.health > 0) {
+                target.segment.health -= target.damage;
+                target.enemy.health -= target.damage;
+                
+                const segRadius = target.segment.index === 0 ? 22 : 18;
+                this.damageNumbers.push({
+                    x: target.segment.x,
+                    y: target.segment.y - segRadius,
+                    value: target.damage,
+                    isCrit: isCrit,
+                    lifetime: 1,
+                    vy: -2
+                });
+                
+                this.createThunderEffect(target.segment.x, target.segment.y);
+            }
+        }
+        
+        if (chainTargets.length > 0) {
+            this.createThunderEffect(startX, startY);
+            this.addScreenShake(3, 0.15);
         }
     }
     
@@ -6037,6 +6130,96 @@ class DragonShooterGame {
             
             for (let i = toRemove.length - 1; i >= 0; i--) {
                 this.thunderDragon.lightningEffects.splice(toRemove[i], 1);
+            }
+        }
+        
+        if (this.thunderDragon.chainLightningEffects) {
+            const chainToRemove = [];
+            for (let i = 0; i < this.thunderDragon.chainLightningEffects.length; i++) {
+                const effect = this.thunderDragon.chainLightningEffects[i];
+                effect.life -= 1/60;
+                
+                if (effect.life <= 0) {
+                    chainToRemove.push(i);
+                    continue;
+                }
+                
+                const alpha = effect.life / effect.maxLife;
+                const time = this.currentTime;
+                
+                this.ctx.save();
+                
+                if (effect.segments && effect.segments.length > 0) {
+                    for (let s = 0; s < effect.segments.length; s++) {
+                        const segPath = effect.segments[s];
+                        if (!segPath || segPath.length < 2) continue;
+                        
+                        const branchCount = 2;
+                        for (let b = 0; b < branchCount; b++) {
+                            const branchAlpha = alpha * (0.7 - b * 0.25);
+                            const offsetFactor = (b + 1) * 0.3;
+                            
+                            this.ctx.globalAlpha = branchAlpha;
+                            this.ctx.strokeStyle = b === 0 ? '#FFFFFF' : '#87CEEB';
+                            this.ctx.lineWidth = b === 0 ? 3 + alpha * 2 : 2 + alpha;
+                            this.ctx.shadowColor = b === 0 ? '#FFFFFF' : '#87CEEB';
+                            this.ctx.shadowBlur = b === 0 ? 20 : 12;
+                            
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(segPath[0].x, segPath[0].y);
+                            
+                            for (let p = 1; p < segPath.length; p++) {
+                                const perpAngle = Math.atan2(
+                                    segPath[p].y - segPath[p - 1].y,
+                                    segPath[p].x - segPath[p - 1].x
+                                ) + Math.PI / 2;
+                                
+                                const offset = Math.sin(time * 20 + p * 2 + b * 3) * 8 * offsetFactor;
+                                
+                                const midX = (segPath[p - 1].x + segPath[p].x) / 2;
+                                const midY = (segPath[p - 1].y + segPath[p].y) / 2;
+                                
+                                this.ctx.quadraticCurveTo(
+                                    midX + Math.cos(perpAngle) * offset,
+                                    midY + Math.sin(perpAngle) * offset,
+                                    segPath[p].x,
+                                    segPath[p].y
+                                );
+                            }
+                            this.ctx.stroke();
+                            
+                            if (b === 0) {
+                                this.ctx.globalAlpha = branchAlpha * 0.4;
+                                this.ctx.lineWidth = 8;
+                                this.ctx.shadowBlur = 30;
+                                this.ctx.stroke();
+                            }
+                        }
+                        
+                        for (let p = 0; p < segPath.length; p++) {
+                            const sparkChance = p === 0 || p === segPath.length - 1 ? 0.8 : 0.3;
+                            if (Math.random() < sparkChance) {
+                                const sparkSize = (p === 0 || p === segPath.length - 1) ? 4 + alpha * 3 : 2 + alpha * 2;
+                                const sparkX = segPath[p].x + (Math.random() - 0.5) * 10;
+                                const sparkY = segPath[p].y + (Math.random() - 0.5) * 10;
+                                
+                                this.ctx.globalAlpha = alpha * (0.6 + Math.random() * 0.4);
+                                this.ctx.fillStyle = Math.random() < 0.6 ? '#FFFFFF' : '#87CEEB';
+                                this.ctx.shadowColor = this.ctx.fillStyle;
+                                this.ctx.shadowBlur = 12;
+                                this.ctx.beginPath();
+                                this.ctx.arc(sparkX, sparkY, sparkSize, 0, Math.PI * 2);
+                                this.ctx.fill();
+                            }
+                        }
+                    }
+                }
+                
+                this.ctx.restore();
+            }
+            
+            for (let i = chainToRemove.length - 1; i >= 0; i--) {
+                this.thunderDragon.chainLightningEffects.splice(chainToRemove[i], 1);
             }
         }
         
