@@ -2120,6 +2120,13 @@ class DragonShooterGame {
         const grid = document.getElementById('characterGrid');
         grid.innerHTML = '';
         
+        if (!this.saveData.unlockedCharacters) {
+            this.saveData.unlockedCharacters = ['default'];
+        }
+        if (!this.saveData.selectedCharacter) {
+            this.saveData.selectedCharacter = 'default';
+        }
+        
         for (const [id, config] of Object.entries(this.characterConfig)) {
             const isUnlocked = this.saveData.unlockedCharacters.includes(id);
             const isSelected = this.saveData.selectedCharacter === id;
