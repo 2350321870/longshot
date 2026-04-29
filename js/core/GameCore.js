@@ -717,6 +717,45 @@
         onShopPurchase(data) {
             console.log('Shop purchase:', data);
         }
+
+        showToast(message, type = 'info') {
+            let existing = document.getElementById('gameToast');
+            if (existing) {
+                existing.remove();
+            }
+
+            const toast = document.createElement('div');
+            toast.id = 'gameToast';
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: linear-gradient(135deg, rgba(50, 50, 70, 0.95), rgba(40, 40, 60, 0.95));
+                color: #fff;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                font-weight: bold;
+                z-index: 10000;
+                border: 2px solid rgba(255, 215, 0, 0.4);
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.2);
+                animation: toastSlideIn 0.3s ease-out, toastPulse 2s ease-in-out infinite;
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'toastSlideOut 0.3s ease-in forwards';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 2000);
+        }
     }
 
     window.GameCore = GameCore;
@@ -729,6 +768,18 @@
             20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
             80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
             100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        @keyframes toastSlideIn {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes toastSlideOut {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+        @keyframes toastPulse {
+            0%, 100% { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.2); }
+            50% { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.4); }
         }
     `;
     document.head.appendChild(style);
