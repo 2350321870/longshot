@@ -6,6 +6,13 @@
             this.game = game;
             this.segmentsDestroyed = 0;
             this.lastSkillSelectionAtSegment = 0;
+            this.isInitialized = false;
+        }
+
+        init() {
+            if (this.isInitialized) return;
+            this.isInitialized = true;
+            console.log('WindingEnemySystem initialized');
         }
 
         spawnDragon(config) {

@@ -10,6 +10,13 @@
             this.floatingTexts = [];
             this.deathExplosions = [];
             this.damageNumbers = [];
+            this.isInitialized = false;
+        }
+
+        init() {
+            if (this.isInitialized) return;
+            this.isInitialized = true;
+            console.log('EffectSystem initialized');
         }
 
         addScreenShake(intensity, duration = 0.3) {

@@ -223,10 +223,15 @@
             this.gameState = 'playing';
             this.updateUI();
             
-            document.getElementById('mainMenu').classList.add('hidden');
-            document.getElementById('gameCanvas').classList.remove('hidden');
-            document.getElementById('battleUI').classList.remove('hidden');
-            document.getElementById('battleLevelDisplay').textContent = `当前第${this.currentLevel}关`;
+            const mainScreen = document.getElementById('mainScreen');
+            const gameCanvas = document.getElementById('gameCanvas');
+            const battleUI = document.getElementById('battleUI');
+            const battleLevelDisplay = document.getElementById('battleLevelDisplay');
+            
+            if (mainScreen) mainScreen.classList.add('hidden');
+            if (gameCanvas) gameCanvas.classList.remove('hidden');
+            if (battleUI) battleUI.classList.remove('hidden');
+            if (battleLevelDisplay) battleLevelDisplay.textContent = `当前第${this.currentLevel}关`;
             
             this.lastTime = 0;
             requestAnimationFrame((t) => this.gameLoop(t));
@@ -412,11 +417,19 @@
             this.saveManager.save(this.saveData);
             this.achievementSystem.checkAchievements();
             
-            document.getElementById('battleUI').classList.add('hidden');
-            document.getElementById('levelCompleteScreen').classList.remove('hidden');
-            document.getElementById('levelCompleteGold').textContent = this.goldEarned;
-            document.getElementById('levelCompleteScore').textContent = this.score;
-            document.getElementById('levelCompleteLevel').textContent = this.currentLevel;
+            const battleUI = document.getElementById('battleUI');
+            const levelUpScreen = document.getElementById('levelUpScreen');
+            const levelupStats = document.getElementById('levelupStats');
+            
+            if (battleUI) battleUI.classList.add('hidden');
+            if (levelUpScreen) levelUpScreen.classList.remove('hidden');
+            if (levelupStats) {
+                levelupStats.innerHTML = `
+                    <div>关卡: <span class="highlight">${this.currentLevel}</span></div>
+                    <div>获得金币: <span class="highlight">${this.goldEarned}</span></div>
+                    <div>最终得分: <span class="highlight">${this.score}</span></div>
+                `;
+            }
         }
 
         calculateLevelReward() {
@@ -431,14 +444,22 @@
             this.saveData.gold += this.goldEarned;
             this.saveManager.save(this.saveData);
             
-            document.getElementById('battleUI').classList.add('hidden');
-            document.getElementById('gameOverScreen').classList.remove('hidden');
-            document.getElementById('gameOverGold').textContent = this.goldEarned;
-            document.getElementById('gameOverLevel').textContent = this.currentLevel;
+            const battleUI = document.getElementById('battleUI');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const finalLevel = document.getElementById('finalLevel');
+            const finalGold = document.getElementById('finalGold');
+            const finalScore = document.getElementById('finalScore');
+            
+            if (battleUI) battleUI.classList.add('hidden');
+            if (gameOverScreen) gameOverScreen.classList.remove('hidden');
+            if (finalLevel) finalLevel.textContent = this.currentLevel;
+            if (finalGold) finalGold.textContent = this.goldEarned;
+            if (finalScore) finalScore.textContent = this.score;
         }
 
         retryLevel() {
-            document.getElementById('gameOverScreen').classList.remove('show');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            if (gameOverScreen) gameOverScreen.classList.add('hidden');
             this.startLevel(this.currentLevel);
         }
 
@@ -643,13 +664,21 @@
         renderMainMenu() {
             this.gameState = 'mainMenu';
             
-            document.getElementById('gameCanvas').classList.add('hidden');
-            document.getElementById('battleUI').classList.add('hidden');
-            document.getElementById('levelCompleteScreen').classList.add('hidden');
-            document.getElementById('gameOverScreen').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
+            const gameCanvas = document.getElementById('gameCanvas');
+            const battleUI = document.getElementById('battleUI');
+            const levelUpScreen = document.getElementById('levelUpScreen');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const mainScreen = document.getElementById('mainScreen');
             
-            this.mainMenuSystem.renderMainMenu();
+            if (gameCanvas) gameCanvas.classList.add('hidden');
+            if (battleUI) battleUI.classList.add('hidden');
+            if (levelUpScreen) levelUpScreen.classList.add('hidden');
+            if (gameOverScreen) gameOverScreen.classList.add('hidden');
+            if (mainScreen) mainScreen.classList.remove('hidden');
+            
+            if (this.mainMenuSystem) {
+                this.mainMenuSystem.renderMainMenu();
+            }
         }
 
         updateUI() {
@@ -690,6 +719,7 @@
         }
     }
 
+    window.GameCore = GameCore;
     window.DragonShooterGame = GameCore;
 
     const style = document.createElement('style');

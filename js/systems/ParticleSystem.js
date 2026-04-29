@@ -12,6 +12,15 @@
             this.damageNumbers = [];
             this.deathExplosions = [];
             this.glowEffects = [];
+            
+            this.isInitialized = false;
+        }
+
+        init() {
+            if (this.isInitialized) return;
+            
+            this.isInitialized = true;
+            console.log('ParticleSystem initialized');
         }
 
         emit(x, y, options = {}) {

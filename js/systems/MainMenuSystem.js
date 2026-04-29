@@ -66,21 +66,35 @@
         renderMainMenu() {
             this.game.gameState = 'mainMenu';
             
-            document.getElementById('mainScreen').classList.remove('hidden');
-            document.getElementById('bottomNav').classList.remove('hidden');
-            document.getElementById('topBar').classList.remove('hidden');
+            const mainScreen = document.getElementById('mainScreen');
+            const bottomNav = document.getElementById('bottomNav');
+            const topBar = document.getElementById('topBar');
             
-            document.getElementById('battleInfo').classList.add('hidden');
-            document.getElementById('battleUI').classList.add('hidden');
-            document.getElementById('pauseBtn').classList.add('hidden');
-            document.getElementById('fenceBar').classList.add('hidden');
+            if (mainScreen) mainScreen.classList.remove('hidden');
+            if (bottomNav) bottomNav.classList.remove('hidden');
+            if (topBar) topBar.classList.remove('hidden');
             
-            document.getElementById('levelUpScreen').classList.remove('show');
-            document.getElementById('gameOverScreen').classList.remove('show');
-            document.getElementById('skillSelection').classList.remove('show');
-            document.getElementById('pauseMenu').classList.remove('show');
-            document.getElementById('levelCompleteScreen').classList.remove('show');
-            document.getElementById('reviveScreen').classList.remove('show');
+            const battleInfo = document.getElementById('battleInfo');
+            const battleUI = document.getElementById('battleUI');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const fenceBar = document.getElementById('fenceBar');
+            
+            if (battleInfo) battleInfo.classList.add('hidden');
+            if (battleUI) battleUI.classList.add('hidden');
+            if (pauseBtn) pauseBtn.classList.add('hidden');
+            if (fenceBar) fenceBar.classList.add('hidden');
+            
+            const levelUpScreen = document.getElementById('levelUpScreen');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const skillSelection = document.getElementById('skillSelection');
+            const pauseMenu = document.getElementById('pauseMenu');
+            const reviveScreen = document.getElementById('reviveScreen');
+            
+            if (levelUpScreen) levelUpScreen.classList.remove('show');
+            if (gameOverScreen) gameOverScreen.classList.remove('show');
+            if (skillSelection) skillSelection.classList.remove('show');
+            if (pauseMenu) pauseMenu.classList.remove('show');
+            if (reviveScreen) reviveScreen.classList.remove('show');
             
             this.switchTab('battle');
             this.updateMainMenuUI();
@@ -90,11 +104,21 @@
             const saveData = this.game.saveData;
             if (!saveData) return;
 
-            document.getElementById('energyDisplay').textContent = `${saveData.energy || 10}/${saveData.maxEnergy || 10}`;
-            document.getElementById('mainGoldDisplay').textContent = saveData.gold || 0;
+            const energyDisplay = document.getElementById('energyDisplay');
+            const mainGoldDisplay = document.getElementById('mainGoldDisplay');
+            const chapterTitle = document.getElementById('chapterTitle');
+
+            if (energyDisplay) {
+                energyDisplay.textContent = `${saveData.energy || 10}/${saveData.maxEnergy || 10}`;
+            }
+            if (mainGoldDisplay) {
+                mainGoldDisplay.textContent = saveData.gold || 0;
+            }
             
             const chapter = Math.ceil((saveData.maxUnlockedLevel || 1) / 9);
-            document.getElementById('chapterTitle').textContent = `${chapter}. 屠龙第${chapter}章`;
+            if (chapterTitle) {
+                chapterTitle.textContent = `${chapter}. 屠龙第${chapter}章`;
+            }
             
             if (this.currentTab === 'battle') {
                 this.renderBattleTab();
@@ -138,6 +162,8 @@
 
         renderLevelGrid() {
             const grid = document.getElementById('levelGrid');
+            if (!grid) return;
+            
             grid.innerHTML = '';
             
             const maxLevel = this.game.saveData.maxUnlockedLevel || 1;
@@ -175,6 +201,8 @@
 
         renderLevelRewards() {
             const rewardsEl = document.getElementById('levelRewards');
+            if (!rewardsEl) return;
+            
             rewardsEl.innerHTML = '';
             
             const levelRewards = GameData.levelRewards;
@@ -197,6 +225,8 @@
 
         renderCharacterTab() {
             const list = document.getElementById('characterList');
+            if (!list) return;
+            
             list.innerHTML = '';
             
             const characters = GameData.characterConfig;
@@ -282,6 +312,8 @@
 
         renderShopItems() {
             const grid = document.getElementById('shopGrid');
+            if (!grid) return;
+            
             grid.innerHTML = '';
             
             const shopItems = GameData.shopItems;
@@ -339,6 +371,8 @@
 
         renderUpgradeItems() {
             const grid = document.getElementById('upgradeGrid');
+            if (!grid) return;
+            
             grid.innerHTML = '';
             
             const upgrades = [
@@ -413,6 +447,8 @@
 
         renderEquipUpgradeGrid() {
             const grid = document.getElementById('equipGrid');
+            if (!grid) return;
+            
             grid.innerHTML = '';
             
             const equipmentConfig = GameData.equipmentConfig;
@@ -493,6 +529,8 @@
 
         renderEquipmentUI() {
             const equipUI = document.getElementById('equipmentUI');
+            if (!equipUI) return;
+            
             equipUI.innerHTML = '';
             
             const equipmentConfig = GameData.equipmentConfig;
@@ -520,6 +558,8 @@
 
         renderTasksTab() {
             const list = document.getElementById('tasksList');
+            if (!list) return;
+            
             list.innerHTML = '';
             
             this.game.checkDailyTasksRefresh();
@@ -624,6 +664,8 @@
 
         renderAchievementsTab(filter = 'all') {
             const list = document.getElementById('achievementsList');
+            if (!list) return;
+            
             list.innerHTML = '';
             
             if (filter === 'stats') {
@@ -657,9 +699,19 @@
                 return unlocked && !claimed;
             }).length;
             
-            document.getElementById('totalAchievementPoints').textContent = totalPoints;
-            document.getElementById('unlockedAchievements').textContent = unlockedCount;
-            document.getElementById('totalAchievements').textContent = achievements.length;
+            const totalAchievementPointsEl = document.getElementById('totalAchievementPoints');
+            const unlockedAchievementsEl = document.getElementById('unlockedAchievements');
+            const totalAchievementsEl = document.getElementById('totalAchievements');
+            
+            if (totalAchievementPointsEl) {
+                totalAchievementPointsEl.textContent = totalPoints;
+            }
+            if (unlockedAchievementsEl) {
+                unlockedAchievementsEl.textContent = unlockedCount;
+            }
+            if (totalAchievementsEl) {
+                totalAchievementsEl.textContent = achievements.length;
+            }
             
             if (claimableCount > 0) {
                 const claimableBadge = document.createElement('div');
@@ -942,9 +994,19 @@
             const shopItems = this.game.achievementSystem.getShopItems();
             const totalPoints = this.game.saveManager.getAchievementPoints();
             
-            document.getElementById('totalAchievementPoints').textContent = totalPoints;
-            document.getElementById('unlockedAchievements').textContent = '-';
-            document.getElementById('totalAchievements').textContent = '-';
+            const totalAchievementPointsEl = document.getElementById('totalAchievementPoints');
+            const unlockedAchievementsEl = document.getElementById('unlockedAchievements');
+            const totalAchievementsEl = document.getElementById('totalAchievements');
+            
+            if (totalAchievementPointsEl) {
+                totalAchievementPointsEl.textContent = totalPoints;
+            }
+            if (unlockedAchievementsEl) {
+                unlockedAchievementsEl.textContent = '-';
+            }
+            if (totalAchievementsEl) {
+                totalAchievementsEl.textContent = '-';
+            }
             
             const shopGrid = document.createElement('div');
             shopGrid.id = 'achievementShopGrid';
@@ -1020,9 +1082,19 @@
             const achievements = this.game.achievementSystem.getAchievementsWithProgress();
             const unlockedCount = achievements.filter(a => this.game.saveManager.isAchievementUnlocked(a.id)).length;
             
-            document.getElementById('totalAchievementPoints').textContent = totalPoints;
-            document.getElementById('unlockedAchievements').textContent = unlockedCount;
-            document.getElementById('totalAchievements').textContent = achievements.length;
+            const totalAchievementPointsEl = document.getElementById('totalAchievementPoints');
+            const unlockedAchievementsEl = document.getElementById('unlockedAchievements');
+            const totalAchievementsEl = document.getElementById('totalAchievements');
+            
+            if (totalAchievementPointsEl) {
+                totalAchievementPointsEl.textContent = totalPoints;
+            }
+            if (unlockedAchievementsEl) {
+                unlockedAchievementsEl.textContent = unlockedCount;
+            }
+            if (totalAchievementsEl) {
+                totalAchievementsEl.textContent = achievements.length;
+            }
         }
 
         doGacha(count) {
