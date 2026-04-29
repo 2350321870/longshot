@@ -709,6 +709,10 @@
             this.segmentsDestroyed = 0;
             this.lastSkillSelectionAtSegment = 0;
         }
+
+        update(dt) {
+            this.updateEnemies(dt);
+        }
     }
 
     window.WindingEnemySystem = WindingEnemySystem;
