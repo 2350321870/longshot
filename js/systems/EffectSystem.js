@@ -429,6 +429,32 @@
         reset() {
             this.clear();
         }
+
+        createHitParticles(x, y, color) {
+            if (this.game && this.game.particleSystem) {
+                this.game.particleSystem.createHitParticles(x, y, color);
+            }
+        }
+
+        createDeathParticles(x, y, color) {
+            if (this.game && this.game.particleSystem) {
+                this.game.particleSystem.createDeathParticles(x, y, color);
+            }
+        }
+
+        createKillExplosion(x, y, color, size = 1) {
+            if (this.game && this.game.particleSystem) {
+                this.game.particleSystem.createKillExplosion(x, y, color, size);
+            }
+        }
+
+        createDamageNumber(x, y, value, isCrit = false, isReduced = false) {
+            if (this.game && this.game.particleSystem) {
+                this.game.particleSystem.createDamageNumber(x, y, value, isCrit, isReduced);
+            } else {
+                this.addDamageNumber(x, y, value, isCrit);
+            }
+        }
     }
 
     if (typeof window !== 'undefined') {
