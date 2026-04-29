@@ -756,6 +756,75 @@
                 }, 300);
             }, 2000);
         }
+
+        checkCollision(a, b) {
+            if (!a || !b) return false;
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const minDist = (a.radius || 20) + (b.radius || 20);
+            return dist < minDist;
+        }
+
+        checkCircleCollision(a, b) {
+            return this.checkCollision(a, b);
+        }
+
+        createDamageNumber(x, y, value, isCrit = false, isReduced = false) {
+            if (this.particleSystem && this.particleSystem.createDamageNumber) {
+                this.particleSystem.createDamageNumber(x, y, value, isCrit, isReduced);
+            } else if (this.effectSystem && this.effectSystem.addDamageNumber) {
+                this.effectSystem.addDamageNumber(x, y, value, isCrit);
+            }
+        }
+
+        createHitParticles(x, y, color) {
+            if (this.particleSystem && this.particleSystem.createHitParticles) {
+                this.particleSystem.createHitParticles(x, y, color);
+            }
+        }
+
+        createKillExplosion(x, y, color, size = 1) {
+            if (this.particleSystem && this.particleSystem.createKillExplosion) {
+                this.particleSystem.createKillExplosion(x, y, color, size);
+            }
+        }
+
+        createDeathParticles(x, y, color) {
+            if (this.particleSystem && this.particleSystem.createDeathParticles) {
+                this.particleSystem.createDeathParticles(x, y, color);
+            }
+        }
+
+        spawnChest(x, y) {
+            if (this.chestSystem && this.chestSystem.spawnChest) {
+                this.chestSystem.spawnChest(x, y);
+            }
+        }
+
+        spawnPowerup(x, y, type = null) {
+            if (this.powerupSystem && this.powerupSystem.spawnPowerup) {
+                this.powerupSystem.spawnPowerup(x, y, type);
+            }
+        }
+
+        autoSelectSkill() {
+            if (this.skillSystem && this.skillSystem.autoSelectSkill) {
+                this.skillSystem.autoSelectSkill();
+            }
+        }
+
+        dragonReachedEnd(enemy) {
+            if (enemy && enemy.segments) {
+                const totalDamage = enemy.segments.reduce((sum, s) => sum + (s.maxHealth || 10), 0);
+                this.takeDamageWithPassive(totalDamage * 0.1);
+            }
+            
+            const index = this.enemies.indexOf(enemy);
+            if (index >= 0) {
+                this.enemies.splice(index, 1);
+            }
+        }
     }
 
     window.GameCore = GameCore;
