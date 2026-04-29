@@ -871,36 +871,439 @@
     }
 
     // ==========================================
+    // 角色配置
+    // ==========================================
+    const characterConfig = {
+        default: {
+            name: '默认勇者',
+            icon: '👦',
+            color: '#4488ff',
+            unlocked: true,
+            price: 0,
+            stats: { health: 0, damage: 0, speed: 0 },
+            description: '初始角色，均衡属性',
+            passive: {
+                id: 'beginner_luck',
+                name: '新手运气',
+                description: '每30秒必定触发一次暴击',
+                cooldown: 30,
+                type: 'guaranteed_crit'
+            }
+        },
+        archer: {
+            name: '弓箭手',
+            icon: '🏹',
+            color: '#44cc44',
+            unlocked: false,
+            price: 500,
+            stats: { health: -10, damage: 5, speed: 0.1 },
+            description: '高伤害高速度，但血量较低',
+            passive: {
+                id: 'precision',
+                name: '精准射击',
+                description: '移动速度的20%转化为暴击伤害',
+                conversionRate: 0.2,
+                type: 'speed_to_crit_damage'
+            }
+        },
+        warrior: {
+            name: '战士',
+            icon: '⚔️',
+            color: '#ff4444',
+            unlocked: false,
+            price: 500,
+            stats: { health: 30, damage: 0, speed: -0.05 },
+            description: '高血量，适合持久战',
+            passive: {
+                id: 'toughness',
+                name: '坚韧',
+                description: '每损失20%生命值，获得10%伤害减免',
+                threshold: 0.20,
+                reductionPerThreshold: 0.10,
+                type: 'health_based_reduction'
+            }
+        },
+        mage: {
+            name: '法师',
+            icon: '🧙',
+            color: '#aa44ff',
+            unlocked: false,
+            price: 800,
+            stats: { health: -20, damage: 10, speed: 0.05 },
+            description: '最高伤害，但非常脆弱',
+            passive: {
+                id: 'arcane_boost',
+                name: '奥术增幅',
+                description: '主动技能伤害+30%，冷却-15%',
+                skillDamageBonus: 0.30,
+                cooldownReduction: 0.15,
+                type: 'skill_enhancement'
+            }
+        },
+        knight: {
+            name: '骑士',
+            icon: '🛡️',
+            color: '#ffaa00',
+            unlocked: false,
+            price: 800,
+            stats: { health: 50, damage: 0, speed: -0.1 },
+            description: '坦克角色，血量极高',
+            passive: {
+                id: 'shield_wall',
+                name: '盾墙',
+                description: '获得一个可吸收50伤害的护盾，每20秒刷新',
+                shieldAmount: 50,
+                shieldCooldown: 20,
+                type: 'periodic_shield'
+            }
+        }
+    };
+
+    // ==========================================
+    // 装备配置
+    // ==========================================
+    const equipmentConfig = {
+        weapon: {
+            name: '武器',
+            icon: '⚔️',
+            basePrice: 100,
+            upgradePrice: 80,
+            buyDescription: '购买：永久增加基础伤害+5',
+            upgradeDescription: '强化：每级伤害+3',
+            slot: 'weapon',
+            possibleAffixes: ['damage', 'crit_chance', 'crit_damage', 'attack_speed', 'pierce']
+        },
+        armor: {
+            name: '护甲',
+            icon: '🛡️',
+            basePrice: 100,
+            upgradePrice: 80,
+            buyDescription: '购买：永久增加最大生命+20',
+            upgradeDescription: '强化：每级最大生命+10',
+            slot: 'armor',
+            possibleAffixes: ['health', 'damage_reduction', 'regen', 'max_health']
+        },
+        boots: {
+            name: '靴子',
+            icon: '👟',
+            basePrice: 80,
+            upgradePrice: 60,
+            buyDescription: '购买：永久增加移动速度+10%',
+            upgradeDescription: '强化：每级速度+5%',
+            slot: 'boots',
+            possibleAffixes: ['speed', 'dodge', 'move_speed_attack']
+        },
+        ring: {
+            name: '戒指',
+            icon: '💍',
+            basePrice: 150,
+            upgradePrice: 100,
+            buyDescription: '购买：暴击几率+5%',
+            upgradeDescription: '强化：每级暴击几率+2%',
+            slot: 'ring',
+            possibleAffixes: ['crit_chance', 'crit_damage', 'skill_damage', 'cooldown_reduction']
+        }
+    };
+
+    // ==========================================
+    // 品质配置
+    // ==========================================
+    const qualityConfig = {
+        common: {
+            name: '普通',
+            color: '#ffffff',
+            borderColor: '#aaaaaa',
+            affixCount: 0,
+            statMultiplier: 1.0,
+            dropRate: 0.50
+        },
+        uncommon: {
+            name: '优秀',
+            color: '#44ff44',
+            borderColor: '#22cc22',
+            affixCount: 1,
+            statMultiplier: 1.2,
+            dropRate: 0.30
+        },
+        rare: {
+            name: '稀有',
+            color: '#4488ff',
+            borderColor: '#2266cc',
+            affixCount: 2,
+            statMultiplier: 1.5,
+            dropRate: 0.15
+        },
+        epic: {
+            name: '史诗',
+            color: '#aa44ff',
+            borderColor: '#8822cc',
+            affixCount: 3,
+            statMultiplier: 2.0,
+            dropRate: 0.04
+        },
+        legendary: {
+            name: '传说',
+            color: '#ffaa00',
+            borderColor: '#cc8800',
+            affixCount: 4,
+            statMultiplier: 3.0,
+            dropRate: 0.01
+        }
+    };
+
+    // ==========================================
+    // 词缀配置
+    // ==========================================
+    const affixConfig = {
+        damage: {
+            name: '攻击强化',
+            description: '增加攻击伤害',
+            stat: 'bulletDamage',
+            baseValue: 3,
+            valuePerQuality: 1,
+            displayFormat: '+{value} 伤害'
+        },
+        crit_chance: {
+            name: '精准',
+            description: '增加暴击几率',
+            stat: 'critChanceBonus',
+            baseValue: 0.03,
+            valuePerQuality: 0.015,
+            displayFormat: '+{value}% 暴击'
+        },
+        crit_damage: {
+            name: '致命一击',
+            description: '增加暴击伤害',
+            stat: 'critDamageBonus',
+            baseValue: 0.15,
+            valuePerQuality: 0.075,
+            displayFormat: '+{value}% 暴击伤害'
+        },
+        attack_speed: {
+            name: '急速',
+            description: '增加攻击速度',
+            stat: 'attackSpeedBonus',
+            baseValue: 0.10,
+            valuePerQuality: 0.05,
+            displayFormat: '+{value}% 攻速'
+        },
+        pierce: {
+            name: '穿透',
+            description: '增加子弹穿透数量',
+            stat: 'bulletPierceBonus',
+            baseValue: 1,
+            valuePerQuality: 0,
+            displayFormat: '+{value} 穿透'
+        },
+        health: {
+            name: '生命强化',
+            description: '增加当前生命值',
+            stat: 'currentHealthBonus',
+            baseValue: 15,
+            valuePerQuality: 8,
+            displayFormat: '+{value} 生命'
+        },
+        max_health: {
+            name: '生命上限',
+            description: '增加最大生命值',
+            stat: 'maxHealth',
+            baseValue: 20,
+            valuePerQuality: 10,
+            displayFormat: '+{value} 最大生命'
+        },
+        damage_reduction: {
+            name: '坚韧',
+            description: '减少受到的伤害',
+            stat: 'damageReduction',
+            baseValue: 0.05,
+            valuePerQuality: 0.025,
+            displayFormat: '+{value}% 减伤'
+        },
+        regen: {
+            name: '回复',
+            description: '每秒恢复生命值',
+            stat: 'healthRegen',
+            baseValue: 2,
+            valuePerQuality: 1,
+            displayFormat: '+{value}/秒 回复'
+        },
+        speed: {
+            name: '迅捷',
+            description: '增加移动速度',
+            stat: 'moveSpeedBonus',
+            baseValue: 0.08,
+            valuePerQuality: 0.04,
+            displayFormat: '+{value}% 移速'
+        },
+        dodge: {
+            name: '闪避',
+            description: '有几率完全闪避攻击',
+            stat: 'dodgeChance',
+            baseValue: 0.05,
+            valuePerQuality: 0.025,
+            displayFormat: '+{value}% 闪避'
+        },
+        move_speed_attack: {
+            name: '疾风',
+            description: '移速转化为攻击伤害',
+            stat: 'speedToDamage',
+            baseValue: 0.15,
+            valuePerQuality: 0.075,
+            displayFormat: '+{value}% 移速转伤害'
+        },
+        skill_damage: {
+            name: '奥术增幅',
+            description: '增加技能伤害',
+            stat: 'skillDamageBonus',
+            baseValue: 0.10,
+            valuePerQuality: 0.05,
+            displayFormat: '+{value}% 技能伤害'
+        },
+        cooldown_reduction: {
+            name: '冷却缩减',
+            description: '减少技能冷却时间',
+            stat: 'cooldownReduction',
+            baseValue: 0.08,
+            valuePerQuality: 0.04,
+            displayFormat: '+{value}% 冷却缩减'
+        }
+    };
+
+    // ==========================================
+    // 关卡配置
+    // ==========================================
+    const levelConfigs = {
+        1: { enemyCount: 8, enemyHealth: 100, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 10, chestDropChance: 0.6 },
+        2: { enemyCount: 10, enemyHealth: 150, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 12, chestDropChance: 0.6 },
+        3: { enemyCount: 12, enemyHealth: 200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 15, unlockAbility: true, chestDropChance: 0.65 },
+        4: { enemyCount: 15, enemyHealth: 300, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 18, chestDropChance: 0.65 },
+        5: { enemyCount: 18, enemyHealth: 400, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 20, chestDropChance: 0.7 },
+        6: { enemyCount: 20, enemyHealth: 500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 22, unlockAbility: true, chestDropChance: 0.7 },
+        7: { enemyCount: 25, enemyHealth: 600, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 25, chestDropChance: 0.75 },
+        8: { enemyCount: 28, enemyHealth: 700, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 28, chestDropChance: 0.75 },
+        9: { enemyCount: 30, enemyHealth: 800, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 30, unlockAbility: true, chestDropChance: 0.8 }
+    };
+
+    // ==========================================
+    // 战斗技能配置
+    // ==========================================
+    const battleSkills = [
+        { id: "bullet_count", name: "龙之力", description: "子弹数量+1，范围+15°", icon: "🎯", rarity: "A" },
+        { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡", rarity: "B" },
+        { id: "damage", name: "龙之力", description: "子弹伤害+50%", icon: "💥", rarity: "A" },
+        { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️", rarity: "B" },
+        { id: "max_health", name: "生命强化", description: "最大生命值+25", icon: "💗", rarity: "B" },
+        { id: "bullet_size", name: "巨型子弹", description: "子弹体积变大", icon: "🔵", rarity: "B" },
+        { id: "speed", name: "加速移动", description: "移动速度+15%", icon: "🏃", rarity: "B" },
+        { id: "pierce", name: "穿透子弹", description: "子弹可穿透敌人", icon: "🎯", rarity: "A" },
+        { id: "crit_chance", name: "暴击专精", description: "暴击几率+10%", icon: "⭐", rarity: "B" },
+        { id: "crit_damage", name: "暴击强化", description: "暴击伤害+50%", icon: "💫", rarity: "A" },
+        { id: "magnet", name: "磁铁效果", description: "自动吸引道具范围+50", icon: "🧲", rarity: "B" },
+        { id: "rain_of_needles", name: "暴雨梨花针", description: "发射针雨攻击龙，击中后爆开", icon: "🗡️", rarity: "A", type: "active", cooldown: 1.0, baseDamage: 20, burstCount: 5, projectileCount: 8, spread: 45 },
+        { id: "thunder_dragon", name: "雷龙", description: "召唤雷龙释放闪电链攻击敌人", icon: "⚡", rarity: "A", type: "active", cooldown: 4.0, baseDamage: 30, duration: 6.0, moveSpeed: 180, lightningFrequency: 0.25, chainCount: 5, chainDamageReduction: 0.75 },
+        { id: "ice_storm", name: "冰雪", description: "全屏下冰雹雪，减速并伤害龙", icon: "❄️", rarity: "A", type: "active", cooldown: 1.5, baseDamage: 15, slowDuration: 2.0, slowAmount: 0.5, hailRate: 0.3 }
+    ];
+
+    // ==========================================
+    // 道具类型配置
+    // ==========================================
+    const powerupTypes = [
+        { id: "gold", name: "金币", icon: "💰", color: "#FFD700", value: 10 },
+        { id: "health_pack", name: "生命包", icon: "💊", color: "#FF6B6B" },
+        { id: "damage_boost", name: "伤害提升", icon: "⚔️", color: "#FF4444", duration: 10 },
+        { id: "speed_boost", name: "速度提升", icon: "💨", color: "#00CED1", duration: 8 }
+    ];
+
+    // ==========================================
+    // 关卡奖励配置
+    // ==========================================
+    const levelRewards = {
+        3: { type: 'gold', amount: 100, name: '金币x100', icon: '💰' },
+        6: { type: 'gold', amount: 200, name: '金币x200', icon: '💰' },
+        9: { type: 'gold', amount: 500, name: '金币x500', icon: '👑' }
+    };
+
+    // ==========================================
     // 获取默认存档数据
     // ==========================================
     function getDefaultSaveData() {
         return {
-            totalGold: 0,              // 总金币
-            highScore: 0,              // 最高分
-            totalKills: 0,             // 总击杀数
-            totalWavesCompleted: 0,    // 总完成波次
-            gamesPlayed: 0,            // 游戏次数
+            gold: 100,                  // 金币
+            diamonds: 0,                // 钻石
+            maxUnlockedLevel: 1,        // 最大解锁关卡
+            highestLevelPassed: 0,      // 最高通关关卡
+            energy: 30,                 // 体力
+            maxEnergy: 30,              // 最大体力
+            lastEnergyTime: Date.now(), // 上次体力恢复时间
             
-            unlockedCharacters: ['default'],  // 已解锁角色
+            equipment: {
+                weapon: { level: 0, owned: false, equippedItem: null },
+                armor: { level: 0, owned: false, equippedItem: null },
+                boots: { level: 0, owned: false, equippedItem: null },
+                ring: { level: 0, owned: false, equippedItem: null }
+            },
+            
+            permanentUpgrades: {
+                bulletDamage: 0,
+                maxHealth: 0,
+                moveSpeed: 0
+            },
+            
+            unlockedItems: ['pistol'],  // 已解锁物品
+            equippedItems: [],           // 已装备物品
+            itemLevels: { pistol: 1 },  // 物品等级
+            claimedRewards: {},          // 已领取奖励
+            
             selectedCharacter: 'default',     // 当前选择角色
+            unlockedCharacters: ['default'],  // 已解锁角色
+            inventory: [],                    // 背包
             
-            unlockedSkills: {},        // 已解锁技能
-            equippedSkills: [],        // 已装备技能
+            dailyTasks: null,            // 每日任务
+            unlockedAchievements: [],    // 已解锁成就
+            claimedAchievements: [],     // 已领取成就
+            achievementPoints: 0,        // 成就点数
             
-            difficulty: 'normal',      // 难度设置
-            soundEnabled: true,        // 音效开关
-            musicEnabled: true,        // 音乐开关
-            sfxVolume: 1,              // 音效音量
-            musicVolume: 0.5,          // 音乐音量
+            statistics: {
+                totalKills: 0,           // 总击杀
+                totalCleared: 0,         // 总通关
+                totalGoldEarned: 0,      // 总金币获得
+                firstClearDate: null,    // 首次通关日期
+                totalSkillsUsed: 0,      // 总技能使用次数
+                totalChestsOpened: 0,    // 总宝箱开启次数
+                totalDamageDealt: 0,     // 总造成伤害
+                totalDamageTaken: 0,     // 总受到伤害
+                totalPowerupsCollected: 0, // 总收集道具
+                totalRevivesUsed: 0,     // 总使用复活
+                totalGameTime: 0,        // 总游戏时间
+                highestSingleDamage: 0,  // 最高单次伤害
+                totalBossKills: 0,       // 总击杀BOSS
+                perfectLevels: 0,        // 完美通关次数
+                totalPlayCount: 0,       // 总游戏次数
+                totalDeaths: 0           // 总死亡次数
+            },
             
-            dailyTasks: generateDailyTasks(),  // 每日任务
-            lastDailyReward: null      // 最后领取每日奖励时间
+            unlockedSkills: {},          // 已解锁技能
+            equippedSkills: [],          // 已装备技能
+            difficulty: 'normal',        // 难度设置
+            soundEnabled: true,          // 音效开关
+            musicEnabled: true,          // 音乐开关
+            sfxVolume: 1,                // 音效音量
+            musicVolume: 0.5,            // 音乐音量
+            lastDailyReward: null        // 最后领取每日奖励时间
         };
     }
 
     // 将配置和函数暴露到全局作用域
     if (typeof window !== 'undefined') {
         window.GameConfig = GameConfig;
+        window.characterConfig = characterConfig;
+        window.equipmentConfig = equipmentConfig;
+        window.qualityConfig = qualityConfig;
+        window.affixConfig = affixConfig;
+        window.levelConfigs = levelConfigs;
+        window.battleSkills = battleSkills;
+        window.powerupTypes = powerupTypes;
+        window.levelRewards = levelRewards;
         window.generateWaveTypes = generateWaveTypes;
         window.generateDailyTasks = generateDailyTasks;
         window.getDefaultSaveData = getDefaultSaveData;

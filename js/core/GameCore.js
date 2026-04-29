@@ -36,6 +36,13 @@
             this.effectSystem = null;
             this.uiManager = null;
             
+            this.skillSystem = null;
+            this.powerupSystem = null;
+            this.chestSystem = null;
+            this.achievementSystem = null;
+            this.mainMenuSystem = null;
+            this.windingEnemySystem = null;
+            
             this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
             this.waveAnnouncement = null;
             
@@ -133,6 +140,36 @@
             if (window.ScreenShakePlugin && this.pluginManager) {
                 this.pluginManager.register(new ScreenShakePlugin());
                 this.pluginManager.enable('screenShake');
+            }
+            
+            if (window.SkillSystem) {
+                this.skillSystem = new SkillSystem(this);
+                this.skillSystem.init();
+            }
+            
+            if (window.PowerupSystem) {
+                this.powerupSystem = new PowerupSystem(this);
+                this.powerupSystem.init();
+            }
+            
+            if (window.ChestSystem) {
+                this.chestSystem = new ChestSystem(this);
+                this.chestSystem.init();
+            }
+            
+            if (window.AchievementSystem) {
+                this.achievementSystem = new AchievementSystem(this);
+                this.achievementSystem.init();
+            }
+            
+            if (window.MainMenuSystem) {
+                this.mainMenuSystem = new MainMenuSystem(this);
+                this.mainMenuSystem.init();
+            }
+            
+            if (window.WindingEnemySystem) {
+                this.windingEnemySystem = new WindingEnemySystem(this);
+                this.windingEnemySystem.init();
             }
         }
 
@@ -508,6 +545,22 @@
             
             if (this.particleSystem) {
                 this.particleSystem.update(dt);
+            }
+            
+            if (this.skillSystem) {
+                this.skillSystem.update(dt, this.currentTime);
+            }
+            
+            if (this.powerupSystem) {
+                this.powerupSystem.update(dt);
+            }
+            
+            if (this.chestSystem) {
+                this.chestSystem.update(dt);
+            }
+            
+            if (this.windingEnemySystem) {
+                this.windingEnemySystem.update(dt);
             }
             
             this.updateScreenShake(dt);
@@ -934,6 +987,22 @@
             
             if (this.effectSystem) {
                 this.effectSystem.render(this.ctx);
+            }
+            
+            if (this.skillSystem) {
+                this.skillSystem.render(this.ctx);
+            }
+            
+            if (this.powerupSystem) {
+                this.powerupSystem.render(this.ctx);
+            }
+            
+            if (this.chestSystem) {
+                this.chestSystem.render(this.ctx);
+            }
+            
+            if (this.windingEnemySystem) {
+                this.windingEnemySystem.render(this.ctx);
             }
             
             this.drawBullets();

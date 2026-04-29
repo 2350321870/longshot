@@ -11,6 +11,12 @@
         'js/systems/ParticleSystem.js',
         'js/systems/EffectSystem.js',
         'js/systems/UIManager.js',
+        'js/systems/MainMenuSystem.js',
+        'js/systems/WindingEnemySystem.js',
+        'js/systems/SkillSystem.js',
+        'js/systems/PowerupSystem.js',
+        'js/systems/ChestSystem.js',
+        'js/systems/AchievementSystem.js',
         'js/storage/SaveManager.js',
         'js/data/GameConfig.js',
         'js/plugins/BasePlugin.js',
@@ -55,44 +61,43 @@
     }
 
     function onAllModulesLoaded() {
-        console.log('All modules loaded. Initializing game...');
+        console.log('All modules loaded. Initializing GameCore...');
         
         if (window.GameCore) {
             try {
+                console.log('Using GameCore (fully modular architecture)');
                 gameInstance = new GameCore();
-                if (gameInstance.init) {
-                    gameInstance.init();
-                }
-                console.log('GameCore initialized successfully!');
                 
-                window.GameAPI.GameCore = GameCore;
+                if (window.EventBus) {
+                    gameInstance.eventBus = new EventBus();
+                    console.log('EventBus integrated with GameCore');
+                }
+                
+                if (window.PluginManager) {
+                    gameInstance.pluginManager = new PluginManager();
+                    
+                    if (window.ComboPlugin) {
+                        gameInstance.pluginManager.register(new ComboPlugin());
+                        gameInstance.pluginManager.enable('combo');
+                    }
+                    if (window.ScreenShakePlugin) {
+                        gameInstance.pluginManager.register(new ScreenShakePlugin());
+                        gameInstance.pluginManager.enable('screenShake');
+                    }
+                    
+                    console.log('PluginManager integrated with GameCore');
+                }
+                
                 window.GameAPI.useNewCore = true;
+                window.GameAPI.GameCore = GameCore;
+                window.GameAPI.gameInstance = gameInstance;
+                window.game = gameInstance;
+                console.log('GameCore initialized successfully!');
             } catch (e) {
-                console.error('Failed to initialize GameCore, falling back to DragonShooterGame:', e);
-                fallbackToLegacyGame();
+                console.error('Failed to initialize GameCore:', e);
             }
-        } else if (window.DragonShooterGame) {
-            fallbackToLegacyGame();
         } else {
-            console.error('No game implementation found! Neither GameCore nor DragonShooterGame.');
-        }
-    }
-    
-    function fallbackToLegacyGame() {
-        if (!window.DragonShooterGame) {
-            console.error('DragonShooterGame not found!');
-            return;
-        }
-        
-        try {
-            gameInstance = new DragonShooterGame();
-            if (gameInstance.init) {
-                gameInstance.init();
-            }
-            console.log('DragonShooterGame (Legacy) initialized successfully!');
-            window.GameAPI.useNewCore = false;
-        } catch (e) {
-            console.error('Failed to initialize DragonShooterGame:', e);
+            console.error('GameCore not found!');
         }
     }
 

@@ -1,4 +1,4 @@
-class DragonShooterGame {
+class GameCore {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
@@ -6864,6 +6864,8 @@ class DragonShooterGame {
     }
 }
 
+window.DragonShooterGame = GameCore;
+
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fadeInOut {
@@ -6874,7 +6876,3 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-
-window.addEventListener('load', () => {
-    window.game = new DragonShooterGame();
-});
