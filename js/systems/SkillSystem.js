@@ -1264,6 +1264,259 @@
             this.iceStormTimer = 0;
             this.slowEffects = [];
         }
+
+        applySkill(skill) {
+            if (skill.type === 'active') {
+                if (!this.skillLevels[skill.id]) {
+                    this.skillLevels[skill.id] = 1;
+                    this.activeSkills.push(skill.id);
+                    this.skillCooldowns[skill.id] = 0;
+                } else {
+                    this.skillLevels[skill.id]++;
+                }
+            } else {
+                const playerStats = this.game.playerStats;
+                if (!playerStats) return;
+
+                switch (skill.id) {
+                    case 'bullet_count':
+                        playerStats.bulletCount++;
+                        break;
+                    case 'fire_rate':
+                        playerStats.fireRate *= 0.88;
+                        break;
+                    case 'damage':
+                        playerStats.damageMultiplier = (playerStats.damageMultiplier || 1) * 1.2;
+                        break;
+                    case 'health':
+                        const healthBonus = Math.max(15, Math.floor(playerStats.maxHealth * 0.15));
+                        playerStats.health = Math.min(
+                            playerStats.health + healthBonus,
+                            playerStats.maxHealth
+                        );
+                        break;
+                    case 'max_health':
+                        const maxHealthBonus = Math.max(15, Math.floor(playerStats.maxHealth * 0.12));
+                        playerStats.maxHealth += maxHealthBonus;
+                        playerStats.health += maxHealthBonus;
+                        break;
+                    case 'bullet_size':
+                        playerStats.bulletSize += 3;
+                        break;
+                    case 'speed':
+                        playerStats.speed *= 1.12;
+                        if (playerStats.speed > 20) playerStats.speed = 20;
+                        break;
+                    case 'pierce':
+                        playerStats.bulletPierce++;
+                        break;
+                    case 'crit_chance':
+                        playerStats.criticalChance = Math.min(
+                            0.75,
+                            playerStats.criticalChance + 0.05
+                        );
+                        break;
+                    case 'crit_damage':
+                        playerStats.criticalDamage += 0.3;
+                        break;
+                    case 'magnet':
+                        playerStats.magnetRange += 40;
+                        break;
+                }
+            }
+
+            if (this.game.unlockedSkills) {
+                this.game.unlockedSkills.push(skill.id);
+            }
+            if (this.game.updateUI) {
+                this.game.updateUI();
+            }
+        }
+
+        getSkillStats(skillId) {
+            const skill = this.game.skills?.find(s => s.id === skillId);
+            if (!skill) return null;
+
+            const level = this.skillLevels[skillId] || 1;
+            const isMaxLevel = level >= 5;
+
+            let stats = { ...skill, level, isMaxLevel };
+
+            const baseMultiplier = 1 + (level - 1) * 0.2;
+            const maxMultiplier = isMaxLevel ? 2 : 1;
+
+            switch (skillId) {
+                case 'rain_of_needles':
+                case 'rainOfNeedles':
+                    stats.damage = Math.floor(skill.baseDamage * baseMultiplier * maxMultiplier);
+                    stats.projectileCount = (skill.projectileCount || 10) + (level - 1) * 2;
+                    if (isMaxLevel) stats.projectileCount += 5;
+                    stats.burstCount = (skill.burstCount || 3) + (level - 1) * 2;
+                    if (isMaxLevel) stats.burstCount += 3;
+                    stats.cooldown = (skill.cooldown || 15) * (1 - (level - 1) * 0.1);
+                    if (isMaxLevel) stats.cooldown *= 0.5;
+                    break;
+                case 'thunder_dragon':
+                case 'thunderDragon':
+                    stats.damage = Math.floor(skill.baseDamage * baseMultiplier * maxMultiplier);
+                    stats.duration = (skill.duration || 10) + (level - 1) * 0.5;
+                    if (isMaxLevel) stats.duration += 2;
+                    stats.moveSpeed = (skill.moveSpeed || 300) * (1 + (level - 1) * 0.15);
+                    if (isMaxLevel) stats.moveSpeed *= 1.5;
+                    stats.lightningFrequency = (skill.lightningFrequency || 0.5) * (1 - (level - 1) * 0.05);
+                    if (isMaxLevel) stats.lightningFrequency *= 0.5;
+                    stats.cooldown = (skill.cooldown || 25) * (1 - (level - 1) * 0.1);
+                    if (isMaxLevel) stats.cooldown *= 0.5;
+                    break;
+                case 'ice_storm':
+                case 'iceStorm':
+                    stats.damage = Math.floor(skill.baseDamage * baseMultiplier * maxMultiplier);
+                    stats.slowDuration = (skill.slowDuration || 3) + (level - 1) * 0.3;
+                    if (isMaxLevel) stats.slowDuration += 1;
+                    stats.slowAmount = (skill.slowAmount || 0.3) + (level - 1) * 0.05;
+                    if (isMaxLevel) stats.slowAmount = 0.8;
+                    stats.hailRate = (skill.hailRate || 0.3) + (level - 1) * 0.1;
+                    if (isMaxLevel) stats.hailRate += 0.3;
+                    stats.cooldown = (skill.cooldown || 30) * (1 - (level - 1) * 0.1);
+                    if (isMaxLevel) stats.cooldown *= 0.5;
+                    break;
+            }
+
+            return stats;
+        }
+
+        autoSelectSkill() {
+            const availableSkills = this.getRandomSkills(3);
+
+            if (availableSkills.length === 0) {
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * availableSkills.length);
+            const selectedSkill = availableSkills[randomIndex];
+
+            this.applySkill(selectedSkill);
+            this.showSkillNotification(selectedSkill);
+        }
+
+        getRandomSkills(count) {
+            const skills = this.game.skills || [];
+            const availableSkills = skills.filter(skill => skill.type !== 'passive');
+
+            const shuffled = [...availableSkills].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, Math.min(count, shuffled.length));
+        }
+
+        showSkillNotification(skill) {
+            const notification = document.getElementById('skillNotification');
+            if (!notification) return;
+
+            const iconEl = document.getElementById('skillNotifIcon');
+            const nameEl = document.getElementById('skillNotifName');
+            const descEl = document.getElementById('skillNotifDesc');
+
+            if (iconEl) iconEl.textContent = skill.icon || '⚡';
+            if (nameEl) nameEl.textContent = skill.name;
+
+            let displayDesc = skill.description;
+            if (skill.type === 'active') {
+                const currentLevel = this.skillLevels[skill.id] || 1;
+                if (currentLevel > 1) {
+                    displayDesc = `升级到 ${currentLevel} 级`;
+                } else if (currentLevel === 1) {
+                    const stats = this.getSkillStats(skill.id);
+                    if (stats) {
+                        displayDesc += ` (伤害: ${stats.damage})`;
+                    }
+                }
+            }
+
+            if (descEl) descEl.textContent = displayDesc;
+
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+
+        displaySkillSelection() {
+            const availableSkills = this.getRandomSkills(3);
+            const skillContainer = document.getElementById('skillCards');
+            if (!skillContainer) return;
+
+            skillContainer.innerHTML = '';
+
+            availableSkills.forEach((skill, index) => {
+                const currentLevel = this.skillLevels[skill.id] || 0;
+                const nextLevel = currentLevel + 1;
+                const isMaxLevel = currentLevel >= 5;
+
+                let levelInfo = '';
+                let upgradeInfo = '';
+
+                if (currentLevel > 0) {
+                    levelInfo = `<div class="skill-level">Lv.${currentLevel}</div>`;
+                }
+
+                if (isMaxLevel) {
+                    upgradeInfo = `<div class="skill-upgrade" style="color: #FFD700;">已满级 - 属性已大幅提升！</div>`;
+                } else if (currentLevel > 0) {
+                    upgradeInfo = `<div class="skill-upgrade">升级到 ${nextLevel} 级</div>`;
+                }
+
+                let desc = skill.description;
+                if (skill.type === 'active') {
+                    if (currentLevel > 0) {
+                        const stats = this.getSkillStats(skill.id);
+                        if (stats) {
+                            desc += `<br><small style="color: #888;">伤害: ${stats.damage} | 冷却: ${stats.cooldown.toFixed(1)}秒</small>`;
+                        }
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'skill-card';
+                card.innerHTML = `
+                    <div class="skill-icon-box">
+                        <span class="skill-rarity-badge">${skill.rarity}</span>
+                        <span class="skill-icon">${skill.icon}</span>
+                        ${levelInfo}
+                    </div>
+                    <div class="skill-content">
+                        <div class="skill-subtitle">${skill.name}</div>
+                        <div class="skill-desc">${desc}</div>
+                        ${upgradeInfo}
+                    </div>
+                    <div class="skill-index">${index + 1}</div>
+                `;
+
+                card.addEventListener('click', () => {
+                    this.applySkill(skill);
+                    document.getElementById('skillSelection').classList.remove('show');
+                    if (this.game) {
+                        this.game.gameState = 'playing';
+                        this.game.lastTime = 0;
+                        requestAnimationFrame((t) => this.game.gameLoop(t));
+                    }
+                });
+
+                skillContainer.appendChild(card);
+            });
+
+            if (this.game) {
+                document.getElementById('freeRefreshCount').textContent = this.game.freeRefreshCount || 1;
+                document.getElementById('refreshBtn').disabled = (this.game.freeRefreshCount || 1) <= 0;
+            }
+
+            document.getElementById('skillSelection').classList.add('show');
+        }
+
+        refreshSkills() {
+            if (this.game) {
+                this.game.showToast('技能仅可通过击毁宝箱血条获取！');
+            }
+        }
     }
 
     if (typeof window !== 'undefined') {

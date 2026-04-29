@@ -114,10 +114,36 @@
             this.game.enemies.push(dragon);
         }
 
-        updateWindingEnemy(enemy, dt) {
-            if (!enemy.isWinding || !enemy.segments || enemy.segments.length === 0) return;
-            if (!this.game.path || this.game.path.length === 0) return;
+        updateEnemies(dt) {
+            const levelConfig = this.game.getLevelConfig(this.game.currentLevel);
             
+            for (let i = this.game.enemies.length - 1; i >= 0; i--) {
+                const enemy = this.game.enemies[i];
+                
+                if (enemy.isWinding && enemy.segments && enemy.segments.length > 0 && this.game.path && this.game.path.length > 0) {
+                    this.updateWindingEnemy(enemy, dt);
+                } else {
+                    this.updateNormalEnemy(enemy, dt);
+                }
+                
+                if (enemy.y > this.game.height + 100) {
+                    this.game.enemies.splice(i, 1);
+                    continue;
+                }
+                
+                this.checkEnemyCollision(enemy, i);
+                
+                if (enemy.segments && enemy.segments.length > 0) {
+                    this.checkBulletCollisionWithWindingEnemy(enemy, i, levelConfig);
+                } else {
+                    this.checkBulletCollisionWithNormalEnemy(enemy, i, levelConfig);
+                }
+            }
+            
+            this.processDestroyedSegments(levelConfig);
+        }
+
+        updateWindingEnemy(enemy, dt) {
             const head = enemy.segments[0];
             
             if (enemy.currentPathIndex === undefined) {
@@ -129,9 +155,15 @@
             }
             
             const gameConfig = window.GameConfig || {};
-            const dragonConfig = gameConfig.dragon || {};
-            const moveSpeed = dragonConfig.moveSpeed || 3;
+            const dragonCfg = gameConfig.dragon || {};
+            let moveSpeed = dragonCfg.moveSpeed || 3;
             const segmentSpacing = enemy.segmentSpacing || 35;
+            
+            const enemySlowLevel = this.game.saveData.permanentUpgrades?.enemySlow || 0;
+            if (enemySlowLevel > 0) {
+                const slowPercent = Math.min(0.5, enemySlowLevel * 0.05);
+                moveSpeed *= (1 - slowPercent);
+            }
             
             enemy.pathDistance += moveSpeed * 60 * dt;
             
@@ -192,6 +224,171 @@
             }
         }
 
+        updateNormalEnemy(enemy, dt) {
+            enemy.y += enemy.speed * 60 * dt;
+            enemy.angle += dt * 2;
+            
+            if (this.game.player) {
+                const dx = this.game.player.x - enemy.x;
+                if (Math.abs(dx) > 5) {
+                    enemy.x += Math.sign(dx) * enemy.speed * 0.3 * 60 * dt;
+                }
+            }
+        }
+
+        checkEnemyCollision(enemy, index) {
+            if (enemy.segments && enemy.segments.length > 0) {
+                let playerHit = false;
+                for (const segment of enemy.segments) {
+                    const segRadius = segment.index === 0 ? 22 : 18;
+                    const segObj = { x: segment.x, y: segment.y, radius: segRadius };
+                    if (this.game.checkCollision(segObj, this.game.player)) {
+                        playerHit = true;
+                        break;
+                    }
+                }
+                if (playerHit && this.game.player.invincible <= 0) {
+                    this.game.takeDamageWithPassive(enemy.damage);
+                    this.game.player.invincible = 0.5;
+                }
+            } else {
+                if (this.game.checkCollision(enemy, this.game.player)) {
+                    if (this.game.player.invincible <= 0) {
+                        this.game.takeDamageWithPassive(enemy.damage);
+                        this.game.player.invincible = 0.5;
+                    }
+                }
+            }
+        }
+
+        checkBulletCollisionWithWindingEnemy(enemy, enemyIndex, levelConfig) {
+            for (let j = this.game.bullets.length - 1; j >= 0; j--) {
+                const bullet = this.game.bullets[j];
+                let bulletHit = false;
+                
+                for (const segment of enemy.segments) {
+                    if (segment.health <= 0) continue;
+                    
+                    const segRadius = segment.index === 0 ? 22 : 18;
+                    const segObj = { x: segment.x, y: segment.y, radius: segRadius };
+                    
+                    if (this.game.checkCircleCollision(bullet, segObj)) {
+                        let actualDamage = bullet.damage;
+                        if (enemy.special && enemy.special.damageReduction) {
+                            actualDamage = Math.max(1, Math.floor(bullet.damage * (1 - enemy.special.damageReduction)));
+                        }
+                        
+                        segment.health -= actualDamage;
+                        enemy.health -= actualDamage;
+                        
+                        this.game.createDamageNumber(
+                            segment.x,
+                            segment.y - segRadius,
+                            actualDamage,
+                            bullet.isCrit,
+                            enemy.special && enemy.special.damageReduction > 0
+                        );
+                        
+                        this.game.createHitParticles(bullet.x, bullet.y, bullet.color);
+                        
+                        bulletHit = true;
+                        break;
+                    }
+                }
+                
+                if (bulletHit) {
+                    this.handleBulletHit(bullet, j, enemy, enemyIndex, levelConfig);
+                    break;
+                }
+            }
+        }
+
+        checkBulletCollisionWithNormalEnemy(enemy, enemyIndex, levelConfig) {
+            for (let j = this.game.bullets.length - 1; j >= 0; j--) {
+                const bullet = this.game.bullets[j];
+                
+                if (this.game.checkCircleCollision(bullet, enemy)) {
+                    enemy.health -= bullet.damage;
+                    
+                    this.game.createDamageNumber(
+                        enemy.x,
+                        enemy.y - enemy.radius,
+                        bullet.damage,
+                        bullet.isCrit
+                    );
+                    
+                    this.game.createHitParticles(bullet.x, bullet.y, bullet.color);
+                    
+                    if (bullet.pierceCount > 0) {
+                        bullet.pierceCount--;
+                    } else {
+                        this.game.bullets.splice(j, 1);
+                    }
+                    
+                    if (enemy.health <= 0) {
+                        this.handleEnemyKill(enemy, enemyIndex, levelConfig);
+                        break;
+                    }
+                }
+            }
+        }
+
+        handleBulletHit(bullet, bulletIndex, enemy, enemyIndex, levelConfig) {
+            if (bullet.pierceCount > 0) {
+                bullet.pierceCount--;
+            } else {
+                this.game.bullets.splice(bulletIndex, 1);
+            }
+            
+            const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+            const destroyedCount = destroyedSegments.length;
+            
+            if (destroyedCount > 0) {
+                this.segmentsDestroyed += destroyedCount;
+                
+                const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
+                for (const chestSegment of chestSegmentsDestroyed) {
+                    if (this.game.autoSelectSkill) {
+                        this.game.autoSelectSkill();
+                    }
+                }
+                
+                for (const segment of destroyedSegments) {
+                    if (segment.hasChest && this.game.spawnChest) {
+                        this.game.spawnChest(segment.x, segment.y);
+                    }
+                    
+                    if (Math.random() < levelConfig.dropChance * 0.5) {
+                        this.game.spawnPowerup(segment.x, segment.y);
+                    }
+                }
+                
+                enemy.segments = enemy.segments.filter(s => s.health > 0);
+                
+                if (enemy.segments.length === 0) {
+                    this.handleEnemyKill(enemy, enemyIndex, levelConfig);
+                }
+            }
+        }
+
+        handleEnemyKill(enemy, enemyIndex, levelConfig) {
+            this.game.createKillExplosion(enemy.x, enemy.y, enemy.color, enemy.segments ? 1.5 : 1);
+            this.game.addComboKill();
+            this.game.enemiesKilled++;
+            
+            const comboBonus = this.game.comboSystem.comboMultiplier;
+            this.game.score += Math.floor(enemy.maxHealth * comboBonus);
+            this.game.goldEarned += Math.floor(enemy.maxHealth / 5 * comboBonus);
+            
+            this.game.updateStatistics('kill', 1);
+            
+            if (Math.random() < levelConfig.dropChance) {
+                this.game.spawnPowerup(enemy.x, enemy.y);
+            }
+            
+            this.game.enemies.splice(enemyIndex, 1);
+        }
+
         getPointAtDistance(distance) {
             if (!this.game.path || this.game.path.length < 2) return null;
             
@@ -224,51 +421,76 @@
             };
         }
 
-        processDestroyedSegments(enemy, levelConfig) {
-            if (!enemy.isWinding || !enemy.segments) return false;
-            
-            const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
-            const destroyedCount = destroyedSegments.length;
-            
-            if (destroyedCount > 0) {
-                this.segmentsDestroyed += destroyedCount;
+        processDestroyedSegments(levelConfig) {
+            for (let i = this.game.enemies.length - 1; i >= 0; i--) {
+                const enemy = this.game.enemies[i];
                 
-                const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
-                for (const chestSegment of chestSegmentsDestroyed) {
-                    if (this.game.autoSelectSkill) {
-                        this.game.autoSelectSkill();
-                    }
-                }
+                if (!enemy.isWinding || !enemy.segments) continue;
                 
-                for (const segment of destroyedSegments) {
-                    if (segment.hasChest && this.game.spawnChest) {
-                        this.game.spawnChest(segment.x, segment.y);
-                    }
+                const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+                const destroyedCount = destroyedSegments.length;
+                
+                if (destroyedCount > 0) {
+                    this.segmentsDestroyed += destroyedCount;
                     
-                    if (levelConfig && levelConfig.dropChance && this.game.spawnPowerup) {
-                        if (Math.random() < levelConfig.dropChance * 0.5) {
-                            this.game.spawnPowerup(segment.x, segment.y);
+                    const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
+                    for (const chestSegment of chestSegmentsDestroyed) {
+                        if (this.game.autoSelectSkill) {
+                            this.game.autoSelectSkill();
                         }
                     }
                     
-                    if (this.game.createKillExplosion) {
-                        this.game.createKillExplosion(segment.x, segment.y, enemy.color, 0.8);
+                    for (const segment of destroyedSegments) {
+                        if (segment.hasChest) {
+                            this.game.spawnChest(segment.x, segment.y);
+                        }
+                        
+                        if (Math.random() < levelConfig.dropChance * 0.5) {
+                            this.game.spawnPowerup(segment.x, segment.y);
+                        }
+                        
+                        if (this.game.createDeathParticles) {
+                            this.game.createDeathParticles(segment.x, segment.y, enemy.color);
+                        }
+                    }
+                    
+                    enemy.segments = enemy.segments.filter(s => s.health > 0);
+                    
+                    if (enemy.segments.length === 0) {
+                        if (this.game.createDeathParticles) {
+                            this.game.createDeathParticles(enemy.x, enemy.y, enemy.color);
+                        }
+                        this.game.enemiesKilled++;
+                        this.game.score += enemy.maxHealth;
+                        this.game.goldEarned += Math.floor(enemy.maxHealth / 5);
+                        
+                        this.game.updateStatistics('kill', 1);
+                        
+                        if (Math.random() < levelConfig.dropChance) {
+                            this.game.spawnPowerup(enemy.x, enemy.y);
+                        }
+                        
+                        this.game.enemies.splice(i, 1);
                     }
                 }
-                
-                enemy.segments = enemy.segments.filter(s => s.health > 0);
-                
-                if (enemy.segments.length === 0) {
-                    return true;
-                }
             }
-            
-            return false;
+        }
+
+        renderEnemies(ctx) {
+            this.game.enemies.forEach(enemy => {
+                ctx.save();
+                
+                if (enemy.segments && enemy.segments.length > 0) {
+                    this.renderWindingEnemy(ctx, enemy);
+                } else {
+                    this.renderNormalEnemy(ctx, enemy);
+                }
+                
+                ctx.restore();
+            });
         }
 
         renderWindingEnemy(ctx, enemy) {
-            if (!enemy.segments || enemy.segments.length === 0) return;
-            
             for (let i = enemy.segments.length - 1; i >= 0; i--) {
                 const segment = enemy.segments[i];
                 
@@ -320,9 +542,9 @@
                 ctx.lineTo(innerHalfWidth, innerHalfHeight - innerHalfHeight);
                 ctx.arcTo(innerHalfWidth, innerHalfHeight, -innerHalfWidth, innerHalfHeight, innerHalfHeight);
                 ctx.lineTo(-innerHalfWidth + innerHalfHeight, innerHalfHeight);
-                ctx.arcTo(-innerHalfWidth, innerHalfHeight, -innerHalfWidth, -innerHalfHeight, innerHalfHeight);
+                ctx.arcTo(-innerHalfWidth, innerHalfHeight, -innerHalfWidth, -halfHeight, innerHalfHeight);
                 ctx.lineTo(-innerHalfWidth, -innerHalfHeight + innerHalfHeight);
-                ctx.arcTo(-innerHalfWidth, -innerHalfHeight, halfWidth, -innerHalfHeight, innerHalfHeight);
+                ctx.arcTo(-innerHalfWidth, -innerHalfHeight, halfWidth, -halfHeight, innerHalfHeight);
                 ctx.closePath();
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
                 ctx.fill();
@@ -386,6 +608,63 @@
                 
                 ctx.restore();
             }
+        }
+
+        renderNormalEnemy(ctx, enemy) {
+            ctx.translate(enemy.x, enemy.y);
+            
+            ctx.shadowColor = enemy.color;
+            ctx.shadowBlur = 20;
+            
+            ctx.beginPath();
+            ctx.arc(0, 0, enemy.radius, 0, Math.PI * 2);
+            
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.radius);
+            gradient.addColorStop(0, enemy.color);
+            gradient.addColorStop(1, this.darkenColor(enemy.color, 0.5));
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            
+            ctx.rotate(enemy.angle);
+            ctx.font = `${enemy.radius * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐲', 0, 0);
+            
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.translate(enemy.x, enemy.y);
+            
+            const healthBarWidth = enemy.radius * 2;
+            const healthBarHeight = 8;
+            const healthPercent = enemy.health / enemy.maxHealth;
+            
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(
+                -healthBarWidth / 2,
+                -enemy.radius - 15,
+                healthBarWidth,
+                healthBarHeight
+            );
+            
+            const healthColor = healthPercent > 0.5 ? '#44FF44' : healthPercent > 0.25 ? '#FFFF44' : '#FF4444';
+            ctx.fillStyle = healthColor;
+            ctx.fillRect(
+                -healthBarWidth / 2,
+                -enemy.radius - 15,
+                healthBarWidth * healthPercent,
+                healthBarHeight
+            );
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                Math.ceil(enemy.health),
+                0,
+                -enemy.radius - 20
+            );
         }
 
         darkenColor(color, amount) {

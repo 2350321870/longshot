@@ -46,6 +46,18 @@
                     }
                 }
             }
+            
+            this.updateSpawning(dt);
+        }
+
+        updateSpawning(dt) {
+            this.chestSpawnTimer += dt;
+            const chestInterval = 12;
+            
+            if (this.chestSpawnTimer >= chestInterval && this.chests.length < 2) {
+                this.spawnChest();
+                this.chestSpawnTimer = 0;
+            }
         }
 
         checkCollision(obj1, obj2) {
@@ -97,6 +109,10 @@
                     }
                 }
             }
+            
+            if (this.game.updateUI) {
+                this.game.updateUI();
+            }
         }
 
         render(ctx) {
@@ -105,30 +121,32 @@
                 ctx.translate(chest.x, chest.y + chest.bobOffset);
                 
                 ctx.shadowColor = '#FFD700';
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 25;
                 
                 ctx.beginPath();
                 ctx.arc(0, 0, chest.radius, 0, Math.PI * 2);
                 const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, chest.radius);
                 gradient.addColorStop(0, '#FFD700');
-                gradient.addColorStop(0.5, '#CD853F');
+                gradient.addColorStop(0.5, '#FFA500');
                 gradient.addColorStop(1, '#8B4513');
                 ctx.fillStyle = gradient;
                 ctx.fill();
                 
                 ctx.shadowBlur = 0;
+                
                 ctx.font = `${chest.radius * 1.2}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText('📦', 0, -5);
                 
-                ctx.font = `${chest.radius * 0.6}px Arial`;
-                ctx.fillStyle = '#FFFFFF';
-                ctx.strokeStyle = '#000000';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#FFD700';
+                ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
+                ctx.textAlign = 'center';
                 const goldText = `${chest.goldAmount}`;
-                ctx.strokeText(goldText, 0, 12);
-                ctx.fillText(goldText, 0, 12);
+                ctx.strokeText(goldText, 0, chest.radius * 0.5);
+                ctx.fillText(goldText, 0, chest.radius * 0.5);
                 
                 ctx.restore();
             }
@@ -138,6 +156,10 @@
             this.chests = [];
             this.chestsOpened = 0;
             this.chestSpawnTimer = 0;
+        }
+
+        getChests() {
+            return this.chests;
         }
     }
 

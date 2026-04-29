@@ -15,6 +15,16 @@
             super.setGame(game);
         }
 
+        init() {
+            if (this.isInitialized) return;
+            this.isInitialized = true;
+            console.log('UIManager initialized');
+        }
+
+        update(dt) {
+            // UI 更新逻辑（如果需要）
+        }
+
         render(ctx, canvas) {
             if (this.paused) {
                 return;
@@ -287,6 +297,24 @@
             ctx.fillText(waveText, canvas.width / 2, canvas.height / 2 + 30);
 
             ctx.restore();
+        }
+
+        updateUI() {
+            const healthText = `❤️ ${Math.max(0, Math.ceil(this.game.playerStats?.health || 0))}/${this.game.playerStats?.maxHealth || 0}`;
+            const battleHealthDisplay = document.getElementById('battleHealthDisplay');
+            if (battleHealthDisplay) {
+                battleHealthDisplay.textContent = healthText;
+            }
+
+            const goldDisplay = document.getElementById('goldDisplay');
+            if (goldDisplay) {
+                goldDisplay.textContent = this.game.goldEarned || 0;
+            }
+
+            const scoreDisplay = document.getElementById('scoreDisplay');
+            if (scoreDisplay) {
+                scoreDisplay.textContent = this.game.score || 0;
+            }
         }
 
         showWaveAnnouncement(wave, duration = 2) {

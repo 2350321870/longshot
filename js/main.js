@@ -26,8 +26,7 @@
         'js/entities/Enemy.js',
         'js/entities/Bullet.js',
         'js/skills/index.js',
-        'js/config.js',
-        'js/game.js'
+        'js/config.js'
     ];
 
     let loadedCount = 0;

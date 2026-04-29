@@ -151,6 +151,10 @@
             if (this.game.updateStatistics) {
                 this.game.updateStatistics('powerup_collect', 1);
             }
+            
+            if (this.game.updateUI) {
+                this.game.updateUI();
+            }
         }
 
         render(ctx) {
@@ -179,6 +183,10 @@
 
         reset() {
             this.powerups = [];
+        }
+
+        getPowerups() {
+            return this.powerups;
         }
     }
 

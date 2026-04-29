@@ -1,19 +1,15 @@
 (function() {
     'use strict';
 
-    class EffectSystem extends BaseSystem {
-        constructor() {
-            super();
+    class EffectSystem {
+        constructor(game) {
+            this.game = game;
             this.screenShake = { x: 0, y: 0, intensity: 0, duration: 0 };
             this.bulletTrails = [];
             this.glowEffects = [];
             this.floatingTexts = [];
             this.deathExplosions = [];
             this.damageNumbers = [];
-        }
-
-        setGame(game) {
-            super.setGame(game);
         }
 
         addScreenShake(intensity, duration = 0.3) {
@@ -116,7 +112,7 @@
             
             this.addFloatingText(
                 x, y - 30,
-                `暴击! ${Math.floor(damage)}`,
+                `${Math.floor(damage)}`,
                 '#ffd700',
                 28,
                 1.2
@@ -309,7 +305,7 @@
                     text = `+${Math.floor(num.damage)}`;
                 } else if (num.isCrit) {
                     color = '#ffd700';
-                    text = `暴击! ${Math.floor(num.damage)}`;
+                    text = `${Math.floor(num.damage)}`;
                 } else {
                     color = '#ff4444';
                     text = `-${Math.floor(num.damage)}`;
@@ -340,6 +336,22 @@
             ctx.globalAlpha = 1;
         }
 
+        darkenColor(color, amount) {
+            const hex = color.replace('#', '');
+            const r = Math.max(0, parseInt(hex.substr(0, 2), 16) * (1 - amount));
+            const g = Math.max(0, parseInt(hex.substr(2, 2), 16) * (1 - amount));
+            const b = Math.max(0, parseInt(hex.substr(4, 2), 16) * (1 - amount));
+            return `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+        }
+
+        lightenColor(color, amount) {
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            return `rgb(${Math.min(255, Math.floor(r + (255 - r) * amount))}, ${Math.min(255, Math.floor(g + (255 - g) * amount))}, ${Math.min(255, Math.floor(b + (255 - b) * amount))})`;
+        }
+
         update(dt) {
             this.updateScreenShake(dt);
             this.updateBulletTrails(dt);
@@ -364,6 +376,10 @@
             this.floatingTexts.length = 0;
             this.deathExplosions.length = 0;
             this.damageNumbers.length = 0;
+        }
+
+        reset() {
+            this.clear();
         }
     }
 
