@@ -247,7 +247,7 @@
                 const isSelected = charId === selectedChar;
                 
                 const charItem = document.createElement('div');
-                charItem.className = `character-item ${isUnlocked ? 'unlocked' : 'locked'} ${isSelected ? 'selected' : ''}`;
+                charItem.className = `character-card ${isUnlocked ? 'unlocked' : 'locked'} ${isSelected ? 'selected' : ''}`;
                 
                 let actionHtml = '';
                 if (!isUnlocked) {
@@ -259,11 +259,16 @@
                 }
                 
                 charItem.innerHTML = `
-                    <div class="char-icon" style="color: ${char.color}">${char.icon}</div>
-                    <div class="char-name">${char.name}</div>
-                    <div class="char-desc">${char.description}</div>
+                    <div class="character-icon" style="color: ${char.color}">${char.icon}</div>
+                    <div class="character-name">${char.name}</div>
+                    <div class="character-desc">${char.description}</div>
+                    <div class="character-stats">
+                        ${char.stats.health !== 0 ? `<div class="character-stat ${char.stats.health > 0 ? 'positive' : 'negative'}">❤️ ${char.stats.health > 0 ? '+' : ''}${char.stats.health}</div>` : ''}
+                        ${char.stats.damage !== 0 ? `<div class="character-stat ${char.stats.damage > 0 ? 'positive' : 'negative'}">⚔️ ${char.stats.damage > 0 ? '+' : ''}${char.stats.damage}</div>` : ''}
+                        ${char.stats.speed !== 0 ? `<div class="character-stat ${char.stats.speed > 0 ? 'positive' : 'negative'}">🏃 ${char.stats.speed > 0 ? '+' : ''}${(char.stats.speed * 100).toFixed(0)}%</div>` : ''}
+                    </div>
                     <div class="char-passive">
-                        <div class="passive-name">${char.passive.name}</div>
+                        <div class="passive-name">✨ ${char.passive.name}</div>
                         <div class="passive-desc">${char.passive.description}</div>
                     </div>
                     ${actionHtml}
