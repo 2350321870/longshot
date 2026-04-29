@@ -713,6 +713,35 @@
         update(dt) {
             this.updateEnemies(dt);
         }
+
+        updateSpawning(dt) {
+            if (!this.game || !this.game.spawnTimer) {
+                this.game.spawnTimer = 0;
+            }
+
+            const levelConfig = this.game.getLevelConfig(this.game.currentLevel);
+            const maxEnemies = 3;
+            
+            if (this.game.enemies.length < maxEnemies) {
+                this.game.spawnTimer += dt;
+                const spawnInterval = 2.0;
+                
+                if (this.game.spawnTimer >= spawnInterval) {
+                    this.game.spawnTimer = 0;
+                    
+                    const totalEnemiesInLevel = this.game.enemies.reduce((count, e) => {
+                        if (e.segments) {
+                            return count + e.segments.length;
+                        }
+                        return count + 1;
+                    }, 0) + this.game.enemiesKilled;
+                    
+                    if (totalEnemiesInLevel < levelConfig.segments) {
+                        this.spawnDragon(levelConfig);
+                    }
+                }
+            }
+        }
     }
 
     window.WindingEnemySystem = WindingEnemySystem;
