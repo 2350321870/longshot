@@ -47,6 +47,14 @@
             if (document.getElementById('gachaTenBtn')) {
                 document.getElementById('gachaTenBtn').addEventListener('click', () => this.doGacha(10));
             }
+
+            const startGameBtn = document.getElementById('startGameBtn');
+            if (startGameBtn) {
+                startGameBtn.addEventListener('click', () => {
+                    const maxLevel = this.game.saveData.maxUnlockedLevel || 1;
+                    this.game.startLevel(maxLevel);
+                });
+            }
         }
 
         startTasksRefreshTimer() {
@@ -200,7 +208,7 @@
         }
 
         renderLevelRewards() {
-            const rewardsEl = document.getElementById('levelRewards');
+            const rewardsEl = document.getElementById('progressRewards');
             if (!rewardsEl) return;
             
             rewardsEl.innerHTML = '';
@@ -224,7 +232,7 @@
         }
 
         renderCharacterTab() {
-            const list = document.getElementById('characterList');
+            const list = document.getElementById('characterGrid');
             if (!list) return;
             
             list.innerHTML = '';
@@ -562,8 +570,7 @@
             
             list.innerHTML = '';
             
-            this.game.checkDailyTasksRefresh();
-            this.game.syncSpecificLevelTaskProgress();
+            this.game.saveManager.checkDailyTasksRefresh(GameData.dailyTaskPool);
             
             const dailyTasks = this.game.saveData.dailyTasks?.tasks || [];
             if (dailyTasks.length === 0) {
