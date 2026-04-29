@@ -368,6 +368,47 @@
             this.updateDamageNumbers(dt);
         }
 
+        renderBulletTrails(ctx) {
+            this.drawBulletTrails(ctx);
+        }
+
+        renderDeathExplosions(ctx) {
+            this.drawDeathExplosions(ctx);
+        }
+
+        renderGlowEffects(ctx) {
+            this.drawGlowEffects(ctx);
+        }
+
+        renderFloatingTexts(ctx) {
+            this.drawFloatingTexts(ctx);
+        }
+
+        renderWaveAnnouncement(ctx, canvas) {
+            if (this.waveAnnouncement) {
+                const progress = 1 - (this.waveAnnouncement.life / this.waveAnnouncement.maxLife);
+                const alpha = progress < 0.3 ? progress / 0.3 : (progress > 0.7 ? (1 - progress) / 0.3 : 1);
+                
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, alpha);
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 20;
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(this.waveAnnouncement.text, canvas.width / 2, canvas.height / 2 - 50);
+                
+                ctx.restore();
+                
+                this.waveAnnouncement.life -= 0.016;
+                if (this.waveAnnouncement.life <= 0) {
+                    this.waveAnnouncement = null;
+                }
+            }
+        }
+
         render(ctx) {
             this.drawBulletTrails(ctx);
             this.drawDeathExplosions(ctx);

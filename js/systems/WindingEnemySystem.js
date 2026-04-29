@@ -742,6 +742,10 @@
                 }
             }
         }
+
+        render(ctx) {
+            this.renderEnemies(ctx);
+        }
     }
 
     window.WindingEnemySystem = WindingEnemySystem;
