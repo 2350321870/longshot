@@ -1647,16 +1647,16 @@ class GameCore {
             }
         }
         
-        stats.bulletDamage += pu.bulletDamage * 2;
-        stats.maxHealth += pu.maxHealth * 10;
-        stats.moveSpeedBonus += pu.moveSpeed * 0.05;
-        stats.skillDamageBonus += pu.skillDamage * 0.05;
-        stats.critChanceBonus += pu.critChance * 0.01;
-        stats.critDamageBonus += pu.critDamage * 0.05;
-        stats.damageReduction += pu.damageReduction * 0.02;
-        stats.attackSpeedBonus += pu.attackSpeed * 0.03;
-        stats.healthRegen += pu.healthRegen * 0.5;
-        stats.bulletPierceBonus += pu.bulletPierce;
+        stats.bulletDamage += (pu.bulletDamage || 0) * 2;
+        stats.maxHealth += (pu.maxHealth || 0) * 10;
+        stats.moveSpeedBonus += (pu.moveSpeed || 0) * 0.05;
+        stats.skillDamageBonus += (pu.skillDamage || 0) * 0.05;
+        stats.critChanceBonus += (pu.critChance || 0) * 0.01;
+        stats.critDamageBonus += (pu.critDamage || 0) * 0.05;
+        stats.damageReduction += (pu.damageReduction || 0) * 0.02;
+        stats.attackSpeedBonus += (pu.attackSpeed || 0) * 0.03;
+        stats.healthRegen += (pu.healthRegen || 0) * 0.5;
+        stats.bulletPierceBonus += (pu.bulletPierce || 0);
         
         const charStats = this.getCharacterStats();
         stats.bulletDamage += charStats.damage;
@@ -2567,7 +2567,7 @@ class GameCore {
             </div>
         `;
         
-        const grid = document.getElementById('shopGrid');
+        const grid = list.querySelector('#shopGrid');
         if (!grid) return;
         
         this.achievementShopItems.forEach(item => {
