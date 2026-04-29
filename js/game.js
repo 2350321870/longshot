@@ -42,7 +42,18 @@ class GameCore {
             permanentUpgrades: {
                 bulletDamage: 0,
                 maxHealth: 0,
-                moveSpeed: 0
+                moveSpeed: 0,
+                skillDamage: 0,
+                critChance: 0,
+                critDamage: 0,
+                enemySlow: 0,
+                extraRevives: 0,
+                goldBonus: 0,
+                expBonus: 0,
+                damageReduction: 0,
+                attackSpeed: 0,
+                healthRegen: 0,
+                bulletPierce: 0
             },
             unlockedItems: ['pistol'],
             equippedItems: [],
@@ -1639,6 +1650,13 @@ class GameCore {
         stats.bulletDamage += pu.bulletDamage * 2;
         stats.maxHealth += pu.maxHealth * 10;
         stats.moveSpeedBonus += pu.moveSpeed * 0.05;
+        stats.skillDamageBonus += pu.skillDamage * 0.05;
+        stats.critChanceBonus += pu.critChance * 0.01;
+        stats.critDamageBonus += pu.critDamage * 0.05;
+        stats.damageReduction += pu.damageReduction * 0.02;
+        stats.attackSpeedBonus += pu.attackSpeed * 0.03;
+        stats.healthRegen += pu.healthRegen * 0.5;
+        stats.bulletPierceBonus += pu.bulletPierce;
         
         const charStats = this.getCharacterStats();
         stats.bulletDamage += charStats.damage;
@@ -2212,13 +2230,104 @@ class GameCore {
     get achievementShopItems() {
         return [
             {
+                id: 'skill_damage',
+                name: '技能强化',
+                description: '技能伤害 +5%（永久生效）',
+                icon: '⚡',
+                price: 100,
+                reward: { type: 'permanent', stat: 'skillDamage', amount: 1, effectText: '技能伤害 +5%' },
+                limit: 20,
+                category: 'power'
+            },
+            {
+                id: 'crit_chance',
+                name: '暴击精通',
+                description: '暴击率 +1%（永久生效）',
+                icon: '💥',
+                price: 80,
+                reward: { type: 'permanent', stat: 'critChance', amount: 1, effectText: '暴击率 +1%' },
+                limit: 15,
+                category: 'power'
+            },
+            {
+                id: 'crit_damage',
+                name: '暴击强化',
+                description: '暴击伤害 +5%（永久生效）',
+                icon: '🔥',
+                price: 90,
+                reward: { type: 'permanent', stat: 'critDamage', amount: 1, effectText: '暴击伤害 +5%' },
+                limit: 20,
+                category: 'power'
+            },
+            {
+                id: 'enemy_slow',
+                name: '时间减速',
+                description: '龙移动速度 -5%（永久生效，最高50%）',
+                icon: '⏱️',
+                price: 150,
+                reward: { type: 'permanent', stat: 'enemySlow', amount: 1, effectText: '龙速度 -5%' },
+                limit: 10,
+                category: 'defense'
+            },
+            {
+                id: 'extra_revive',
+                name: '复活石',
+                description: '每关额外复活 +1 次（永久生效）',
+                icon: '💎',
+                price: 200,
+                reward: { type: 'permanent', stat: 'extraRevives', amount: 1, effectText: '复活次数 +1' },
+                limit: 5,
+                category: 'defense'
+            },
+            {
+                id: 'damage_reduction',
+                name: '铁壁',
+                description: '受到伤害减免 +2%（永久生效）',
+                icon: '🛡️',
+                price: 120,
+                reward: { type: 'permanent', stat: 'damageReduction', amount: 1, effectText: '伤害减免 +2%' },
+                limit: 20,
+                category: 'defense'
+            },
+            {
+                id: 'attack_speed',
+                name: '疾风',
+                description: '攻击速度 +3%（永久生效）',
+                icon: '🌪️',
+                price: 110,
+                reward: { type: 'permanent', stat: 'attackSpeed', amount: 1, effectText: '攻速 +3%' },
+                limit: 15,
+                category: 'power'
+            },
+            {
+                id: 'health_regen',
+                name: '生命涌泉',
+                description: '每秒生命恢复 +0.5（永久生效）',
+                icon: '💖',
+                price: 130,
+                reward: { type: 'permanent', stat: 'healthRegen', amount: 1, effectText: '回血 +0.5/秒' },
+                limit: 10,
+                category: 'defense'
+            },
+            {
+                id: 'bullet_pierce',
+                name: '穿透',
+                description: '子弹穿透数量 +1（永久生效）',
+                icon: '🎯',
+                price: 160,
+                reward: { type: 'permanent', stat: 'bulletPierce', amount: 1, effectText: '穿透 +1' },
+                limit: 5,
+                category: 'power'
+            },
+            {
                 id: 'gold_500',
                 name: '金币礼包',
                 description: '获得 500 金币',
                 icon: '💰',
                 price: 50,
                 reward: { type: 'gold', amount: 500 },
-                limit: 999
+                limit: 999,
+                category: 'resource'
             },
             {
                 id: 'gold_2000',
@@ -2227,7 +2336,8 @@ class GameCore {
                 icon: '💰',
                 price: 180,
                 reward: { type: 'gold', amount: 2000 },
-                limit: 999
+                limit: 999,
+                category: 'resource'
             },
             {
                 id: 'diamond_10',
@@ -2236,7 +2346,8 @@ class GameCore {
                 icon: '💎',
                 price: 100,
                 reward: { type: 'diamond', amount: 10 },
-                limit: 999
+                limit: 999,
+                category: 'resource'
             },
             {
                 id: 'diamond_50',
@@ -2245,7 +2356,8 @@ class GameCore {
                 icon: '💎',
                 price: 450,
                 reward: { type: 'diamond', amount: 50 },
-                limit: 999
+                limit: 999,
+                category: 'resource'
             },
             {
                 id: 'energy_50',
@@ -2254,7 +2366,8 @@ class GameCore {
                 icon: '⚡',
                 price: 80,
                 reward: { type: 'energy', amount: 50 },
-                limit: 999
+                limit: 999,
+                category: 'resource'
             },
             {
                 id: 'energy_200',
@@ -2263,7 +2376,8 @@ class GameCore {
                 icon: '⚡',
                 price: 280,
                 reward: { type: 'energy', amount: 200 },
-                limit: 999
+                limit: 999,
+                category: 'resource'
             },
             {
                 id: 'chest_common',
@@ -2272,7 +2386,8 @@ class GameCore {
                 icon: '📦',
                 price: 150,
                 reward: { type: 'chest', rarity: 'common' },
-                limit: 99
+                limit: 99,
+                category: 'chest'
             },
             {
                 id: 'chest_rare',
@@ -2281,7 +2396,8 @@ class GameCore {
                 icon: '🎁',
                 price: 400,
                 reward: { type: 'chest', rarity: 'rare' },
-                limit: 99
+                limit: 99,
+                category: 'chest'
             },
             {
                 id: 'chest_epic',
@@ -2290,7 +2406,8 @@ class GameCore {
                 icon: '✨',
                 price: 800,
                 reward: { type: 'chest', rarity: 'epic' },
-                limit: 10
+                limit: 10,
+                category: 'chest'
             },
             {
                 id: 'char_random',
@@ -2299,7 +2416,8 @@ class GameCore {
                 icon: '🎭',
                 price: 1000,
                 reward: { type: 'random_character' },
-                limit: 9
+                limit: 9,
+                category: 'special'
             }
         ];
     }
@@ -2349,6 +2467,15 @@ class GameCore {
                 break;
             case 'random_character':
                 rewardText = this.exchangeRandomCharacter();
+                break;
+            case 'permanent':
+                if (!this.saveData.permanentUpgrades) {
+                    this.saveData.permanentUpgrades = {};
+                }
+                const stat = item.reward.stat;
+                const currentValue = this.saveData.permanentUpgrades[stat] || 0;
+                this.saveData.permanentUpgrades[stat] = currentValue + item.reward.amount;
+                rewardText = item.reward.effectText || `${item.name} +${item.reward.amount}`;
                 break;
         }
         
@@ -2453,23 +2580,34 @@ class GameCore {
             itemCard.className = `shop-item-card ${canExchange ? '' : 'disabled'}`;
             
             let rewardDesc = '';
-            switch (item.reward.type) {
-                case 'gold':
-                    rewardDesc = `💰${item.reward.amount}`;
-                    break;
-                case 'diamond':
-                    rewardDesc = `💎${item.reward.amount}`;
-                    break;
-                case 'energy':
-                    rewardDesc = `⚡${item.reward.amount}`;
-                    break;
-                case 'chest':
-                    const rarityNames = { common: '普通', rare: '稀有', epic: '史诗' };
-                    rewardDesc = `${rarityNames[item.reward.rarity] || '普通'}品质`;
-                    break;
-                case 'random_character':
-                    rewardDesc = '随机角色';
-                    break;
+            let currentLevelInfo = '';
+            
+            if (item.reward.type === 'permanent') {
+                const stat = item.reward.stat;
+                const currentLevel = this.saveData.permanentUpgrades?.[stat] || 0;
+                rewardDesc = item.reward.effectText || `${item.name} +${item.reward.amount}`;
+                if (currentLevel > 0) {
+                    currentLevelInfo = `<div class="current-level-info">当前等级: ${currentLevel}</div>`;
+                }
+            } else {
+                switch (item.reward.type) {
+                    case 'gold':
+                        rewardDesc = `💰${item.reward.amount}`;
+                        break;
+                    case 'diamond':
+                        rewardDesc = `💎${item.reward.amount}`;
+                        break;
+                    case 'energy':
+                        rewardDesc = `⚡${item.reward.amount}`;
+                        break;
+                    case 'chest':
+                        const rarityNames = { common: '普通', rare: '稀有', epic: '史诗' };
+                        rewardDesc = `${rarityNames[item.reward.rarity] || '普通'}品质`;
+                        break;
+                    case 'random_character':
+                        rewardDesc = '随机角色';
+                        break;
+                }
             }
             
             itemCard.innerHTML = `
@@ -2477,6 +2615,7 @@ class GameCore {
                 <div class="shop-item-info">
                     <div class="shop-item-name">${item.name}</div>
                     <div class="shop-item-desc">${item.description}</div>
+                    ${currentLevelInfo}
                     <div class="shop-item-reward">🎁 ${rewardDesc}</div>
                 </div>
                 <div class="shop-item-footer">
@@ -3674,6 +3813,10 @@ class GameCore {
         const cfg = window.GameConfig || {};
         const levelCfg = cfg.level || {};
         this.reviveCount = levelCfg.reviveCount || 3;
+        
+        const extraRevives = this.saveData.permanentUpgrades?.extraRevives || 0;
+        this.reviveCount += extraRevives;
+        
         this.maxReviveCount = this.reviveCount;
         
         this.initCharacterPassive();
@@ -4823,8 +4966,14 @@ class GameCore {
                 
                 const cfg = window.GameConfig || {};
                 const dragonCfg = cfg.dragon || {};
-                const moveSpeed = dragonCfg.moveSpeed || 3;
+                let moveSpeed = dragonCfg.moveSpeed || 3;
                 const segmentSpacing = enemy.segmentSpacing || 35;
+                
+                const enemySlowLevel = this.saveData.permanentUpgrades?.enemySlow || 0;
+                if (enemySlowLevel > 0) {
+                    const slowPercent = Math.min(0.5, enemySlowLevel * 0.05);
+                    moveSpeed *= (1 - slowPercent);
+                }
                 
                 enemy.pathDistance += moveSpeed * 60 * dt;
                 
