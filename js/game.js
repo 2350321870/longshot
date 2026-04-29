@@ -1245,25 +1245,36 @@ class GameCore {
             this.saveData.claimedAchievements = [];
         }
         
-        if (this.saveData.claimedAchievements.includes(achievementId)) return false;
-        if (!this.saveData.unlockedAchievements?.includes(achievementId)) return false;
+        if (this.saveData.claimedAchievements.includes(achievementId)) return null;
+        if (!this.saveData.unlockedAchievements?.includes(achievementId)) return null;
         
         const achievement = this.achievements.find(a => a.id === achievementId);
-        if (!achievement) return false;
+        if (!achievement) return null;
         
         this.saveData.claimedAchievements.push(achievementId);
         
+        const rewards = {
+            gold: 0,
+            diamonds: 0
+        };
+        
         if (achievement.rewards) {
             if (achievement.rewards.gold) {
+                rewards.gold = achievement.rewards.gold;
                 this.saveData.gold += achievement.rewards.gold;
             }
             if (achievement.rewards.diamonds) {
+                rewards.diamonds = achievement.rewards.diamonds;
                 this.saveData.diamonds += achievement.rewards.diamonds;
             }
         }
         
         this.saveGameData();
-        return true;
+        return {
+            name: achievement.name,
+            rewards: rewards,
+            achievementPoints: achievement.achievementPoints
+        };
     }
     
     getAchievementsWithProgress() {
@@ -1846,12 +1857,42 @@ class GameCore {
         this.showToast(`领取成功！${task.rewards.gold ? `💰${task.rewards.gold}` : ''} ${task.rewards.diamonds ? `💎${task.rewards.diamonds}` : ''}`);
     }
     
+    showAchievementClaimToast(result) {
+        if (!result) return;
+        
+        let rewardText = '';
+        if (result.rewards.gold > 0) {
+            rewardText += `💰${result.rewards.gold}`;
+        }
+        if (result.rewards.diamonds > 0) {
+            if (rewardText) rewardText += ' ';
+            rewardText += `💎${result.rewards.diamonds}`;
+        }
+        
+        this.showToast(`🎉 成就「${result.name}」奖励领取成功！${rewardText}`);
+    }
+    
+    updateAchievementHeader() {
+        const totalPoints = this.saveData.achievementPoints || 0;
+        const achievements = this.getAchievementsWithProgress();
+        const unlockedCount = achievements.filter(a => a.unlocked).length;
+        
+        document.getElementById('totalAchievementPoints').textContent = totalPoints;
+        document.getElementById('unlockedAchievements').textContent = unlockedCount;
+        document.getElementById('totalAchievements').textContent = achievements.length;
+    }
+    
     renderAchievementsTab(filter = 'all') {
         const list = document.getElementById('achievementsList');
         list.innerHTML = '';
         
         if (filter === 'stats') {
             this.renderStatisticsTab(list);
+            return;
+        }
+        
+        if (filter === 'shop') {
+            this.renderAchievementShop(list);
             return;
         }
         
@@ -1864,12 +1905,36 @@ class GameCore {
             filteredAchievements = achievements.filter(a => !a.unlocked);
         }
         
+        filteredAchievements.sort((a, b) => {
+            const aCanClaim = a.unlocked && !a.claimed;
+            const bCanClaim = b.unlocked && !b.claimed;
+            const aClaimed = a.unlocked && a.claimed;
+            const bClaimed = b.unlocked && b.claimed;
+            
+            if (aCanClaim && !bCanClaim) return -1;
+            if (!aCanClaim && bCanClaim) return 1;
+            
+            if (aClaimed && !bClaimed) return 1;
+            if (!aClaimed && bClaimed) return -1;
+            
+            return 0;
+        });
+        
         const totalPoints = this.saveData.achievementPoints || 0;
         const unlockedCount = achievements.filter(a => a.unlocked).length;
+        const claimableCount = achievements.filter(a => a.unlocked && !a.claimed).length;
         
         document.getElementById('totalAchievementPoints').textContent = totalPoints;
         document.getElementById('unlockedAchievements').textContent = unlockedCount;
         document.getElementById('totalAchievements').textContent = achievements.length;
+        
+        if (claimableCount > 0) {
+            const claimableBadge = document.querySelector('.achievement-tab[data-filter="unlocked"] .claimable-badge');
+            if (claimableBadge) {
+                claimableBadge.textContent = claimableCount;
+                claimableBadge.style.display = 'inline-block';
+            }
+        }
         
         if (filteredAchievements.length === 0) {
             list.innerHTML = '<div style="color: #aaa; text-align: center; padding: 40px;">暂无成就</div>';
@@ -1883,7 +1948,7 @@ class GameCore {
             const progressPercent = Math.min(100, (progress / target) * 100);
             
             const achievementItem = document.createElement('div');
-            achievementItem.className = `achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}`;
+            achievementItem.className = `achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'} ${achievement.unlocked && !isClaimed ? 'claimable' : ''} ${isClaimed ? 'claimed' : ''}`;
             
             let rewardsHtml = '';
             if (achievement.rewards.gold) {
@@ -1906,7 +1971,7 @@ class GameCore {
             achievementItem.innerHTML = `
                 <div class="achievement-icon">${achievement.icon}</div>
                 <div class="achievement-content">
-                    <div class="achievement-name">${achievement.name}</div>
+                    <div class="achievement-name">${achievement.name}${achievement.unlocked && !isClaimed ? '<span class="new-badge">可领取</span>' : ''}</div>
                     <div class="achievement-description">${achievement.description}</div>
                     ${!achievement.unlocked ? `
                         <div class="task-progress-container" style="margin-top: 8px;">
@@ -1931,7 +1996,38 @@ class GameCore {
         list.querySelectorAll('.achievement-claim-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const achievementId = btn.dataset.achievementId;
-                this.claimAchievementReward(achievementId);
+                const achievementItem = btn.closest('.achievement-item');
+                
+                btn.disabled = true;
+                btn.textContent = '领取中...';
+                btn.classList.add('claiming');
+                
+                const result = this.claimAchievementReward(achievementId);
+                
+                if (result) {
+                    achievementItem.classList.remove('claimable');
+                    achievementItem.classList.add('claimed');
+                    
+                    const nameEl = achievementItem.querySelector('.achievement-name');
+                    if (nameEl) {
+                        const badge = nameEl.querySelector('.new-badge');
+                        if (badge) badge.remove();
+                    }
+                    
+                    btn.outerHTML = '<div class="achievement-claimed-text">✓ 已领取</div>';
+                    
+                    this.showAchievementClaimToast(result);
+                    
+                    this.updateAchievementHeader();
+                    
+                    setTimeout(() => {
+                        this.renderAchievementsTab(filter);
+                    }, 1000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = '领取奖励';
+                    btn.classList.remove('claiming');
+                }
             });
         });
         
@@ -2110,6 +2206,316 @@ class GameCore {
         
         document.querySelectorAll('.achievement-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.filter === 'stats');
+        });
+    }
+    
+    get achievementShopItems() {
+        return [
+            {
+                id: 'gold_500',
+                name: '金币礼包',
+                description: '获得 500 金币',
+                icon: '💰',
+                price: 50,
+                reward: { type: 'gold', amount: 500 },
+                limit: 999
+            },
+            {
+                id: 'gold_2000',
+                name: '金币大礼包',
+                description: '获得 2000 金币',
+                icon: '💰',
+                price: 180,
+                reward: { type: 'gold', amount: 2000 },
+                limit: 999
+            },
+            {
+                id: 'diamond_10',
+                name: '钻石礼包',
+                description: '获得 10 钻石',
+                icon: '💎',
+                price: 100,
+                reward: { type: 'diamond', amount: 10 },
+                limit: 999
+            },
+            {
+                id: 'diamond_50',
+                name: '钻石大礼包',
+                description: '获得 50 钻石',
+                icon: '💎',
+                price: 450,
+                reward: { type: 'diamond', amount: 50 },
+                limit: 999
+            },
+            {
+                id: 'energy_50',
+                name: '体力包',
+                description: '恢复 50 体力',
+                icon: '⚡',
+                price: 80,
+                reward: { type: 'energy', amount: 50 },
+                limit: 999
+            },
+            {
+                id: 'energy_200',
+                name: '体力大礼包',
+                description: '恢复 200 体力',
+                icon: '⚡',
+                price: 280,
+                reward: { type: 'energy', amount: 200 },
+                limit: 999
+            },
+            {
+                id: 'chest_common',
+                name: '普通宝箱',
+                description: '随机获得装备或道具',
+                icon: '📦',
+                price: 150,
+                reward: { type: 'chest', rarity: 'common' },
+                limit: 99
+            },
+            {
+                id: 'chest_rare',
+                name: '稀有宝箱',
+                description: '有机会获得稀有装备',
+                icon: '🎁',
+                price: 400,
+                reward: { type: 'chest', rarity: 'rare' },
+                limit: 99
+            },
+            {
+                id: 'chest_epic',
+                name: '史诗宝箱',
+                description: '有机会获得史诗装备',
+                icon: '✨',
+                price: 800,
+                reward: { type: 'chest', rarity: 'epic' },
+                limit: 10
+            },
+            {
+                id: 'char_random',
+                name: '随机角色',
+                description: '随机解锁一个未拥有的角色',
+                icon: '🎭',
+                price: 1000,
+                reward: { type: 'random_character' },
+                limit: 9
+            }
+        ];
+    }
+    
+    exchangeAchievementShopItem(itemId) {
+        const item = this.achievementShopItems.find(i => i.id === itemId);
+        if (!item) {
+            this.showToast('商品不存在！');
+            return false;
+        }
+        
+        const totalPoints = this.saveData.achievementPoints || 0;
+        if (totalPoints < item.price) {
+            this.showToast('成就点不足！');
+            return false;
+        }
+        
+        if (!this.saveData.achievementShopExchangeCount) {
+            this.saveData.achievementShopExchangeCount = {};
+        }
+        
+        const exchanged = this.saveData.achievementShopExchangeCount[itemId] || 0;
+        if (exchanged >= item.limit) {
+            this.showToast('已达到兑换上限！');
+            return false;
+        }
+        
+        this.saveData.achievementPoints -= item.price;
+        this.saveData.achievementShopExchangeCount[itemId] = exchanged + 1;
+        
+        let rewardText = '';
+        switch (item.reward.type) {
+            case 'gold':
+                this.saveData.gold += item.reward.amount;
+                rewardText = `💰${item.reward.amount}`;
+                break;
+            case 'diamond':
+                this.saveData.diamonds += item.reward.amount;
+                rewardText = `💎${item.reward.amount}`;
+                break;
+            case 'energy':
+                this.saveData.energy = Math.min(this.saveData.maxEnergy, (this.saveData.energy || 0) + item.reward.amount);
+                rewardText = `⚡${item.reward.amount}`;
+                break;
+            case 'chest':
+                rewardText = this.openAchievementShopChest(item.reward.rarity);
+                break;
+            case 'random_character':
+                rewardText = this.exchangeRandomCharacter();
+                break;
+        }
+        
+        this.saveGameData();
+        this.updateAchievementHeader();
+        
+        if (rewardText) {
+            this.showToast(`🎉 兑换成功！${item.name} - ${rewardText}`);
+        }
+        
+        return true;
+    }
+    
+    openAchievementShopChest(rarity) {
+        const qualityWeights = {
+            common: { normal: 60, rare: 30, epic: 8, legendary: 2 },
+            rare: { normal: 30, rare: 50, epic: 18, legendary: 2 },
+            epic: { normal: 10, rare: 30, epic: 50, legendary: 10 }
+        };
+        
+        const weights = qualityWeights[rarity] || qualityWeights.common;
+        const roll = Math.random() * 100;
+        let quality = 'normal';
+        let cumulative = 0;
+        
+        for (const [q, w] of Object.entries(weights)) {
+            cumulative += w;
+            if (roll < cumulative) {
+                quality = q;
+                break;
+            }
+        }
+        
+        const qualityNames = {
+            normal: '普通',
+            rare: '稀有',
+            epic: '史诗',
+            legendary: '传说'
+        };
+        
+        const rewardGold = {
+            normal: 100,
+            rare: 300,
+            epic: 800,
+            legendary: 2000
+        };
+        
+        this.saveData.gold += rewardGold[quality] || 100;
+        
+        return `获得${qualityNames[quality]}品质奖励 +💰${rewardGold[quality] || 100}`;
+    }
+    
+    exchangeRandomCharacter() {
+        const allChars = Object.keys(this.characterConfig);
+        const unlockedChars = this.saveData.unlockedCharacters || ['default'];
+        const availableChars = allChars.filter(c => !unlockedChars.includes(c) && c !== 'default');
+        
+        if (availableChars.length === 0) {
+            this.saveData.gold += 5000;
+            return '所有角色已解锁，补偿 +💰5000';
+        }
+        
+        const randomChar = availableChars[Math.floor(Math.random() * availableChars.length)];
+        
+        if (!this.saveData.unlockedCharacters) {
+            this.saveData.unlockedCharacters = ['default'];
+        }
+        this.saveData.unlockedCharacters.push(randomChar);
+        
+        return `解锁角色：${this.characterConfig[randomChar]?.name || randomChar}`;
+    }
+    
+    renderAchievementShop(list) {
+        const totalPoints = this.saveData.achievementPoints || 0;
+        
+        if (!this.saveData.achievementShopExchangeCount) {
+            this.saveData.achievementShopExchangeCount = {};
+        }
+        
+        list.innerHTML = `
+            <div class="shop-header">
+                <div class="shop-title">🏪 成就商店</div>
+                <div class="shop-balance">
+                    🏆 当前成就点: <span class="points-value">${totalPoints}</span>
+                </div>
+            </div>
+            
+            <div class="shop-grid" id="shopGrid">
+            </div>
+        `;
+        
+        const grid = document.getElementById('shopGrid');
+        if (!grid) return;
+        
+        this.achievementShopItems.forEach(item => {
+            const exchanged = this.saveData.achievementShopExchangeCount[item.id] || 0;
+            const canAfford = totalPoints >= item.price;
+            const notLimited = exchanged < item.limit;
+            const canExchange = canAfford && notLimited;
+            
+            const itemCard = document.createElement('div');
+            itemCard.className = `shop-item-card ${canExchange ? '' : 'disabled'}`;
+            
+            let rewardDesc = '';
+            switch (item.reward.type) {
+                case 'gold':
+                    rewardDesc = `💰${item.reward.amount}`;
+                    break;
+                case 'diamond':
+                    rewardDesc = `💎${item.reward.amount}`;
+                    break;
+                case 'energy':
+                    rewardDesc = `⚡${item.reward.amount}`;
+                    break;
+                case 'chest':
+                    const rarityNames = { common: '普通', rare: '稀有', epic: '史诗' };
+                    rewardDesc = `${rarityNames[item.reward.rarity] || '普通'}品质`;
+                    break;
+                case 'random_character':
+                    rewardDesc = '随机角色';
+                    break;
+            }
+            
+            itemCard.innerHTML = `
+                <div class="shop-item-icon">${item.icon}</div>
+                <div class="shop-item-info">
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-desc">${item.description}</div>
+                    <div class="shop-item-reward">🎁 ${rewardDesc}</div>
+                </div>
+                <div class="shop-item-footer">
+                    <div class="shop-item-price">
+                        🏆 ${item.price}
+                    </div>
+                    <div class="shop-item-limit">
+                        ${notLimited ? `剩余: ${item.limit - exchanged}` : '已兑换完'}
+                    </div>
+                </div>
+                <button class="shop-exchange-btn ${canExchange ? '' : 'disabled'}" 
+                        data-item-id="${item.id}" 
+                        ${canExchange ? '' : 'disabled'}>
+                    ${notLimited ? '兑换' : '已兑完'}
+                </button>
+            `;
+            
+            grid.appendChild(itemCard);
+        });
+        
+        grid.querySelectorAll('.shop-exchange-btn:not(.disabled)').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const itemId = btn.dataset.itemId;
+                const itemCard = btn.closest('.shop-item-card');
+                
+                btn.disabled = true;
+                btn.textContent = '兑换中...';
+                btn.classList.add('exchanging');
+                
+                const success = this.exchangeAchievementShopItem(itemId);
+                
+                setTimeout(() => {
+                    this.renderAchievementShop(list);
+                }, 500);
+            });
+        });
+        
+        document.querySelectorAll('.achievement-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.filter === 'shop');
         });
     }
     
