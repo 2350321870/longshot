@@ -1362,6 +1362,7 @@
         reset() {
             this.activeSkills = [];
             this.skillCooldowns = {};
+            this.skillLevels = {};
             this.needles = [];
             this.thunderDragon = null;
             this.thunderDragonTimer = 0;

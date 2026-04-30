@@ -385,15 +385,15 @@
         ],
         
         levelConfigs: {
-            1: { enemyCount: 8, enemyHealth: 100, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 20, chestDropChance: 0.6 },
-            2: { enemyCount: 10, enemyHealth: 150, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 25, chestDropChance: 0.6 },
-            3: { enemyCount: 12, enemyHealth: 200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 30, unlockAbility: true, chestDropChance: 0.65 },
-            4: { enemyCount: 15, enemyHealth: 300, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 35, chestDropChance: 0.65 },
-            5: { enemyCount: 18, enemyHealth: 400, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 40, chestDropChance: 0.7 },
-            6: { enemyCount: 20, enemyHealth: 500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 45, unlockAbility: true, chestDropChance: 0.7 },
-            7: { enemyCount: 25, enemyHealth: 600, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 50, chestDropChance: 0.75 },
-            8: { enemyCount: 28, enemyHealth: 700, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 55, chestDropChance: 0.75 },
-            9: { enemyCount: 30, enemyHealth: 800, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 60, unlockAbility: true, chestDropChance: 0.8 }
+            1: { enemyCount: 8, enemyHealth: 100, enemySpeed: 0.8, enemyDamage: 5, dropChance: 0.3, segments: 40, chestDropChance: 0.6 },
+            2: { enemyCount: 10, enemyHealth: 150, enemySpeed: 0.9, enemyDamage: 6, dropChance: 0.35, segments: 50, chestDropChance: 0.6 },
+            3: { enemyCount: 12, enemyHealth: 200, enemySpeed: 1.0, enemyDamage: 8, dropChance: 0.4, segments: 60, unlockAbility: true, chestDropChance: 0.65 },
+            4: { enemyCount: 15, enemyHealth: 300, enemySpeed: 1.1, enemyDamage: 10, dropChance: 0.4, segments: 70, chestDropChance: 0.65 },
+            5: { enemyCount: 18, enemyHealth: 400, enemySpeed: 1.2, enemyDamage: 12, dropChance: 0.45, segments: 80, chestDropChance: 0.7 },
+            6: { enemyCount: 20, enemyHealth: 500, enemySpeed: 1.3, enemyDamage: 15, dropChance: 0.5, segments: 90, unlockAbility: true, chestDropChance: 0.7 },
+            7: { enemyCount: 25, enemyHealth: 600, enemySpeed: 1.4, enemyDamage: 18, dropChance: 0.5, segments: 100, chestDropChance: 0.75 },
+            8: { enemyCount: 28, enemyHealth: 700, enemySpeed: 1.5, enemyDamage: 22, dropChance: 0.55, segments: 110, chestDropChance: 0.75 },
+            9: { enemyCount: 30, enemyHealth: 800, enemySpeed: 1.6, enemyDamage: 26, dropChance: 0.6, segments: 120, unlockAbility: true, chestDropChance: 0.8 }
         },
         
         battleSkills: [
