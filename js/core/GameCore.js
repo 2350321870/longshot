@@ -701,7 +701,10 @@
 
         updateSpawning(dt) {
             this.shootTimer += dt;
-            const shootInterval = Math.max(0.1, 0.3 - this.playerStats.attackSpeed * 0.1);
+            
+            const baseFireRate = this.playerStats.fireRate || 0.3;
+            const attackSpeedBonus = (this.playerStats.attackSpeed || 1) - 1;
+            const shootInterval = Math.max(0.1, baseFireRate * (1 - attackSpeedBonus * 0.5));
             
             if (this.shootTimer >= shootInterval) {
                 this.shoot();
@@ -713,10 +716,18 @@
 
         shoot() {
             const baseDamage = this.playerStats.damage;
-            const isCrit = Math.random() < this.playerStats.critChance;
-            const critMultiplier = isCrit ? this.playerStats.critDamage : 1;
+            const damageMultiplier = this.playerStats.damageMultiplier || 1;
+            const critChance = Math.max(0.01, Math.min(0.8, this.playerStats.criticalChance || this.playerStats.critChance || 0.05));
+            const critDamage = Math.max(1.5, this.playerStats.criticalDamage || this.playerStats.critDamage || 1.5);
+            const bulletCount = Math.max(1, this.playerStats.bulletCount || 1);
+            const bulletSize = Math.max(3, this.playerStats.bulletSize || 5);
+            const bulletSpeed = Math.max(5, this.playerStats.bulletSpeed || 12);
+            const bulletSpread = this.playerStats.bulletSpread || 0;
             
-            let damage = baseDamage * critMultiplier;
+            const isCrit = Math.random() < critChance;
+            const critMultiplier = isCrit ? critDamage : 1;
+            
+            let damage = baseDamage * critMultiplier * damageMultiplier;
             
             for (const buff of this.activeBuffs) {
                 if (buff.type === 'damage_boost') {
@@ -724,22 +735,36 @@
                 }
             }
             
-            const bullet = {
-                x: this.player.x,
-                y: this.player.y - this.player.radius,
-                vx: 0,
-                vy: -12,
-                radius: 5,
-                damage: Math.floor(damage),
-                isCrit: isCrit,
-                color: isCrit ? '#FFD700' : '#4488ff',
-                pierce: this.playerStats.bulletPierce,
-                homing: true,
-                homingStrength: 0.1
-            };
+            const finalDamage = Math.floor(damage);
+            const color = isCrit ? '#FFD700' : '#4488ff';
             
-            this.bullets.push(bullet);
-            this.effectSystem.createBulletTrail(bullet.x, bullet.y, bullet.color);
+            for (let i = 0; i < bulletCount; i++) {
+                let angle = -Math.PI / 2;
+                
+                if (bulletCount > 1) {
+                    const spreadRad = bulletSpread * Math.PI / 180;
+                    const startAngle = -Math.PI / 2 - spreadRad / 2;
+                    const angleStep = bulletCount > 1 ? spreadRad / (bulletCount - 1) : 0;
+                    angle = startAngle + i * angleStep;
+                }
+                
+                const bullet = {
+                    x: this.player.x,
+                    y: this.player.y - this.player.radius,
+                    vx: Math.cos(angle) * bulletSpeed,
+                    vy: Math.sin(angle) * bulletSpeed,
+                    radius: bulletSize,
+                    damage: finalDamage,
+                    isCrit: isCrit,
+                    color: color,
+                    pierce: this.playerStats.bulletPierce || 0,
+                    homing: true,
+                    homingStrength: 0.1
+                };
+                
+                this.bullets.push(bullet);
+                this.effectSystem.createBulletTrail(bullet.x, bullet.y, bullet.color);
+            }
         }
 
         checkLevelComplete() {
