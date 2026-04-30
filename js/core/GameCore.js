@@ -547,6 +547,9 @@
             const fenceBar = document.getElementById('fenceBar');
             const topBar = document.getElementById('topBar');
             const bottomNav = document.getElementById('bottomNav');
+            const levelUpScreen = document.getElementById('levelUpScreen');
+            const gameOverScreen = document.getElementById('gameOverScreen');
+            const reviveScreen = document.getElementById('reviveScreen');
             
             if (mainScreen) mainScreen.classList.add('hidden');
             if (gameCanvas) gameCanvas.classList.remove('hidden');
@@ -556,6 +559,9 @@
             if (fenceBar) fenceBar.classList.add('hidden');
             if (topBar) topBar.classList.add('hidden');
             if (bottomNav) bottomNav.classList.add('hidden');
+            if (levelUpScreen) levelUpScreen.classList.remove('show');
+            if (gameOverScreen) gameOverScreen.classList.remove('show');
+            if (reviveScreen) reviveScreen.classList.remove('show');
             
             this.lastTime = 0;
             requestAnimationFrame((t) => this.gameLoop(t));
@@ -786,12 +792,16 @@
         }
 
         checkLevelComplete() {
+            if (this.gameState !== 'playing') {
+                return;
+            }
+            
             const levelConfig = this.getLevelConfig(this.currentLevel);
             const requiredSegments = levelConfig.segments || 10;
             
             const segmentsDestroyed = this.windingEnemySystem ? this.windingEnemySystem.segmentsDestroyed : 0;
             
-            if (segmentsDestroyed >= requiredSegments && this.enemies.length === 0) {
+            if (segmentsDestroyed >= requiredSegments) {
                 this.levelComplete();
             }
         }
