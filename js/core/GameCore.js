@@ -800,7 +800,9 @@
                 return;
             }
             
-            if (this.enemies.length === 0) {
+            const segmentsDestroyed = this.windingEnemySystem ? this.windingEnemySystem.segmentsDestroyed : 0;
+            
+            if (segmentsDestroyed > 0 && this.enemies.length === 0) {
                 this.levelComplete();
             }
         }
