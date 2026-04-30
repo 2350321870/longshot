@@ -617,6 +617,45 @@
             for (let i = this.bullets.length - 1; i >= 0; i--) {
                 const bullet = this.bullets[i];
                 
+                if (bullet.homing && this.enemies.length > 0) {
+                    let nearestEnemy = null;
+                    let nearestDist = Infinity;
+                    
+                    for (const enemy of this.enemies) {
+                        if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
+                            const headSeg = enemy.segments[0];
+                            const dx = headSeg.x - bullet.x;
+                            const dy = headSeg.y - bullet.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (dist < nearestDist) {
+                                nearestDist = dist;
+                                nearestEnemy = headSeg;
+                            }
+                        }
+                    }
+                    
+                    if (nearestEnemy) {
+                        const targetAngle = Math.atan2(
+                            nearestEnemy.y - bullet.y,
+                            nearestEnemy.x - bullet.x
+                        );
+                        
+                        const currentAngle = Math.atan2(bullet.vy, bullet.vx);
+                        let angleDiff = targetAngle - currentAngle;
+                        
+                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                        
+                        const turnSpeed = bullet.homingStrength || 0.1;
+                        const newAngle = currentAngle + angleDiff * turnSpeed;
+                        
+                        const speed = Math.sqrt(bullet.vx * bullet.vx + bullet.vy * bullet.vy);
+                        bullet.vx = Math.cos(newAngle) * speed;
+                        bullet.vy = Math.sin(newAngle) * speed;
+                    }
+                }
+                
                 bullet.x += bullet.vx * 60 * dt;
                 bullet.y += bullet.vy * 60 * dt;
                 
@@ -691,7 +730,9 @@
                 damage: Math.floor(damage),
                 isCrit: isCrit,
                 color: isCrit ? '#FFD700' : '#4488ff',
-                pierce: this.playerStats.bulletPierce
+                pierce: this.playerStats.bulletPierce,
+                homing: true,
+                homingStrength: 0.1
             };
             
             this.bullets.push(bullet);

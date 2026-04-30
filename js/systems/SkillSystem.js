@@ -252,7 +252,9 @@
                     radius: 4,
                     color: isCrit ? '#FFD700' : '#00FF00',
                     lifetime: 3,
-                    maxLifetime: 3
+                    maxLifetime: 3,
+                    homing: true,
+                    homingStrength: 0.12
                 });
             }
             
@@ -278,6 +280,45 @@
                 const needle = this.needles[i];
                 
                 needle.lifetime -= dt;
+                
+                if (needle.homing && this.game.enemies.length > 0) {
+                    let nearestEnemy = null;
+                    let nearestDist = Infinity;
+                    
+                    for (const enemy of this.game.enemies) {
+                        if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
+                            const headSeg = enemy.segments[0];
+                            const dx = headSeg.x - needle.x;
+                            const dy = headSeg.y - needle.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (dist < nearestDist) {
+                                nearestDist = dist;
+                                nearestEnemy = headSeg;
+                            }
+                        }
+                    }
+                    
+                    if (nearestEnemy) {
+                        const targetAngle = Math.atan2(
+                            nearestEnemy.y - needle.y,
+                            nearestEnemy.x - needle.x
+                        );
+                        
+                        const currentAngle = Math.atan2(needle.vy, needle.vx);
+                        let angleDiff = targetAngle - currentAngle;
+                        
+                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                        
+                        const turnSpeed = needle.homingStrength || 0.12;
+                        const newAngle = currentAngle + angleDiff * turnSpeed;
+                        
+                        const speed = Math.sqrt(needle.vx * needle.vx + needle.vy * needle.vy);
+                        needle.vx = Math.cos(newAngle) * speed;
+                        needle.vy = Math.sin(newAngle) * speed;
+                    }
+                }
                 
                 needle.x += needle.vx * dt;
                 needle.y += needle.vy * dt;
