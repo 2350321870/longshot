@@ -1372,13 +1372,37 @@
         }
 
         applySkill(skill) {
+            if (!this.skillLevels[skill.id]) {
+                this.skillLevels[skill.id] = 1;
+            } else {
+                this.skillLevels[skill.id]++;
+            }
+            
+            const currentLevel = this.skillLevels[skill.id];
+            
+            const getLevelMultiplier = (level) => {
+                const multipliers = {
+                    1: 1.0,
+                    2: 1.2,
+                    3: 1.5,
+                    4: 2.0,
+                    5: 3.0
+                };
+                return multipliers[level] || 1.0;
+            };
+            
+            const getPreviousLevelMultiplier = (level) => {
+                return getLevelMultiplier(level - 1);
+            };
+            
+            const levelMultiplier = getLevelMultiplier(currentLevel);
+            const prevMultiplier = getPreviousLevelMultiplier(currentLevel);
+            const effectiveMultiplier = levelMultiplier / prevMultiplier;
+            
             if (skill.type === 'active') {
-                if (!this.skillLevels[skill.id]) {
-                    this.skillLevels[skill.id] = 1;
+                if (currentLevel === 1) {
                     this.activeSkills.push(skill.id);
                     this.skillCooldowns[skill.id] = 0;
-                } else {
-                    this.skillLevels[skill.id]++;
                 }
             } else {
                 const playerStats = this.game.playerStats;
@@ -1386,48 +1410,60 @@
 
                 switch (skill.id) {
                     case 'bullet_count':
-                        playerStats.bulletCount++;
-                        playerStats.bulletSpread = (playerStats.bulletSpread || 0) + 15;
+                        const bulletCountBonus = Math.ceil(1 * effectiveMultiplier);
+                        playerStats.bulletCount = (playerStats.bulletCount || 1) + bulletCountBonus;
+                        const bulletSpreadBonus = Math.ceil(15 * effectiveMultiplier);
+                        playerStats.bulletSpread = (playerStats.bulletSpread || 0) + bulletSpreadBonus;
                         break;
                     case 'fire_rate':
-                        playerStats.fireRate = (playerStats.fireRate || 0.3) * 0.8;
+                        const fireRateReduction = 1 - (0.8 / effectiveMultiplier);
+                        playerStats.fireRate = (playerStats.fireRate || 0.3) * (1 - fireRateReduction);
                         break;
                     case 'damage':
-                        playerStats.damageMultiplier = (playerStats.damageMultiplier || 1) * 1.5;
+                        const damageBonus = 1 + (0.5 * effectiveMultiplier);
+                        playerStats.damageMultiplier = (playerStats.damageMultiplier || 1) * damageBonus;
                         break;
                     case 'health':
+                        const healthBonus = Math.ceil(30 * effectiveMultiplier);
                         playerStats.health = Math.min(
-                            playerStats.health + 30,
+                            playerStats.health + healthBonus,
                             playerStats.maxHealth
                         );
                         break;
                     case 'max_health':
-                        playerStats.maxHealth += 25;
-                        playerStats.health += 25;
+                        const maxHealthBonus = Math.ceil(25 * effectiveMultiplier);
+                        playerStats.maxHealth += maxHealthBonus;
+                        playerStats.health += maxHealthBonus;
                         break;
                     case 'bullet_size':
-                        playerStats.bulletSize = (playerStats.bulletSize || 5) + 3;
+                        const bulletSizeBonus = Math.ceil(3 * effectiveMultiplier);
+                        playerStats.bulletSize = (playerStats.bulletSize || 5) + bulletSizeBonus;
                         break;
                     case 'speed':
-                        playerStats.speed = (playerStats.speed || 0.5) * 1.15;
+                        const speedBonus = 1 + (0.15 * effectiveMultiplier);
+                        playerStats.speed = (playerStats.speed || 0.5) * speedBonus;
                         if (playerStats.speed > 20) playerStats.speed = 20;
                         break;
                     case 'pierce':
-                        playerStats.bulletPierce = (playerStats.bulletPierce || 0) + 1;
+                        const pierceBonus = Math.ceil(1 * effectiveMultiplier);
+                        playerStats.bulletPierce = (playerStats.bulletPierce || 0) + pierceBonus;
                         break;
                     case 'crit_chance':
+                        const critChanceBonus = 0.1 * effectiveMultiplier;
                         playerStats.criticalChance = Math.min(
                             0.75,
-                            (playerStats.criticalChance || 0.05) + 0.1
+                            (playerStats.criticalChance || 0.05) + critChanceBonus
                         );
                         playerStats.critChance = playerStats.criticalChance;
                         break;
                     case 'crit_damage':
-                        playerStats.criticalDamage = (playerStats.criticalDamage || 1.5) + 0.5;
+                        const critDamageBonus = 0.5 * effectiveMultiplier;
+                        playerStats.criticalDamage = (playerStats.criticalDamage || 1.5) + critDamageBonus;
                         playerStats.critDamage = playerStats.criticalDamage;
                         break;
                     case 'magnet':
-                        playerStats.magnetRange = (playerStats.magnetRange || 100) + 50;
+                        const magnetBonus = Math.ceil(50 * effectiveMultiplier);
+                        playerStats.magnetRange = (playerStats.magnetRange || 100) + magnetBonus;
                         break;
                 }
             }
@@ -1508,10 +1544,56 @@
 
         getRandomSkills(count) {
             const skills = this.game.skills || [];
-            const availableSkills = skills.filter(skill => skill.type !== 'passive');
+            
+            const availableSkills = skills.filter(skill => {
+                const currentLevel = this.skillLevels[skill.id] || 0;
+                return currentLevel < 5;
+            });
 
-            const shuffled = [...availableSkills].sort(() => Math.random() - 0.5);
-            return shuffled.slice(0, Math.min(count, shuffled.length));
+            if (availableSkills.length === 0) {
+                return [];
+            }
+
+            const weightedSkills = [];
+            
+            for (const skill of availableSkills) {
+                const currentLevel = this.skillLevels[skill.id] || 0;
+                let weight = 30;
+                
+                if (skill.rarity === 'A' || skill.rarity === 'S') {
+                    weight = 20;
+                } else if (skill.rarity === 'B' || skill.rarity === 'C') {
+                    weight = 50;
+                }
+                
+                if (skill.type === 'active') {
+                    weight = Math.floor(weight * 0.8);
+                }
+                
+                if (currentLevel > 0) {
+                    const levelBonus = currentLevel * 8;
+                    weight += levelBonus;
+                }
+                
+                for (let i = 0; i < weight; i++) {
+                    weightedSkills.push(skill);
+                }
+            }
+
+            const selectedSkills = [];
+            const usedIds = new Set();
+            
+            for (let attempt = 0; attempt < 100 && selectedSkills.length < count; attempt++) {
+                const randomIndex = Math.floor(Math.random() * weightedSkills.length);
+                const skill = weightedSkills[randomIndex];
+                
+                if (!usedIds.has(skill.id)) {
+                    usedIds.add(skill.id);
+                    selectedSkills.push(skill);
+                }
+            }
+
+            return selectedSkills;
         }
 
         showSkillNotification(skill) {

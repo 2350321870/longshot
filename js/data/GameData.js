@@ -397,7 +397,7 @@
         },
         
         battleSkills: [
-            { id: "bullet_count", name: "龙之力", description: "子弹数量+1，范围+15°", icon: "🎯", rarity: "A" },
+            { id: "bullet_count", name: "多重射击", description: "子弹数量+1，范围+15°", icon: "🎯", rarity: "A" },
             { id: "fire_rate", name: "快速射击", description: "射击速度提升20%", icon: "⚡", rarity: "B" },
             { id: "damage", name: "龙之力", description: "子弹伤害+50%", icon: "💥", rarity: "A" },
             { id: "health", name: "生命恢复", description: "恢复30点生命值", icon: "❤️", rarity: "B" },

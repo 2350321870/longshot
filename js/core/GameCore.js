@@ -1075,8 +1075,24 @@
 
         addComboKill() {
             this.comboSystem.combo++;
-            this.comboSystem.comboTimer = 2;
-            this.comboSystem.comboMultiplier = 1 + (this.comboSystem.combo - 1) * 0.1;
+            this.comboSystem.comboTimer = 3;
+            
+            const combo = this.comboSystem.combo;
+            let comboMultiplier = 1;
+            
+            if (combo >= 30) {
+                comboMultiplier = 3.0;
+            } else if (combo >= 20) {
+                comboMultiplier = 2.0;
+            } else if (combo >= 10) {
+                comboMultiplier = 1.5;
+            } else if (combo >= 5) {
+                comboMultiplier = 1.25;
+            } else {
+                comboMultiplier = 1 + (combo - 1) * 0.15;
+            }
+            
+            this.comboSystem.comboMultiplier = comboMultiplier;
         }
 
         onAchievementUnlocked(data) {

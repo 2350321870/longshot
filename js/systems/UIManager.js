@@ -159,13 +159,16 @@
             ctx.fillText(`已击杀: ${this.game.totalKills || 0}`, 0, 42);
             ctx.fillText(`击杀奖励: +${Math.floor(this.game.goldPerKill || 0)} 💰`, 0, 59);
 
-            if (this.game.combo) {
-                ctx.fillStyle = this.game.combo >= 10 ? '#ff4444' : '#ffaa00';
+            if (this.game.comboSystem && this.game.comboSystem.combo > 0) {
+                const combo = this.game.comboSystem.combo;
+                const comboMultiplier = this.game.comboSystem.comboMultiplier || 1;
+                
+                ctx.fillStyle = combo >= 10 ? '#ff4444' : '#ffaa00';
                 ctx.font = 'bold 16px Arial';
-                ctx.fillText(`🔥 连击 x${this.game.combo}`, 0, 82);
+                ctx.fillText(`🔥 连击 x${combo}`, 0, 82);
                 ctx.fillStyle = '#888';
                 ctx.font = '11px Arial';
-                ctx.fillText(`连击加成: +${Math.floor((this.game.comboMultiplier || 1) - 1) * 100}%`, 0, 98);
+                ctx.fillText(`连击加成: +${Math.floor((comboMultiplier - 1) * 100)}%`, 0, 98);
             }
 
             ctx.restore();

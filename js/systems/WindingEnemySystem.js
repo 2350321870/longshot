@@ -19,9 +19,12 @@
             const rewardTypes = ['gold', 'health_pack', 'damage_boost', 'speed_boost'];
             const type = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
             
+            const comboMultiplier = (this.game.comboSystem && this.game.comboSystem.comboMultiplier) || 1;
+            
             switch (type) {
                 case 'gold':
-                    const goldAmount = 10 + Math.floor(Math.random() * 20);
+                    const baseGoldAmount = 10 + Math.floor(Math.random() * 20);
+                    const goldAmount = Math.floor(baseGoldAmount * comboMultiplier);
                     this.game.goldEarned += goldAmount;
                     this.game.score += goldAmount;
                     if (this.game.createCollectParticles) {
@@ -88,9 +91,11 @@
         }
 
         addDirectChestReward(x, y) {
-            const goldAmount = 50 + Math.floor(Math.random() * 200);
+            const comboMultiplier = (this.game.comboSystem && this.game.comboSystem.comboMultiplier) || 1;
+            const baseGoldAmount = 50 + Math.floor(Math.random() * 200);
+            const goldAmount = Math.floor(baseGoldAmount * comboMultiplier);
             this.game.goldEarned += goldAmount;
-            this.game.score += goldAmount * 2;
+            this.game.score += Math.floor(goldAmount * 2);
             
             if (this.game.updateStatistics) {
                 this.game.updateStatistics('chest_open', 1);
@@ -208,7 +213,7 @@
             };
             
             for (let i = 0; i < segments; i++) {
-                const isChestSegment = (i + 1) % 6 === 0;
+                const isChestSegment = (i + 1) % 5 === 0;
                 dragon.segments.push({
                     x: startX,
                     y: startY - i * segmentSpacing,
@@ -422,6 +427,12 @@
                     if (destroyedCount > 0) {
                         this.segmentsDestroyed += destroyedCount;
                         
+                        for (let k = 0; k < destroyedCount; k++) {
+                            if (this.game.addComboKill) {
+                                this.game.addComboKill();
+                            }
+                        }
+                        
                         const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
                         for (const chestSegment of chestSegmentsDestroyed) {
                             if (this.game.autoSelectSkill && Math.random() < 1) {
@@ -580,7 +591,7 @@
                     
                     const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
                     for (const chestSegment of chestSegmentsDestroyed) {
-                        if (this.game.autoSelectSkill && Math.random() < 0.4) {
+                        if (this.game.autoSelectSkill && Math.random() < 0.65) {
                             this.game.autoSelectSkill();
                         }
                     }
