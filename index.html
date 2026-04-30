@@ -2401,12 +2401,35 @@
         }
 
         .level-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
             gap: 12px;
+            overflow-x: auto;
+            padding: 10px 5px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .level-grid::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .level-grid::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .level-grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 4px;
+        }
+        
+        .level-grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 215, 0, 0.5);
         }
         
         .level-cell {
+            flex-shrink: 0;
+            width: 100px;
             background: linear-gradient(135deg, rgba(60, 60, 80, 0.9), rgba(50, 50, 70, 0.9));
             border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
