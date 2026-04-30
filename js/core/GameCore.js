@@ -812,6 +812,10 @@
         }
 
         levelComplete() {
+            if (this.gameState === 'levelComplete') {
+                return;
+            }
+            
             this.gameState = 'levelComplete';
             
             const reward = this.calculateLevelReward();
@@ -830,9 +834,16 @@
             const battleUI = document.getElementById('battleUI');
             const levelUpScreen = document.getElementById('levelUpScreen');
             const levelupStats = document.getElementById('levelupStats');
+            const pauseBtn = document.getElementById('pauseBtn');
             
             if (battleUI) battleUI.classList.add('hidden');
-            if (levelUpScreen) levelUpScreen.classList.add('show');
+            if (pauseBtn) pauseBtn.classList.add('hidden');
+            
+            if (levelUpScreen) {
+                levelUpScreen.classList.remove('hidden');
+                levelUpScreen.classList.add('show');
+            }
+            
             if (levelupStats) {
                 levelupStats.innerHTML = `
                     <div>关卡: <span class="highlight">${this.currentLevel}</span></div>
@@ -849,6 +860,10 @@
         }
 
         gameOver() {
+            if (this.gameState === 'gameOver' || this.gameState === 'levelComplete') {
+                return;
+            }
+            
             this.gameState = 'gameOver';
             
             this.saveData.gold += this.goldEarned;
@@ -859,9 +874,16 @@
             const finalLevel = document.getElementById('finalLevel');
             const finalGold = document.getElementById('finalGold');
             const finalScore = document.getElementById('finalScore');
+            const pauseBtn = document.getElementById('pauseBtn');
             
             if (battleUI) battleUI.classList.add('hidden');
-            if (gameOverScreen) gameOverScreen.classList.add('show');
+            if (pauseBtn) pauseBtn.classList.add('hidden');
+            
+            if (gameOverScreen) {
+                gameOverScreen.classList.remove('hidden');
+                gameOverScreen.classList.add('show');
+            }
+            
             if (finalLevel) finalLevel.textContent = this.currentLevel;
             if (finalGold) finalGold.textContent = this.goldEarned;
             if (finalScore) finalScore.textContent = this.score;
@@ -946,6 +968,7 @@
         render() {
             this.ctx.clearRect(0, 0, this.width, this.height);
             
+            this.ctx.save();
             this.effectSystem.applyScreenShake(this.ctx);
             
             this.drawBackground();
