@@ -375,8 +375,10 @@
             for (let j = this.game.bullets.length - 1; j >= 0; j--) {
                 const bullet = this.game.bullets[j];
                 let bulletHit = false;
+                let hitSegmentIndex = -1;
                 
-                for (const segment of enemy.segments) {
+                for (let k = 0; k < enemy.segments.length; k++) {
+                    const segment = enemy.segments[k];
                     if (segment.health <= 0) continue;
                     
                     const segRadius = segment.index === 0 ? 22 : 18;
@@ -402,13 +404,46 @@
                         this.game.createHitParticles(bullet.x, bullet.y, bullet.color);
                         
                         bulletHit = true;
+                        hitSegmentIndex = k;
                         break;
                     }
                 }
                 
                 if (bulletHit) {
-                    this.handleBulletHit(bullet, j, enemy, enemyIndex, levelConfig);
-                    break;
+                    if (bullet.pierceCount > 0) {
+                        bullet.pierceCount--;
+                    } else {
+                        this.game.bullets.splice(j, 1);
+                    }
+                    
+                    const destroyedSegments = enemy.segments.filter(s => s.health <= 0);
+                    const destroyedCount = destroyedSegments.length;
+                    
+                    if (destroyedCount > 0) {
+                        this.segmentsDestroyed += destroyedCount;
+                        
+                        const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
+                        for (const chestSegment of chestSegmentsDestroyed) {
+                            if (this.game.autoSelectSkill && Math.random() < 1) {
+                                this.game.autoSelectSkill();
+                            }
+                        }
+                        
+                        for (const segment of destroyedSegments) {
+                            if (segment.hasChest) {
+                                this.addDirectChestReward(segment.x, segment.y);
+                            }
+                            
+                            if (Math.random() < levelConfig.dropChance * 0.5) {
+                                this.addDirectReward(segment.x, segment.y);
+                            }
+                        }
+                    }
+                    
+                    if (enemy.health <= 0) {
+                        this.handleEnemyKill(enemy, enemyIndex, levelConfig);
+                        break;
+                    }
                 }
             }
         }

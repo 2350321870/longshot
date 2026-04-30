@@ -757,7 +757,7 @@
                     damage: finalDamage,
                     isCrit: isCrit,
                     color: color,
-                    pierce: this.playerStats.bulletPierce || 0,
+                    pierceCount: this.playerStats.bulletPierce || 0,
                     homing: true,
                     homingStrength: 0.1
                 };
