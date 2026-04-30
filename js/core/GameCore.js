@@ -211,7 +211,6 @@
             this.skillLevels = {};
             this.unlockedSkills = [];
             
-            this.currentLevel = 1;
             this.currentTime = 0;
             
             this.comboSystem = {
