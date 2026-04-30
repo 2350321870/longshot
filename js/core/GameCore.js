@@ -1277,15 +1277,12 @@
         }
 
         dragonReachedEnd(enemy) {
-            if (enemy && enemy.segments) {
-                const totalDamage = enemy.segments.reduce((sum, s) => sum + (s.maxHealth || 10), 0);
-                this.takeDamageWithPassive(totalDamage * 0.1);
-            }
-            
             const index = this.enemies.indexOf(enemy);
             if (index >= 0) {
                 this.enemies.splice(index, 1);
             }
+            
+            this.gameOver();
         }
     }
 
