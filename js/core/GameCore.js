@@ -91,6 +91,24 @@
             if (returnFromPauseBtn) {
                 returnFromPauseBtn.addEventListener('click', () => this.renderMainMenu());
             }
+
+            const nextLevelBtn = document.getElementById('nextLevelBtn');
+            const returnMainBtn = document.getElementById('returnMainBtn');
+            const retryBtn = document.getElementById('retryBtn');
+            const returnMainBtn2 = document.getElementById('returnMainBtn2');
+
+            if (nextLevelBtn) {
+                nextLevelBtn.addEventListener('click', () => this.nextLevel());
+            }
+            if (returnMainBtn) {
+                returnMainBtn.addEventListener('click', () => this.returnToMainMenu());
+            }
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => this.retryLevel());
+            }
+            if (returnMainBtn2) {
+                returnMainBtn2.addEventListener('click', () => this.returnToMainMenu());
+            }
         }
 
         togglePause() {
@@ -797,7 +815,7 @@
             const levelupStats = document.getElementById('levelupStats');
             
             if (battleUI) battleUI.classList.add('hidden');
-            if (levelUpScreen) levelUpScreen.classList.remove('hidden');
+            if (levelUpScreen) levelUpScreen.classList.add('show');
             if (levelupStats) {
                 levelupStats.innerHTML = `
                     <div>关卡: <span class="highlight">${this.currentLevel}</span></div>
@@ -826,15 +844,21 @@
             const finalScore = document.getElementById('finalScore');
             
             if (battleUI) battleUI.classList.add('hidden');
-            if (gameOverScreen) gameOverScreen.classList.remove('hidden');
+            if (gameOverScreen) gameOverScreen.classList.add('show');
             if (finalLevel) finalLevel.textContent = this.currentLevel;
             if (finalGold) finalGold.textContent = this.goldEarned;
             if (finalScore) finalScore.textContent = this.score;
         }
 
+        nextLevel() {
+            const levelUpScreen = document.getElementById('levelUpScreen');
+            if (levelUpScreen) levelUpScreen.classList.remove('show');
+            this.startLevel(this.currentLevel + 1);
+        }
+
         retryLevel() {
             const gameOverScreen = document.getElementById('gameOverScreen');
-            if (gameOverScreen) gameOverScreen.classList.add('hidden');
+            if (gameOverScreen) gameOverScreen.classList.remove('show');
             this.startLevel(this.currentLevel);
         }
 
@@ -1201,7 +1225,9 @@
         }
 
         autoSelectSkill() {
-            this.displaySkillSelection();
+            if (this.skillSystem && this.skillSystem.autoSelectSkill) {
+                this.skillSystem.autoSelectSkill();
+            }
         }
 
         displaySkillSelection() {

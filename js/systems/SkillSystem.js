@@ -1597,7 +1597,6 @@
         }
 
         showSkillNotification(skill) {
-            return;
             const notification = document.getElementById('skillNotification');
             if (!notification) return;
 
