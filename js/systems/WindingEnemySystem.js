@@ -127,10 +127,7 @@
             const gameConfig = window.GameConfig || {};
             const dragonConfig = gameConfig.dragon || {};
             
-            const baseSegments = dragonConfig.baseSegments || 50;
-            const segmentsPerLevel = dragonConfig.segmentsPerLevel || 8;
-            const maxSegments = dragonConfig.maxSegments || 150;
-            const segments = Math.min(maxSegments, baseSegments + (this.game.currentLevel - 1) * segmentsPerLevel);
+            const segments = config.segments || 20;
             
             const segmentSpacing = dragonConfig.segmentSpacing || 46;
             
@@ -869,23 +866,24 @@
             }
 
             const levelConfig = this.game.getLevelConfig(this.game.currentLevel);
-            const maxEnemies = 3;
+            const maxEnemies = 1;
             
             if (this.game.enemies.length < maxEnemies) {
                 this.game.spawnTimer += dt;
-                const spawnInterval = 2.0;
+                const spawnInterval = 0.5;
                 
                 if (this.game.spawnTimer >= spawnInterval) {
                     this.game.spawnTimer = 0;
                     
-                    const totalEnemiesInLevel = this.game.enemies.reduce((count, e) => {
-                        if (e.segments) {
-                            return count + e.segments.length;
-                        }
-                        return count + 1;
-                    }, 0) + this.game.enemiesKilled;
+                    const totalSegmentsInLevel = this.segmentsDestroyed + 
+                        this.game.enemies.reduce((count, e) => {
+                            if (e.segments) {
+                                return count + e.segments.length;
+                            }
+                            return count + 1;
+                        }, 0);
                     
-                    if (totalEnemiesInLevel < levelConfig.segments) {
+                    if (totalSegmentsInLevel < levelConfig.segments) {
                         this.spawnDragon(levelConfig);
                     }
                 }
