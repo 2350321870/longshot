@@ -35,6 +35,9 @@
             
             this.eventBus = new EventBus();
             
+            this.skills = GameData.battleSkills;
+            this.unlockedSkills = [];
+            
             this.particleSystem = new ParticleSystem(this);
             this.effectSystem = new EffectSystem(this);
             this.skillSystem = new SkillSystem(this);
@@ -74,6 +77,42 @@
             this.eventBus.on('shop-purchase', (data) => {
                 this.onShopPurchase(data);
             });
+            
+            const pauseBtn = document.getElementById('pauseBtn');
+            const resumeBtn = document.getElementById('resumeBtn');
+            const returnFromPauseBtn = document.getElementById('returnFromPauseBtn');
+            
+            if (pauseBtn) {
+                pauseBtn.addEventListener('click', () => this.togglePause());
+            }
+            if (resumeBtn) {
+                resumeBtn.addEventListener('click', () => this.resumeGame());
+            }
+            if (returnFromPauseBtn) {
+                returnFromPauseBtn.addEventListener('click', () => this.renderMainMenu());
+            }
+        }
+
+        togglePause() {
+            if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
+            
+            if (this.gameState === 'playing') {
+                this.gameState = 'paused';
+                this.isPaused = true;
+                const pauseMenu = document.getElementById('pauseMenu');
+                if (pauseMenu) pauseMenu.classList.add('show');
+            } else if (this.gameState === 'paused') {
+                this.resumeGame();
+            }
+        }
+
+        resumeGame() {
+            this.gameState = 'playing';
+            this.isPaused = false;
+            const pauseMenu = document.getElementById('pauseMenu');
+            if (pauseMenu) pauseMenu.classList.remove('show');
+            this.lastTime = 0;
+            requestAnimationFrame((t) => this.gameLoop(t));
         }
 
         handleMouseMove(e) {
@@ -116,7 +155,7 @@
         initGame() {
             this.player = {
                 x: this.width / 2,
-                y: this.height - 100,
+                y: this.height - 35,
                 radius: 15,
                 health: 100,
                 maxHealth: 100,
@@ -203,17 +242,276 @@
         }
 
         generatePath() {
-            const points = [];
-            const segments = 8;
+            const cfg = window.GameConfig || {};
+            const levelCfg = cfg.level || {};
             
-            for (let i = 0; i <= segments; i++) {
-                const t = i / segments;
-                const x = this.width * (0.2 + 0.6 * Math.sin(t * Math.PI * 2 + Math.PI / 2));
-                const y = this.height * (0.1 + t * 0.5);
-                points.push({ x, y });
+            const channelCount = levelCfg.channelCount || 5;
+            const channelHeight = levelCfg.channelHeight || 120;
+            const leftPadding = levelCfg.leftPadding || 50;
+            const rightPadding = levelCfg.rightPadding || 50;
+            const topPadding = levelCfg.topPadding || 80;
+            const turnRadius = levelCfg.turnRadius || 40;
+            
+            const path = [];
+            const leftBound = leftPadding;
+            const rightBound = this.width - rightPadding;
+            
+            this.pathBoundaries = {
+                leftBound: leftBound,
+                rightBound: rightBound,
+                channelLines: [],
+                channels: []
+            };
+            
+            for (let i = 0; i < channelCount; i++) {
+                const isRightToLeft = i % 2 === 0;
+                const rowY = topPadding + i * channelHeight;
+                
+                this.pathBoundaries.channels.push({
+                    rowY: rowY,
+                    isEvenRow: !isRightToLeft
+                });
+                
+                if (i > 0) {
+                    this.pathBoundaries.channelLines.push(rowY);
+                }
+                
+                if (i === 0) {
+                    path.push({ x: rightBound, y: -50, distance: 0 });
+                    path.push({ x: rightBound, y: rowY, distance: 50 });
+                }
+                
+                const prevPoint = path[path.length - 1];
+                const baseDistance = prevPoint ? prevPoint.distance : 0;
+                
+                if (isRightToLeft) {
+                    if (i > 0) {
+                        const startX = rightBound;
+                        const startY = rowY;
+                        const dist = baseDistance;
+                        path.push({ x: startX, y: startY, distance: dist });
+                    }
+                    
+                    const endX = leftBound;
+                    const endY = rowY;
+                    const segmentLength = Math.abs(endX - (path[path.length - 1].x));
+                    path.push({ x: endX, y: endY, distance: path[path.length - 1].distance + segmentLength });
+                } else {
+                    if (i > 0) {
+                        const startX = leftBound;
+                        const startY = rowY;
+                        const dist = baseDistance;
+                        path.push({ x: startX, y: startY, distance: dist });
+                    }
+                    
+                    const endX = rightBound;
+                    const endY = rowY;
+                    const segmentLength = Math.abs(endX - (path[path.length - 1].x));
+                    path.push({ x: endX, y: endY, distance: path[path.length - 1].distance + segmentLength });
+                }
+                
+                if (i < channelCount - 1) {
+                    const nextRowY = rowY + channelHeight;
+                    const pointsInTurn = 12;
+                    const arcLength = (Math.PI * turnRadius) / 2;
+                    const stepDistance = arcLength / pointsInTurn;
+                    
+                    const lastPoint = path[path.length - 1];
+                    let currentDist = lastPoint.distance;
+                    
+                    if (isRightToLeft) {
+                        for (let j = 1; j <= pointsInTurn; j++) {
+                            const angle = (Math.PI / pointsInTurn) * j;
+                            const x = leftBound + turnRadius * Math.sin(angle);
+                            const y = rowY + turnRadius * (1 - Math.cos(angle));
+                            currentDist += stepDistance;
+                            path.push({ x, y, distance: currentDist });
+                        }
+                    } else {
+                        for (let j = 1; j <= pointsInTurn; j++) {
+                            const angle = (Math.PI / pointsInTurn) * j;
+                            const x = rightBound - turnRadius * Math.sin(angle);
+                            const y = rowY + turnRadius * (1 - Math.cos(angle));
+                            currentDist += stepDistance;
+                            path.push({ x, y, distance: currentDist });
+                        }
+                    }
+                }
             }
             
-            return points;
+            let totalDist = 0;
+            for (let i = 1; i < path.length; i++) {
+                const dx = path[i].x - path[i-1].x;
+                const dy = path[i].y - path[i-1].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                totalDist += dist;
+                path[i].distance = totalDist;
+            }
+            
+            this.totalPathLength = totalDist;
+            
+            return path;
+        }
+        
+        getPointAtDistance(distance) {
+            if (!this.path || this.path.length < 2) return null;
+            
+            if (distance < 0) return null;
+            
+            if (distance >= this.totalPathLength) {
+                const lastPoint = this.path[this.path.length - 1];
+                return { x: lastPoint.x, y: lastPoint.y, isEnd: true };
+            }
+            
+            for (let i = 1; i < this.path.length; i++) {
+                const prevPoint = this.path[i - 1];
+                const currPoint = this.path[i];
+                
+                if (distance >= prevPoint.distance && distance <= currPoint.distance) {
+                    const segmentDist = currPoint.distance - prevPoint.distance;
+                    if (segmentDist <= 0) return { x: currPoint.x, y: currPoint.y };
+                    
+                    const ratio = (distance - prevPoint.distance) / segmentDist;
+                    return {
+                        x: prevPoint.x + (currPoint.x - prevPoint.x) * ratio,
+                        y: prevPoint.y + (currPoint.y - prevPoint.y) * ratio
+                    };
+                }
+            }
+            
+            return null;
+        }
+        
+        getBaseStats() {
+            let stats = {
+                bulletDamage: 0,
+                maxHealth: 0,
+                moveSpeedBonus: 0,
+                critChanceBonus: 0,
+                critDamageBonus: 0,
+                attackSpeedBonus: 0,
+                bulletPierceBonus: 0,
+                damageReduction: 0,
+                healthRegen: 0,
+                dodgeChance: 0,
+                speedToDamage: 0,
+                skillDamageBonus: 0,
+                cooldownReduction: 0
+            };
+            
+            const eq = this.saveData.equipment;
+            const pu = this.saveData.permanentUpgrades;
+            
+            if (eq.weapon.owned) {
+                stats.bulletDamage += 5 + eq.weapon.level * 3;
+            }
+            
+            if (eq.armor.owned) {
+                stats.maxHealth += 20 + eq.armor.level * 10;
+            }
+            
+            if (eq.boots.owned) {
+                stats.moveSpeedBonus += 0.1 + eq.boots.level * 0.05;
+            }
+            
+            if (eq.ring.owned) {
+                stats.critChanceBonus += 0.05 + eq.ring.level * 0.02;
+            }
+            
+            const equipStats = this.getTotalEquipStats();
+            for (const [key, value] of Object.entries(equipStats)) {
+                if (stats[key] !== undefined) {
+                    stats[key] += value;
+                }
+            }
+            
+            stats.bulletDamage += pu.bulletDamage * 2;
+            stats.maxHealth += pu.maxHealth * 10;
+            stats.moveSpeedBonus += pu.moveSpeed * 0.05;
+            
+            const charStats = this.getCharacterStats();
+            stats.bulletDamage += charStats.damage;
+            stats.maxHealth += charStats.health;
+            stats.moveSpeedBonus += charStats.speed;
+            
+            return stats;
+        }
+        
+        getCharacterStats() {
+            const charId = this.saveData.selectedCharacter || 'default';
+            return GameData.characterConfig[charId]?.stats || { health: 0, damage: 0, speed: 0 };
+        }
+        
+        getCharacterPassive() {
+            const charId = this.saveData.selectedCharacter || 'default';
+            return GameData.characterConfig[charId]?.passive || null;
+        }
+        
+        getTotalEquipStats() {
+            let stats = {
+                bulletDamage: 0,
+                maxHealth: 0,
+                moveSpeedBonus: 0,
+                critChanceBonus: 0,
+                critDamageBonus: 0,
+                attackSpeedBonus: 0,
+                bulletPierceBonus: 0,
+                currentHealthBonus: 0,
+                damageReduction: 0,
+                healthRegen: 0,
+                dodgeChance: 0,
+                speedToDamage: 0,
+                skillDamageBonus: 0,
+                cooldownReduction: 0
+            };
+            
+            for (const [slot, equip] of Object.entries(this.saveData.equipment)) {
+                if (equip.owned && equip.equippedItem) {
+                    const item = equip.equippedItem;
+                    
+                    for (const [key, value] of Object.entries(item.baseStats || {})) {
+                        if (stats[key] !== undefined) {
+                            stats[key] += value;
+                        }
+                    }
+                    
+                    for (const affix of item.affixes) {
+                        const affixConfig = GameData.affixConfig[affix.id];
+                        if (affixConfig && stats[affixConfig.stat] !== undefined) {
+                            stats[affixConfig.stat] += affix.value;
+                        }
+                    }
+                }
+            }
+            
+            return stats;
+        }
+        
+        saveGameData() {
+            if (this.saveManager) {
+                this.saveManager.save(this.saveData);
+            } else {
+                try {
+                    localStorage.setItem('dragonShooterSave', JSON.stringify(this.saveData));
+                } catch (e) {
+                    console.error('Failed to save:', e);
+                }
+            }
+        }
+        
+        loadSaveData() {
+            if (this.saveManager) {
+                return this.saveData;
+            }
+            try {
+                const saved = localStorage.getItem('dragonShooterSave');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (e) {
+                console.error('Failed to load save:', e);
+            }
+            return null;
         }
 
         startLevel(levelNum) {
@@ -226,12 +524,20 @@
             const mainScreen = document.getElementById('mainScreen');
             const gameCanvas = document.getElementById('gameCanvas');
             const battleUI = document.getElementById('battleUI');
-            const battleLevelDisplay = document.getElementById('battleLevelDisplay');
+            const battleInfo = document.getElementById('battleInfo');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const fenceBar = document.getElementById('fenceBar');
+            const topBar = document.getElementById('topBar');
+            const bottomNav = document.getElementById('bottomNav');
             
             if (mainScreen) mainScreen.classList.add('hidden');
             if (gameCanvas) gameCanvas.classList.remove('hidden');
-            if (battleUI) battleUI.classList.remove('hidden');
-            if (battleLevelDisplay) battleLevelDisplay.textContent = `当前第${this.currentLevel}关`;
+            if (battleUI) battleUI.classList.add('hidden');
+            if (battleInfo) battleInfo.classList.add('hidden');
+            if (pauseBtn) pauseBtn.classList.remove('hidden');
+            if (fenceBar) fenceBar.classList.add('hidden');
+            if (topBar) topBar.classList.add('hidden');
+            if (bottomNav) bottomNav.classList.add('hidden');
             
             this.lastTime = 0;
             requestAnimationFrame((t) => this.gameLoop(t));
@@ -285,20 +591,20 @@
         }
 
         updatePlayer(dt) {
-            if (!this.player || !this.mouseX || !this.mouseY) return;
+            if (!this.player || !this.mouseX) return;
+            
+            const fixedY = this.height - this.player.radius - 20;
             
             const dx = this.mouseX - this.player.x;
-            const dy = this.mouseY - this.player.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const distX = Math.abs(dx);
             
-            if (dist > 5) {
+            if (distX > 5) {
                 const speed = this.playerStats.speed * 300 * dt;
-                this.player.x += (dx / dist) * speed;
-                this.player.y += (dy / dist) * speed;
+                this.player.x += (dx > 0 ? 1 : -1) * Math.min(speed, distX);
             }
             
             this.player.x = Math.max(this.player.radius, Math.min(this.width - this.player.radius, this.player.x));
-            this.player.y = Math.max(this.player.radius, Math.min(this.height - this.player.radius, this.player.y));
+            this.player.y = fixedY;
             
             this.player.health = this.playerStats.health;
             
@@ -533,7 +839,6 @@
             this.effectSystem.applyScreenShake(this.ctx);
             
             this.drawBackground();
-            this.drawPath();
             
             this.particleSystem.render(this.ctx);
             this.effectSystem.renderBulletTrails(this.ctx);
@@ -669,12 +974,14 @@
             const levelUpScreen = document.getElementById('levelUpScreen');
             const gameOverScreen = document.getElementById('gameOverScreen');
             const mainScreen = document.getElementById('mainScreen');
+            const topBar = document.getElementById('topBar');
             
             if (gameCanvas) gameCanvas.classList.add('hidden');
             if (battleUI) battleUI.classList.add('hidden');
             if (levelUpScreen) levelUpScreen.classList.add('hidden');
             if (gameOverScreen) gameOverScreen.classList.add('hidden');
             if (mainScreen) mainScreen.classList.remove('hidden');
+            if (topBar) topBar.classList.remove('hidden');
             
             if (this.mainMenuSystem) {
                 this.mainMenuSystem.renderMainMenu();
@@ -809,8 +1116,13 @@
         }
 
         autoSelectSkill() {
-            if (this.skillSystem && this.skillSystem.autoSelectSkill) {
-                this.skillSystem.autoSelectSkill();
+            this.displaySkillSelection();
+        }
+
+        displaySkillSelection() {
+            if (this.skillSystem && this.skillSystem.displaySkillSelection) {
+                this.isPaused = true;
+                this.skillSystem.displaySkillSelection();
             }
         }
 

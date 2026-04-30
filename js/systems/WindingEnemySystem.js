@@ -15,6 +15,109 @@
             console.log('WindingEnemySystem initialized');
         }
 
+        addDirectReward(x, y) {
+            const rewardTypes = ['gold', 'health_pack', 'damage_boost', 'speed_boost'];
+            const type = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
+            
+            switch (type) {
+                case 'gold':
+                    const goldAmount = 10 + Math.floor(Math.random() * 20);
+                    this.game.goldEarned += goldAmount;
+                    this.game.score += goldAmount;
+                    if (this.game.createCollectParticles) {
+                        this.game.createCollectParticles(x, y, '#FFD700');
+                    }
+                    if (this.game.createFloatingText) {
+                        this.game.createFloatingText(x, y - 30, `+${goldAmount}💰`, '#FFD700');
+                    }
+                    break;
+                case 'health_pack':
+                    if (this.game.playerStats) {
+                        const healAmount = 20;
+                        const oldHealth = this.game.playerStats.health;
+                        this.game.playerStats.health = Math.min(
+                            this.game.playerStats.health + healAmount,
+                            this.game.playerStats.maxHealth
+                        );
+                        const actualHeal = Math.floor(this.game.playerStats.health - oldHealth);
+                        if (actualHeal > 0 && this.game.createCollectParticles) {
+                            this.game.createCollectParticles(x, y, '#FF6B6B');
+                        }
+                        if (actualHeal > 0 && this.game.createFloatingText) {
+                            this.game.createFloatingText(x, y - 30, `+${actualHeal}❤️`, '#FF6B6B');
+                        }
+                    }
+                    break;
+                case 'damage_boost':
+                    if (this.game.activeBuffs) {
+                        this.game.activeBuffs.push({
+                            type: 'damage_boost',
+                            multiplier: 1.5,
+                            startTime: this.game.currentTime,
+                            duration: 10
+                        });
+                        if (this.game.createCollectParticles) {
+                            this.game.createCollectParticles(x, y, '#FF6600');
+                        }
+                        if (this.game.createFloatingText) {
+                            this.game.createFloatingText(x, y - 30, '伤害+50%', '#FF6600');
+                        }
+                    }
+                    break;
+                case 'speed_boost':
+                    if (this.game.activeBuffs) {
+                        this.game.activeBuffs.push({
+                            type: 'speed_boost',
+                            multiplier: 1.3,
+                            startTime: this.game.currentTime,
+                            duration: 8
+                        });
+                        if (this.game.createCollectParticles) {
+                            this.game.createCollectParticles(x, y, '#00CED1');
+                        }
+                        if (this.game.createFloatingText) {
+                            this.game.createFloatingText(x, y - 30, '速度+30%', '#00CED1');
+                        }
+                    }
+                    break;
+            }
+            
+            if (this.game.updateStatistics) {
+                this.game.updateStatistics('powerup_collect', 1);
+            }
+        }
+
+        addDirectChestReward(x, y) {
+            const goldAmount = 50 + Math.floor(Math.random() * 200);
+            this.game.goldEarned += goldAmount;
+            this.game.score += goldAmount * 2;
+            
+            if (this.game.updateStatistics) {
+                this.game.updateStatistics('chest_open', 1);
+            }
+            
+            if (this.game.createGoldParticles) {
+                this.game.createGoldParticles(x, y);
+            }
+            
+            if (this.game.createFloatingText) {
+                this.game.createFloatingText(x, y - 30, `+${goldAmount}💰`, '#FFD700');
+            }
+            
+            for (let i = 0; i < 2; i++) {
+                if (Math.random() < 0.7) {
+                    this.addDirectReward(
+                        x + (Math.random() - 0.5) * 50,
+                        y + (Math.random() - 0.5) * 50
+                    );
+                }
+            }
+            
+            if (this.game.updateUI) {
+                this.game.updateUI();
+            }
+        }
+
         spawnDragon(config) {
             const gameConfig = window.GameConfig || {};
             const dragonConfig = gameConfig.dragon || {};
@@ -355,18 +458,18 @@
                 
                 const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
                 for (const chestSegment of chestSegmentsDestroyed) {
-                    if (this.game.autoSelectSkill) {
+                    if (this.game.autoSelectSkill && Math.random() < 1) {
                         this.game.autoSelectSkill();
                     }
                 }
                 
                 for (const segment of destroyedSegments) {
-                    if (segment.hasChest && this.game.spawnChest) {
-                        this.game.spawnChest(segment.x, segment.y);
+                    if (segment.hasChest) {
+                        this.addDirectChestReward(segment.x, segment.y);
                     }
                     
                     if (Math.random() < levelConfig.dropChance * 0.5) {
-                        this.game.spawnPowerup(segment.x, segment.y);
+                        this.addDirectReward(segment.x, segment.y);
                     }
                 }
                 
@@ -390,7 +493,7 @@
             this.game.updateStatistics('kill', 1);
             
             if (Math.random() < levelConfig.dropChance) {
-                this.game.spawnPowerup(enemy.x, enemy.y);
+                this.addDirectReward(enemy.x, enemy.y);
             }
             
             this.game.enemies.splice(enemyIndex, 1);
@@ -442,18 +545,18 @@
                     
                     const chestSegmentsDestroyed = destroyedSegments.filter(s => s.hasChest);
                     for (const chestSegment of chestSegmentsDestroyed) {
-                        if (this.game.autoSelectSkill) {
+                        if (this.game.autoSelectSkill && Math.random() < 0.4) {
                             this.game.autoSelectSkill();
                         }
                     }
                     
                     for (const segment of destroyedSegments) {
                         if (segment.hasChest) {
-                            this.game.spawnChest(segment.x, segment.y);
+                            this.addDirectChestReward(segment.x, segment.y);
                         }
                         
                         if (Math.random() < levelConfig.dropChance * 0.5) {
-                            this.game.spawnPowerup(segment.x, segment.y);
+                            this.addDirectReward(segment.x, segment.y);
                         }
                         
                         if (this.game.createDeathParticles) {
@@ -474,7 +577,7 @@
                         this.game.updateStatistics('kill', 1);
                         
                         if (Math.random() < levelConfig.dropChance) {
-                            this.game.spawnPowerup(enemy.x, enemy.y);
+                            this.addDirectReward(enemy.x, enemy.y);
                         }
                         
                         this.game.enemies.splice(i, 1);

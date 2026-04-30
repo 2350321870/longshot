@@ -202,10 +202,14 @@
             const skillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
             const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
             
-            for (let i = 0; i < stats.projectileCount; i++) {
+            const maxNeedles = 30;
+            const currentNeedleCount = this.needles.length;
+            const actualProjectileCount = Math.min(stats.projectileCount, Math.max(5, maxNeedles - currentNeedleCount));
+            
+            for (let i = 0; i < actualProjectileCount; i++) {
                 const spreadRad = stats.spread * Math.PI / 180;
                 const startAngle = -Math.PI / 2 - spreadRad / 2;
-                const angleStep = stats.projectileCount > 1 ? spreadRad / (stats.projectileCount - 1) : 0;
+                const angleStep = actualProjectileCount > 1 ? spreadRad / (actualProjectileCount - 1) : 0;
                 const angle = startAngle + i * angleStep;
                 
                 let isCrit = Math.random() < (this.game.playerStats?.criticalChance || 0.05);
@@ -215,6 +219,8 @@
                 
                 const finalDamage = Math.floor(stats.damage * critMultiplier * skillDamageBonus);
                 
+                const maxBurstCount = Math.min(stats.burstCount, 3);
+                
                 this.needles.push({
                     x: startX,
                     y: startY,
@@ -222,7 +228,7 @@
                     vy: Math.sin(angle) * 400,
                     damage: finalDamage,
                     isCrit: isCrit,
-                    burstCount: stats.burstCount,
+                    burstCount: maxBurstCount,
                     radius: 4,
                     color: isCrit ? '#FFD700' : '#00FF00'
                 });
@@ -332,16 +338,38 @@
         }
 
         launchThunderDragon(stats) {
-            const startX = Math.random() * 0.6 + 0.2;
-            const startY = Math.random() * 0.6 + 0.2;
+            let dragonX, dragonY;
+            let nearestEnemy = null;
+            let nearestDist = Infinity;
+            
+            for (const enemy of this.game.enemies) {
+                if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
+                    const headSeg = enemy.segments[0];
+                    const dx = headSeg.x - (this.game.player?.x || this.game.width / 2);
+                    const dy = headSeg.y - (this.game.player?.y || this.game.height / 2);
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestEnemy = enemy;
+                    }
+                }
+            }
+            
+            if (nearestEnemy && nearestEnemy.segments && nearestEnemy.segments.length > 0) {
+                const headSeg = nearestEnemy.segments[0];
+                dragonX = headSeg.x;
+                dragonY = headSeg.y;
+            } else {
+                const startX = Math.random() * 0.6 + 0.2;
+                const startY = Math.random() * 0.6 + 0.2;
+                dragonX = this.game.width * startX;
+                dragonY = this.game.height * startY;
+            }
             
             const skillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
             
-            const dragonX = this.game.width * startX;
-            const dragonY = this.game.height * startY;
-            
             const bodySegments = [];
-            const segmentCount = 12;
+            const segmentCount = 8;
             for (let i = 0; i < segmentCount; i++) {
                 bodySegments.push({
                     x: dragonX,
@@ -373,7 +401,7 @@
                 chainLightningEffects: [],
                 pulsePhase: 0,
                 roarPhase: 0,
-                chainCount: stats.chainCount || 5,
+                chainCount: Math.min(stats.chainCount || 5, 3),
                 chainDamageReduction: stats.chainDamageReduction || 0.75,
                 chainRange: stats.chainRange || 250
             };
@@ -513,7 +541,10 @@
                 }
             }
             
-            if (Math.random() < 0.15) {
+            const maxLightningEffects = 8;
+            if (this.thunderDragon.lightningEffects && 
+                this.thunderDragon.lightningEffects.length < maxLightningEffects && 
+                Math.random() < 0.1) {
                 this.addDragonLightning();
             }
         }
@@ -753,7 +784,8 @@
             const radius = stats?.radius || 200;
             const damage = stats?.damage || 80;
             
-            if (Math.random() < 0.15) {
+            const maxHailStones = 15;
+            if (this.hailStones.length < maxHailStones && Math.random() < 0.1) {
                 const angle = Math.random() * Math.PI * 2;
                 const dist = Math.random() * radius * 0.8;
                 
@@ -1408,6 +1440,7 @@
         }
 
         showSkillNotification(skill) {
+            return;
             const notification = document.getElementById('skillNotification');
             if (!notification) return;
 
@@ -1496,6 +1529,7 @@
                     document.getElementById('skillSelection').classList.remove('show');
                     if (this.game) {
                         this.game.gameState = 'playing';
+                        this.game.isPaused = false;
                         this.game.lastTime = 0;
                         requestAnimationFrame((t) => this.game.gameLoop(t));
                     }

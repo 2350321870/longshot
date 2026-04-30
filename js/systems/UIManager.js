@@ -31,13 +31,9 @@
             }
 
             this.renderHUD(ctx);
-            this.renderSkillButtons(ctx);
         }
 
         renderHUD(ctx) {
-            this.renderTopBar(ctx);
-            this.renderBossHealthBar(ctx);
-            this.renderWaveInfo(ctx);
         }
 
         renderTopBar(ctx) {
