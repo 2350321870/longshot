@@ -601,6 +601,11 @@
             this.updateSpawning(dt);
             this.checkLevelComplete();
             
+            if (this.playerStats.health <= 0) {
+                this.gameOver();
+                return;
+            }
+            
             this.playerStats.health = Math.min(
                 this.playerStats.health + this.playerStats.healthRegen * dt,
                 this.playerStats.maxHealth
@@ -611,10 +616,6 @@
                 if (this.shieldCooldown <= 0 && this.shield < this.maxShield) {
                     this.shield = this.maxShield;
                 }
-            }
-            
-            if (this.playerStats.health <= 0) {
-                this.gameOver();
             }
         }
 
