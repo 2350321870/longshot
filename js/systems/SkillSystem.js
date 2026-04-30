@@ -32,28 +32,48 @@
         loadSkillData() {
             const gameConfig = window.GameConfig || {};
             this.skillData = gameConfig.skillData || {};
+            
+            this.battleSkillMap = {};
+            const gameData = window.GameData || {};
+            const battleSkills = gameData.battleSkills || window.battleSkills || [];
+            
+            for (const skill of battleSkills) {
+                this.battleSkillMap[skill.id] = skill;
+            }
         }
 
         getSkillStats(skillId) {
-            const skill = this.skillData[skillId];
+            let skill = this.battleSkillMap[skillId];
+            
+            if (!skill) {
+                const camelCaseId = skillId.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+                skill = this.skillData[skillId] || this.skillData[camelCaseId];
+            }
+            
             if (!skill) return null;
             
             const level = this.skillLevels[skillId] || 1;
             const multiplier = 1 + (level - 1) * 0.15;
             
+            const baseDamage = skill.baseDamage || skill.damage || 20;
+            
             return {
                 ...skill,
-                damage: Math.floor((skill.damage || 0) * multiplier),
-                duration: skill.duration,
-                cooldown: skill.cooldown,
-                projectileCount: skill.projectileCount || skill.needleCount || 10,
-                spread: skill.spread || 120,
-                burstCount: skill.burstCount || 3,
-                moveSpeed: skill.moveSpeed || 300,
-                lightningFrequency: skill.lightningFrequency || 0.5,
+                damage: Math.floor(baseDamage * multiplier),
+                duration: skill.duration || 6,
+                cooldown: skill.cooldown || 4,
+                projectileCount: skill.projectileCount || skill.needleCount || 8,
+                spread: skill.spread || 45,
+                burstCount: skill.burstCount || 5,
+                moveSpeed: skill.moveSpeed || 180,
+                lightningFrequency: skill.lightningFrequency || 0.25,
                 chainCount: skill.chainCount || 5,
                 chainDamageReduction: skill.chainDamageReduction || 0.75,
-                chainRange: skill.chainRange || 250
+                chainRange: skill.chainRange || 250,
+                radius: skill.radius || 200,
+                slowDuration: skill.slowDuration || 2,
+                slowAmount: skill.slowAmount || 0.5,
+                hailRate: skill.hailRate || 0.3
             };
         }
 
@@ -202,9 +222,9 @@
             const skillDamageBonus = 1 + this.getSkillDamageBonusFromPassive();
             const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
             
-            const maxNeedles = 30;
+            const maxNeedles = 20;
             const currentNeedleCount = this.needles.length;
-            const actualProjectileCount = Math.min(stats.projectileCount, Math.max(5, maxNeedles - currentNeedleCount));
+            const actualProjectileCount = Math.min(stats.projectileCount, Math.max(4, maxNeedles - currentNeedleCount));
             
             for (let i = 0; i < actualProjectileCount; i++) {
                 const spreadRad = stats.spread * Math.PI / 180;
@@ -219,7 +239,7 @@
                 
                 const finalDamage = Math.floor(stats.damage * critMultiplier * skillDamageBonus);
                 
-                const maxBurstCount = Math.min(stats.burstCount, 3);
+                const maxBurstCount = Math.min(stats.burstCount, 2);
                 
                 this.needles.push({
                     x: startX,
@@ -230,7 +250,9 @@
                     isCrit: isCrit,
                     burstCount: maxBurstCount,
                     radius: 4,
-                    color: isCrit ? '#FFD700' : '#00FF00'
+                    color: isCrit ? '#FFD700' : '#00FF00',
+                    lifetime: 3,
+                    maxLifetime: 3
                 });
             }
             
@@ -254,6 +276,8 @@
         updateRainOfNeedles(dt) {
             for (let i = this.needles.length - 1; i >= 0; i--) {
                 const needle = this.needles[i];
+                
+                needle.lifetime -= dt;
                 
                 needle.x += needle.vx * dt;
                 needle.y += needle.vy * dt;
@@ -302,7 +326,8 @@
                 }
                 
                 if (needle.x < -50 || needle.x > this.game.width + 50 || 
-                    needle.y < -50 || needle.y > this.game.height + 50) {
+                    needle.y < -50 || needle.y > this.game.height + 50 ||
+                    needle.lifetime <= 0) {
                     this.needles.splice(i, 1);
                 }
             }
@@ -311,8 +336,12 @@
         burstNeedles(needle) {
             const critDamageBonusFromPassive = this.getCritDamageBonusFromPassive();
             
-            for (let i = 0; i < needle.burstCount; i++) {
-                const angle = (Math.PI * 2 / needle.burstCount) * i;
+            if (needle.burstCount <= 0) return;
+            
+            const burstCount = Math.min(needle.burstCount, 3);
+            
+            for (let i = 0; i < burstCount; i++) {
+                const angle = (Math.PI * 2 / burstCount) * i;
                 
                 let isCrit = Math.random() < (this.game.playerStats?.criticalChance || 0.05);
                 isCrit = this.applyCharacterPassiveToCrit(isCrit);
@@ -328,7 +357,9 @@
                     isCrit: isCrit,
                     burstCount: 0,
                     radius: 3,
-                    color: isCrit ? '#FFD700' : '#90EE90'
+                    color: isCrit ? '#FFD700' : '#90EE90',
+                    lifetime: 1.5,
+                    maxLifetime: 1.5
                 });
             }
             
@@ -392,7 +423,7 @@
                 skillDamageBonus: skillDamageBonus,
                 lightningTimer: 0,
                 lightningFrequency: stats.lightningFrequency,
-                duration: stats.duration,
+                duration: stats.duration * 1.5,
                 elapsed: 0,
                 targetChangeTimer: 0,
                 bodySegments: bodySegments,
@@ -401,11 +432,12 @@
                 chainLightningEffects: [],
                 pulsePhase: 0,
                 roarPhase: 0,
+                moveSpeed: stats.moveSpeed,
                 chainCount: Math.min(stats.chainCount || 5, 3),
                 chainDamageReduction: stats.chainDamageReduction || 0.75,
                 chainRange: stats.chainRange || 250
             };
-            this.thunderDragonTimer = stats.duration;
+            this.thunderDragonTimer = stats.duration * 1.5;
             
             if (this.game.addScreenShake) {
                 this.game.addScreenShake(5, 0.3);
@@ -469,14 +501,14 @@
             
             this.thunderDragon.angle += angleDiff * dt * 3;
             
-            const speed = 180;
+            const speed = this.thunderDragon.moveSpeed || 250;
             this.thunderDragon.vx = Math.cos(this.thunderDragon.angle) * speed;
             this.thunderDragon.vy = Math.sin(this.thunderDragon.angle) * speed;
             
             this.thunderDragon.x += this.thunderDragon.vx * dt;
             this.thunderDragon.y += this.thunderDragon.vy * dt;
             
-            const margin = 80;
+            const margin = 40;
             if (this.thunderDragon.x < margin) {
                 this.thunderDragon.x = margin;
                 this.thunderDragon.targetAngle = Math.PI - this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
@@ -485,8 +517,8 @@
                 this.thunderDragon.x = this.game.width - margin;
                 this.thunderDragon.targetAngle = Math.PI - this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
             }
-            if (this.thunderDragon.y < margin + 30) {
-                this.thunderDragon.y = margin + 30;
+            if (this.thunderDragon.y < margin) {
+                this.thunderDragon.y = margin;
                 this.thunderDragon.targetAngle = -this.thunderDragon.targetAngle + (Math.random() - 0.5) * 0.5;
             }
             if (this.thunderDragon.y > this.game.height - margin) {
@@ -742,31 +774,11 @@
         }
 
         launchIceStorm(stats) {
-            if (!this.game.player) return;
-            
-            const centerX = this.game.player.x;
-            const centerY = this.game.player.y;
-            
-            const radius = stats.radius || 200;
-            const duration = stats.duration || 8;
-            
             this.iceStormActive = true;
-            this.iceStormTimer = duration;
+            this.iceStormTimer = stats.duration || 8;
             
             if (this.game.addScreenShake) {
                 this.game.addScreenShake(3, 0.2);
-            }
-            
-            if (this.game.glowEffects) {
-                this.game.glowEffects.push({
-                    x: centerX,
-                    y: centerY,
-                    radius: radius * 0.3,
-                    maxRadius: radius,
-                    color: '#87CEEB',
-                    lifetime: 0.5,
-                    maxLifetime: 0.5
-                });
             }
         }
 
@@ -781,35 +793,53 @@
             }
             
             const stats = this.getSkillStats('ice_storm') || this.getSkillStats('iceStorm');
-            const radius = stats?.radius || 200;
+            const radius = stats?.radius || 300;
             const damage = stats?.damage || 80;
             
-            const maxHailStones = 15;
-            if (this.hailStones.length < maxHailStones && Math.random() < 0.1) {
-                const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * radius * 0.8;
+            const maxHailStones = 20;
+            if (this.hailStones.length < maxHailStones && Math.random() < 0.15) {
+                let hailX, hailY;
+                let targetEnemy = null;
                 
-                const centerX = this.game.player?.x || this.game.width / 2;
-                const centerY = this.game.player?.y || this.game.height / 2;
+                for (const enemy of this.game.enemies) {
+                    if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
+                        if (Math.random() < 0.6) {
+                            targetEnemy = enemy.segments[0];
+                            break;
+                        }
+                    }
+                }
+                
+                if (targetEnemy) {
+                    const offsetX = (Math.random() - 0.5) * 80;
+                    const offsetY = (Math.random() - 0.5) * 80;
+                    hailX = targetEnemy.x + offsetX;
+                    hailY = targetEnemy.y + offsetY - 150;
+                } else {
+                    hailX = Math.random() * this.game.width;
+                    hailY = -20;
+                }
                 
                 let isCrit = Math.random() < (this.game.playerStats?.criticalChance || 0.05);
                 isCrit = this.applyCharacterPassiveToCrit(isCrit);
                 
                 this.hailStones.push({
-                    x: centerX + Math.cos(angle) * dist,
-                    y: centerY + Math.sin(angle) * dist,
-                    vx: (Math.random() - 0.5) * 50,
-                    vy: 100 + Math.random() * 100,
-                    radius: 8 + Math.random() * 6,
-                    damage: Math.floor(damage * 0.1),
+                    x: hailX,
+                    y: hailY,
+                    vx: (Math.random() - 0.5) * 30,
+                    vy: 150 + Math.random() * 80,
+                    radius: 10 + Math.random() * 8,
+                    damage: Math.floor(damage * 0.15),
                     isCrit: isCrit,
-                    color: '#87CEEB'
+                    color: '#87CEEB',
+                    lifetime: 5
                 });
             }
             
             for (let i = this.hailStones.length - 1; i >= 0; i--) {
                 const hail = this.hailStones[i];
                 
+                hail.lifetime -= dt;
                 hail.y += hail.vy * dt;
                 hail.x += hail.vx * dt;
                 
@@ -820,7 +850,7 @@
                             const dy = hail.y - segment.y;
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             
-                            if (dist < hail.radius + 15) {
+                            if (dist < hail.radius + 20) {
                                 if (segment.health > 0) {
                                     segment.health -= hail.damage;
                                     enemy.health -= hail.damage;
@@ -850,7 +880,7 @@
                     }
                 }
                 
-                if (hail.y > this.game.height + 50) {
+                if (hail.y > this.game.height + 50 || hail.lifetime <= 0) {
                     this.hailStones.splice(i, 1);
                 }
             }
