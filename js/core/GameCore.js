@@ -800,12 +800,7 @@
                 return;
             }
             
-            const levelConfig = this.getLevelConfig(this.currentLevel);
-            const requiredSegments = levelConfig.segments || 10;
-            
-            const segmentsDestroyed = this.windingEnemySystem ? this.windingEnemySystem.segmentsDestroyed : 0;
-            
-            if (segmentsDestroyed >= requiredSegments && this.enemies.length === 0) {
+            if (this.enemies.length === 0) {
                 this.levelComplete();
             }
         }
