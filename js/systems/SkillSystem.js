@@ -1387,46 +1387,47 @@
                 switch (skill.id) {
                     case 'bullet_count':
                         playerStats.bulletCount++;
+                        playerStats.bulletSpread = (playerStats.bulletSpread || 0) + 15;
                         break;
                     case 'fire_rate':
-                        playerStats.fireRate *= 0.88;
+                        playerStats.fireRate = (playerStats.fireRate || 0.3) * 0.8;
                         break;
                     case 'damage':
-                        playerStats.damageMultiplier = (playerStats.damageMultiplier || 1) * 1.2;
+                        playerStats.damageMultiplier = (playerStats.damageMultiplier || 1) * 1.5;
                         break;
                     case 'health':
-                        const healthBonus = Math.max(15, Math.floor(playerStats.maxHealth * 0.15));
                         playerStats.health = Math.min(
-                            playerStats.health + healthBonus,
+                            playerStats.health + 30,
                             playerStats.maxHealth
                         );
                         break;
                     case 'max_health':
-                        const maxHealthBonus = Math.max(15, Math.floor(playerStats.maxHealth * 0.12));
-                        playerStats.maxHealth += maxHealthBonus;
-                        playerStats.health += maxHealthBonus;
+                        playerStats.maxHealth += 25;
+                        playerStats.health += 25;
                         break;
                     case 'bullet_size':
-                        playerStats.bulletSize += 3;
+                        playerStats.bulletSize = (playerStats.bulletSize || 5) + 3;
                         break;
                     case 'speed':
-                        playerStats.speed *= 1.12;
+                        playerStats.speed = (playerStats.speed || 0.5) * 1.15;
                         if (playerStats.speed > 20) playerStats.speed = 20;
                         break;
                     case 'pierce':
-                        playerStats.bulletPierce++;
+                        playerStats.bulletPierce = (playerStats.bulletPierce || 0) + 1;
                         break;
                     case 'crit_chance':
                         playerStats.criticalChance = Math.min(
                             0.75,
-                            playerStats.criticalChance + 0.05
+                            (playerStats.criticalChance || 0.05) + 0.1
                         );
+                        playerStats.critChance = playerStats.criticalChance;
                         break;
                     case 'crit_damage':
-                        playerStats.criticalDamage += 0.3;
+                        playerStats.criticalDamage = (playerStats.criticalDamage || 1.5) + 0.5;
+                        playerStats.critDamage = playerStats.criticalDamage;
                         break;
                     case 'magnet':
-                        playerStats.magnetRange += 40;
+                        playerStats.magnetRange = (playerStats.magnetRange || 100) + 50;
                         break;
                 }
             }
