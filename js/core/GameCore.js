@@ -200,6 +200,10 @@
             this.chestsOpened = 0;
             this.segmentsDestroyed = 0;
             
+            if (this.windingEnemySystem) {
+                this.windingEnemySystem.reset();
+            }
+            
             this.shootTimer = 0;
             this.spawnTimer = 0;
             this.chestSpawnTimer = 0;
@@ -801,7 +805,7 @@
             
             const segmentsDestroyed = this.windingEnemySystem ? this.windingEnemySystem.segmentsDestroyed : 0;
             
-            if (segmentsDestroyed >= requiredSegments) {
+            if (segmentsDestroyed >= requiredSegments && this.enemies.length === 0) {
                 this.levelComplete();
             }
         }
