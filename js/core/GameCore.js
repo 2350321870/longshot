@@ -562,19 +562,19 @@
         }
 
         gameLoop(timestamp) {
-            if (this.gameState !== 'playing') return;
-            
             const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
             this.lastTime = timestamp;
             this.currentTime += dt;
             
-            if (!this.isPaused) {
+            if (this.gameState === 'playing' && !this.isPaused) {
                 this.update(dt);
             }
             
             this.render();
             
-            requestAnimationFrame((t) => this.gameLoop(t));
+            if (this.gameState !== 'levelComplete' && this.gameState !== 'gameOver') {
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
         }
 
         update(dt) {
@@ -787,9 +787,11 @@
 
         checkLevelComplete() {
             const levelConfig = this.getLevelConfig(this.currentLevel);
-            const requiredKills = levelConfig.enemyCount || 10;
+            const requiredSegments = levelConfig.segments || 10;
             
-            if (this.enemiesKilled >= requiredKills && this.enemies.length === 0) {
+            const segmentsDestroyed = this.windingEnemySystem ? this.windingEnemySystem.segmentsDestroyed : 0;
+            
+            if (segmentsDestroyed >= requiredSegments && this.enemies.length === 0) {
                 this.levelComplete();
             }
         }
