@@ -282,27 +282,30 @@
                 needle.lifetime -= dt;
                 
                 if (needle.homing && this.game.enemies.length > 0) {
-                    let nearestEnemy = null;
+                    let nearestSegment = null;
                     let nearestDist = Infinity;
                     
                     for (const enemy of this.game.enemies) {
                         if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
-                            const headSeg = enemy.segments[0];
-                            const dx = headSeg.x - needle.x;
-                            const dy = headSeg.y - needle.y;
-                            const dist = Math.sqrt(dx * dx + dy * dy);
-                            
-                            if (dist < nearestDist) {
-                                nearestDist = dist;
-                                nearestEnemy = headSeg;
+                            for (const segment of enemy.segments) {
+                                if (segment.health <= 0) continue;
+                                
+                                const dx = segment.x - needle.x;
+                                const dy = segment.y - needle.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                
+                                if (dist < nearestDist) {
+                                    nearestDist = dist;
+                                    nearestSegment = segment;
+                                }
                             }
                         }
                     }
                     
-                    if (nearestEnemy) {
+                    if (nearestSegment) {
                         const targetAngle = Math.atan2(
-                            nearestEnemy.y - needle.y,
-                            nearestEnemy.x - needle.x
+                            nearestSegment.y - needle.y,
+                            nearestSegment.x - needle.x
                         );
                         
                         const currentAngle = Math.atan2(needle.vy, needle.vx);

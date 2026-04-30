@@ -618,27 +618,30 @@
                 const bullet = this.bullets[i];
                 
                 if (bullet.homing && this.enemies.length > 0) {
-                    let nearestEnemy = null;
+                    let nearestSegment = null;
                     let nearestDist = Infinity;
                     
                     for (const enemy of this.enemies) {
                         if (enemy.isWinding && enemy.segments && enemy.segments.length > 0) {
-                            const headSeg = enemy.segments[0];
-                            const dx = headSeg.x - bullet.x;
-                            const dy = headSeg.y - bullet.y;
-                            const dist = Math.sqrt(dx * dx + dy * dy);
-                            
-                            if (dist < nearestDist) {
-                                nearestDist = dist;
-                                nearestEnemy = headSeg;
+                            for (const segment of enemy.segments) {
+                                if (segment.health <= 0) continue;
+                                
+                                const dx = segment.x - bullet.x;
+                                const dy = segment.y - bullet.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                
+                                if (dist < nearestDist) {
+                                    nearestDist = dist;
+                                    nearestSegment = segment;
+                                }
                             }
                         }
                     }
                     
-                    if (nearestEnemy) {
+                    if (nearestSegment) {
                         const targetAngle = Math.atan2(
-                            nearestEnemy.y - bullet.y,
-                            nearestEnemy.x - bullet.x
+                            nearestSegment.y - bullet.y,
+                            nearestSegment.x - bullet.x
                         );
                         
                         const currentAngle = Math.atan2(bullet.vy, bullet.vx);
